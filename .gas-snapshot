@@ -1,2 +1,3 @@
-Tester:test(string) (runs: 256, μ: 47790, ~: 24790)
-TesterTest:testTest() (gas: 29940)
+SwapHookRouterTest:testDeployGas() (gas: 1574727)
+SwapHookRouterTest:testInitAccessRestrictedHookPool() (gas: 44144)
+SwapHookRouterTest:testInitHooklessPool() (gas: 41965)

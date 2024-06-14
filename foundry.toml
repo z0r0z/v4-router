@@ -5,6 +5,8 @@ evm_version = "cancun"
 optimizer = true
 optimizer_runs = 9_999_999
 
+via_ir = true
+
 remappings = [
   "@v4=lib/v4-core/",
   "v4-periphery=lib/v4-periphery/contracts/",
@@ -12,8 +14,6 @@ remappings = [
   "@forge=lib/forge-std/src/"
 ]
 
-[profile.via-ir]
-via_ir = true
 
 [fmt]
 line_length = 100

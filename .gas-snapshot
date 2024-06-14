@@ -1,3 +1,2 @@
-SwapHookRouterTest:testDeployGas() (gas: 1574727)
-SwapHookRouterTest:testInitAccessRestrictedHookPool() (gas: 44144)
-SwapHookRouterTest:testInitHooklessPool() (gas: 41965)
+TesterTest:testRouterDeployGas() (gas: 667323)
+TesterTest:testSingleSwapExactInput() (gas: 5422)

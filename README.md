@@ -6,7 +6,7 @@ Optimized routing infra for Uniswap v4 pools with modular support for variety of
 - [x] v3 snippet
 - [x] v4 snippet
 - [ ]  validate v4 snippet (w/ sauce)
-- [ ]  exact-in/exact-out 
+- [x]  exact-in/exact-out 
 - [ ]  multi-hop
 - [ ]  hook tests
 

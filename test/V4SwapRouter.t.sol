@@ -38,6 +38,12 @@ contract TesterTest is Test {
     // floor(sqrt(1) * 2^96)
     uint160 constant startingPrice = 79228162514264337593543950336;
 
+    struct CallbackData {
+        PoolKey key;
+        SwapParams params;
+        bytes hookData;
+    }
+
     function setUp() public payable {
         aliceSwapper = makeAddr("alice");
         payable(aliceSwapper).transfer(1 ether);
@@ -107,6 +113,6 @@ contract TesterTest is Test {
     /// @dev note: Pending review on swap format/sanity check.
     function testSingleSwapExactInput() public payable {
         vm.prank(aliceSwapper);
-        // router.swap(coolKeyNoHook, SwapParams(true, -(1 ether), 0), "");
+        router.swapSingle(coolKeyNoHook, SwapParams(true, -(1 ether), 0), "");
     }
 }

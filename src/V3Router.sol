@@ -106,7 +106,7 @@ contract V3SwapRouter {
     /// @dev Computes the create2 address for given token pair and pool fee.
     function _computePoolAddress(address tokenA, address tokenB, uint24 fee)
         internal
-        view
+        pure
         returns (address pool, bool zeroForOne)
     {
         if (tokenA < tokenB) zeroForOne = true;

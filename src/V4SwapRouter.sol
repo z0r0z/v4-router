@@ -1,10 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.19;
 
-/// @title V4 Swap Router
-/// @author z0r0z.eth
-/// @dev A hyper-optimized single-swap router for UniswapV4.
+import "forge-std/console.sol";
+
+/// @title Uniswap V4 Swap Router
+/// @notice Router for stateless execution of swaps against Uniswap V4.
 contract V4SwapRouter {
+    /// ======================= CUSTOM ERRORS ======================= ///
+
+    /// @dev Pool auth.
+    error Unauthorized();
+
     /// ========================= CONSTANTS ========================= ///
 
     /// @dev The minimum value that can be returned from `getSqrtRatioAtTick` (plus one).
@@ -24,88 +30,104 @@ contract V4SwapRouter {
 
     /// ===================== SWAP EXECUTION ===================== ///
 
-    function swap(PoolKey memory key, SwapParams memory params, bytes calldata hookData)
+    /// @dev Swap an exact input `amountSpecified` (-) for equivalent exchange against pool `key`.
+    function swapSingle(PoolKey memory key, SwapParams memory params, bytes calldata hookData)
         public
         payable
     {
         UNISWAP_V4_POOL_MANAGER.unlock(abi.encode(msg.sender, key, params, hookData));
     }
 
-    /// @dev note: Initially testing exact-in single swap.
-    /// Elaboration to exact-out and multi-hop should be not difficult,
-    /// if this overall format holds up. Please comment on v4 niceties so far.
     function unlockCallback(bytes calldata callBackData) public payable {
         if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
+
+        // Decode and extract the swap instructions from the PoolManager callback data.
         (address swapper, PoolKey memory key, SwapParams memory params, bytes memory hookData) =
             abi.decode(callBackData, (address, PoolKey, SwapParams, bytes));
+
+        bool exactIn = 0 > params.amountSpecified;
+
+        // Sort the input and output currencies for the given direction (`zeroForOne`).
         (address fromCurrency, address toCurrency) =
             params.zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
+
+        // Apply directional price limit.
         params.sqrtPriceLimitX96 =
             params.zeroForOne ? MIN_SQRT_RATIO_PLUS_ONE : MAX_SQRT_RATIO_MINUS_ONE;
+
+        // Call `swap()` on the PoolManager and memo the `delta` output.
         int256 delta = UNISWAP_V4_POOL_MANAGER.swap(key, params, hookData);
+
+        // Call `sync()` on the PoolManager to update currency reserves.
+        UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
+
+        /// @dev The amount that can be taken or requires settlement if not `exactIn`.
+        uint256 takeAmount =
+            uint256(uint128(int128(params.zeroForOne ? _amount1(delta) : _amount0(delta))));
+        console.log(takeAmount);
+
+        // If not native token (ETH) as input, then pull `swapper` tokens to PoolManager.
         if (fromCurrency != address(0)) {
-            UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
             safeTransferFrom(
                 fromCurrency,
                 swapper,
                 msg.sender, // PoolManager.
-                uint256(params.amountSpecified)
+                exactIn ? uint256(-params.amountSpecified) : takeAmount
             );
         }
-        UNISWAP_V4_POOL_MANAGER.settle{value: msg.value}(fromCurrency);
+
+        // Call `settle()` on PoolManager to update reserves (attach local value to account for ETH `fromCurrency`).
+        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}(fromCurrency);
+
+        // Call `take()` on the PoolManager and send `takeAmount` to `swapper` with switch case on `exactIn`.
         UNISWAP_V4_POOL_MANAGER.take(
-            toCurrency,
-            swapper,
-            params.zeroForOne ? uint128(-1 * amount1(delta)) : uint128(-1 * amount0(delta))
+            toCurrency, swapper, exactIn ? takeAmount : uint256(-params.amountSpecified)
         );
     }
 
-    function amount0(int256 balanceDelta) internal pure returns (int128 _amount0) {
-        assembly ("memory-safe") {
-            _amount0 := sar(128, balanceDelta)
+    /// @dev Extract `amount0` from packed `balanceDelta` int256.
+    function _amount0(int256 balanceDelta) internal pure returns (int128 amount0) {
+        assembly {
+            amount0 := sar(128, balanceDelta)
         }
     }
 
-    function amount1(int256 balanceDelta) internal pure returns (int128 _amount1) {
-        assembly ("memory-safe") {
-            _amount1 := signextend(15, balanceDelta)
+    /// @dev Extract `amount1` from packed `balanceDelta` int256.
+    function _amount1(int256 balanceDelta) internal pure returns (int128 amount1) {
+        assembly {
+            amount1 := signextend(15, balanceDelta)
         }
     }
 }
 
-// Appendix ~~
-
-/// @dev Pool auth.
-error Unauthorized();
-
-/// @dev Simple Uniswap V4 pool key.
+/// @dev Uniswap V4 pool key.
 struct PoolKey {
-    address currency0;
-    address currency1;
+    address currency0; // Syntax-simple.
+    address currency1; // Syntax-simple.
     uint24 fee;
     int24 tickSpacing;
     address hooks;
 }
 
-/// @dev Simple Uniswap V4 swap params.
+/// @dev Uniswap V4 swap params.
 struct SwapParams {
     bool zeroForOne;
     int256 amountSpecified;
     uint160 sqrtPriceLimitX96;
 }
 
-//// @dev Minimal Uniswap V4 pool manager interface.
+//// @dev Minimal Uniswap V4 pool manager interface with syntax simplicity.
 interface IPoolManager {
     function unlock(bytes calldata data) external returns (bytes memory);
     function swap(PoolKey memory key, SwapParams memory params, bytes calldata hookData)
         external
-        returns (int256); // BalanceDelta.
+        returns (int256); // BalanceDelta (syntax-simple).
     function sync(address currency) external returns (uint256 balance);
     function settle(address token) external payable returns (uint256 paid);
     function take(address currency, address to, uint256 amount) external;
 }
 
-/// @dev Sourced from the pristine machinations of the Solady solidity library.
+/// @dev Solady ERC20 token pull pattern that gracefully handles non-standard returns.
 function safeTransferFrom(address token, address from, address to, uint256 amount) {
     assembly ("memory-safe") {
         let m := mload(0x40)

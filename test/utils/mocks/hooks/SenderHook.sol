@@ -27,7 +27,7 @@ contract SenderHook is BaseHook {
         PoolKey calldata,
         IPoolManager.SwapParams calldata,
         bytes calldata hookData
-    ) external override returns (bytes4, BeforeSwapDelta, uint24) {
+    ) external view override returns (bytes4, BeforeSwapDelta, uint24) {
         // --- Read the user's address --- //
         address user = abi.decode(hookData, (address));
         require(allowedUsers[user], "MsgSenderHookData: User not allowed");

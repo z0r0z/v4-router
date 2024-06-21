@@ -30,12 +30,29 @@ contract V4SwapRouter {
 
     /// ===================== SWAP EXECUTION ===================== ///
 
+    /// @dev Structured swap callback for multihop.
+    struct CallbackData {
+        PoolKey key;
+        SwapParams params;
+        bytes hookData;
+    }
+
     /// @dev Swap an exact input `amountSpecified` (-) for equivalent exchange against pool `key`.
     function swapSingle(PoolKey memory key, SwapParams memory params, bytes calldata hookData)
         public
         payable
     {
         UNISWAP_V4_POOL_MANAGER.unlock(abi.encode(msg.sender, key, params, hookData));
+    }
+
+    function swapMultihop(CallbackData[] calldata swaps) public payable {
+        address sender;
+        for (uint256 i; i != swaps.length; ++i) {
+            i == 0 ? sender = msg.sender : address(this);
+            UNISWAP_V4_POOL_MANAGER.unlock(
+                abi.encode(sender, swaps[i].key, swaps[i].params, swaps[i].hookData)
+            );
+        }
     }
 
     function unlockCallback(bytes calldata callBackData) public payable {

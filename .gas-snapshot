@@ -1,2 +1,3 @@
-TesterTest:testRouterDeployGas() (gas: 667323)
-TesterTest:testSingleSwapExactInput() (gas: 5422)
+TesterTest:testPoolLiquidity() (gas: 386)
+TesterTest:testRouterDeployGas() (gas: 688182)
+TesterTest:testSingleSwapExactInput() (gas: 119058)

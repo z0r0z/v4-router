@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.19;
 
-import {
-    IPoolManager as ICoolManager,
-    PoolKey as CoolKey,
-    SwapParams,
-    V4SwapRouter
-} from "../src/V4SwapRouter.sol";
+import {V4SwapRouter} from "../src/V4SwapRouter.sol";
 import {IPoolManager, PoolManager} from "@v4/src/PoolManager.sol";
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
@@ -32,15 +27,12 @@ contract TesterTest is Test {
     /// @dev Vanilla pool no hook.
     PoolKey internal keyNoHook;
 
-    /// @dev Purely syntax sugar rn.
-    CoolKey internal coolKeyNoHook;
-
-    // floor(sqrt(1) * 2^96)
+    /// @dev floor(sqrt(1) * 2^96)
     uint160 constant startingPrice = 79228162514264337593543950336;
 
     struct CallbackData {
         PoolKey key;
-        SwapParams params;
+        IPoolManager.SwapParams params;
         bytes hookData;
     }
 
@@ -49,19 +41,21 @@ contract TesterTest is Test {
         payable(aliceSwapper).transfer(1 ether);
 
         manager = address(new PoolManager(500000));
-        router = new V4SwapRouter(ICoolManager(manager));
+        router = new V4SwapRouter(IPoolManager(manager));
 
         liqRouter = new PoolModifyLiquidityTest(IPoolManager(manager));
 
         currency0Addr = address(new MockERC20("Test0", "Test0", 18));
         currency1Addr = address(new MockERC20("Test1", "Test1", 18));
 
+        // Sort in appropriate token order.
         if (currency0Addr > currency1Addr) {
             (currency0Addr, currency1Addr) = (currency1Addr, currency0Addr);
         }
 
         MockERC20(currency0Addr).mint(aliceSwapper, 100 ether);
         MockERC20(currency1Addr).mint(aliceSwapper, 100 ether);
+
         vm.prank(aliceSwapper);
         MockERC20(currency0Addr).approve(address(router), type(uint256).max);
         vm.prank(aliceSwapper);
@@ -78,14 +72,6 @@ contract TesterTest is Test {
             fee: 3000,
             tickSpacing: 60,
             hooks: IHooks(address(0))
-        });
-
-        coolKeyNoHook = CoolKey({
-            currency0: currency0Addr,
-            currency1: currency1Addr,
-            fee: 3000,
-            tickSpacing: 60,
-            hooks: address(0)
         });
 
         PoolManager(manager).initialize(keyNoHook, startingPrice, "");
@@ -107,12 +93,13 @@ contract TesterTest is Test {
     }
 
     function testRouterDeployGas() public payable {
-        router = new V4SwapRouter(ICoolManager(manager));
+        router = new V4SwapRouter(IPoolManager(manager));
     }
 
-    /// @dev note: Pending review on swap format/sanity check.
+    function testPoolLiquidity() public payable {}
+
     function testSingleSwapExactInput() public payable {
         vm.prank(aliceSwapper);
-        router.swapSingle(coolKeyNoHook, SwapParams(true, -(1 ether), 0), "");
+        router.swapSingle(keyNoHook, IPoolManager.SwapParams(true, -(0.1 ether), 0), "");
     }
 }

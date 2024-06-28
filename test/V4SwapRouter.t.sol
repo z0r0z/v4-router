@@ -29,8 +29,11 @@ contract TesterTest is Test {
     // Max tick for full range with tick spacing of 60.
     int24 internal constant MAX_TICK = -MIN_TICK;
 
-    // Vanilla pool no hook.
+    // Vanilla pool (no hook).
     PoolKey internal keyNoHook;
+
+    // ETH based pool (no hook).
+    PoolKey internal ethKeyNoHook;
 
     // floor(sqrt(1) * 2^96)
     uint160 constant startingPrice = 79228162514264337593543950336;
@@ -80,6 +83,16 @@ contract TesterTest is Test {
         });
 
         PoolManager(manager).initialize(keyNoHook, startingPrice, "");
+
+        ethKeyNoHook = PoolKey({
+            currency0: Currency.wrap(address(0)),
+            currency1: Currency.wrap(currency1Addr),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: IHooks(address(0))
+        });
+
+        PoolManager(manager).initialize(ethKeyNoHook, startingPrice, "");
 
         int24 tickLower = -600;
         int24 tickUpper = 600;

@@ -11,6 +11,8 @@ import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 import {Test} from "../lib/forge-std/src/Test.sol";
 import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 
+import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
+
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
 
 contract TesterTest is Test {
@@ -34,6 +36,12 @@ contract TesterTest is Test {
 
     // ETH based pool (no hook).
     PoolKey internal ethKeyNoHook;
+
+    // Basic no-op hook pool.
+    PoolKey internal keyNoOpSwapHook;
+
+    // Basic no-op hook for testing.
+    IHooks internal noOpSwapHook;
 
     // floor(sqrt(1) * 2^96)
     uint160 constant startingPrice = 79228162514264337593543950336;
@@ -84,6 +92,18 @@ contract TesterTest is Test {
 
         PoolManager(manager).initialize(keyNoHook, startingPrice, "");
 
+        /*noOpSwapHook = IHooks(address(new NoOpSwapHook(IPoolManager(manager))));
+
+        keyNoOpSwapHook = PoolKey({
+            currency0: Currency.wrap(currency0Addr),
+            currency1: Currency.wrap(currency1Addr),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: noOpSwapHook
+        });
+
+        PoolManager(manager).initialize(keyNoOpSwapHook, startingPrice, "");*/
+
         ethKeyNoHook = PoolKey({
             currency0: Currency.wrap(address(0)),
             currency1: Currency.wrap(currency1Addr),
@@ -108,6 +128,17 @@ contract TesterTest is Test {
             }),
             ""
         );
+        /*vm.prank(aliceSwapper);
+        liqRouter.modifyLiquidity(
+            keyNoOpSwapHook,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: tickLower,
+                tickUpper: tickUpper,
+                liquidityDelta: liquidity,
+                salt: 0
+            }),
+            ""
+        );*/
     }
 
     function testRouterDeployGas() public payable {

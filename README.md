@@ -5,12 +5,19 @@ Optimized routing infra for Uniswap v4 pools with modular support for variety of
 - [x] staging
 - [x] v3 snippet
 - [x] v4 snippet
-- [ ]  validate v4 snippet (w/ sauce)
+- [x]  validate v4 snippet (w/ sauce)
 - [x]  exact-in/exact-out 
 - [ ]  multi-hop
 - [ ]  hook tests
 
 offchain algo to follow forge testing of the above. ETA still EOM (28th).
+
+## Optimizations
+
+### current
+
+### future
+-- once PoolManager is deployed or predicted, it should be hardcoded as a constant value in router
 
 ## Getting Started
 

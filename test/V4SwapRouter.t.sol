@@ -14,7 +14,7 @@ import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
 
 contract TesterTest is Test {
-    address aliceSwapper;
+    address internal aliceSwapper;
 
     address internal manager;
     V4SwapRouter internal router;
@@ -24,10 +24,15 @@ contract TesterTest is Test {
     address internal currency0Addr;
     address internal currency1Addr;
 
-    /// @dev Vanilla pool no hook.
+    // Min tick for full range with tick spacing of 60.
+    int24 internal constant MIN_TICK = -887220;
+    // Max tick for full range with tick spacing of 60.
+    int24 internal constant MAX_TICK = -MIN_TICK;
+
+    // Vanilla pool no hook.
     PoolKey internal keyNoHook;
 
-    /// @dev floor(sqrt(1) * 2^96)
+    // floor(sqrt(1) * 2^96)
     uint160 constant startingPrice = 79228162514264337593543950336;
 
     struct CallbackData {
@@ -96,10 +101,13 @@ contract TesterTest is Test {
         router = new V4SwapRouter(IPoolManager(manager));
     }
 
-    function testPoolLiquidity() public payable {}
-
     function testSingleSwapExactInput() public payable {
         vm.prank(aliceSwapper);
         router.swapSingle(keyNoHook, IPoolManager.SwapParams(true, -(0.1 ether), 0), "");
+    }
+
+    function testSingleSwapExactOutput() public payable {
+        vm.prank(aliceSwapper);
+        router.swapSingle(keyNoHook, IPoolManager.SwapParams(true, 0.1 ether, 0), "");
     }
 }

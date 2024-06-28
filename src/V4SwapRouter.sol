@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
+import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
 
@@ -23,15 +24,12 @@ contract V4SwapRouter {
 
     /// ========================= CONSTANTS ========================= ///
 
-    /// @dev The minimum value that can be returned from `getSqrtRatioAtTick` (plus one).
-    uint160 internal constant MIN_SQRT_RATIO_PLUS_ONE = 4295128740;
-
-    /// @dev The maximum value that can be returned from `getSqrtRatioAtTick` (minus one).
-    uint160 internal constant MAX_SQRT_RATIO_MINUS_ONE =
-        1461446703485210103287273052203988822378723970341;
-
-    /// @dev The address of the Uniswap V4 pool manager.
+    /// @dev The address of the Uniswap V4 pool manager singleton.
+    /// note: This is made `internal` to save gas. PoolManager
+    /// will be a canonical deployment, so address is known.
     IPoolManager internal immutable UNISWAP_V4_POOL_MANAGER;
+
+    /// ======================== CONSTRUCTOR ======================== ///
 
     /// @dev Create with Uniswap V4 pool manager.
     constructor(IPoolManager manager) payable {
@@ -45,10 +43,14 @@ contract V4SwapRouter {
         PoolKey memory key,
         IPoolManager.SwapParams memory params,
         bytes calldata hookData
-    ) public payable {
-        UNISWAP_V4_POOL_MANAGER.unlock(abi.encode(msg.sender, key, params, hookData));
+    ) public payable returns (BalanceDelta) {
+        return abi.decode(
+            UNISWAP_V4_POOL_MANAGER.unlock(abi.encode(msg.sender, key, params, hookData)),
+            (BalanceDelta)
+        );
     }
 
+    /// @dev Receive call from PoolManager and perform swap actions in sequence based on inputs.
     function unlockCallback(bytes calldata callBackData) public payable returns (bytes memory) {
         if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
         (
@@ -65,16 +67,18 @@ contract V4SwapRouter {
         (Currency fromCurrency, Currency toCurrency) =
             params.zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
-        // Apply the directional price limit.
-        params.sqrtPriceLimitX96 =
-            params.zeroForOne ? MIN_SQRT_RATIO_PLUS_ONE : MAX_SQRT_RATIO_MINUS_ONE;
+        // Apply the directional price limit if zero (or as specified if non-zero).
+        if (params.sqrtPriceLimitX96 == 0) {
+            params.sqrtPriceLimitX96 =
+                params.zeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1;
+        }
 
         // Call `swap()` on the PoolManager and memo the `delta` output.
         BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(key, params, hookData);
 
         // The amount that can be taken or that requires settlement if not `exactIn`.
         uint256 takeAmount =
-            uint256(uint128((params.zeroForOne ? delta.amount1() : delta.amount0())));
+            uint256(uint128((params.zeroForOne && exactIn ? delta.amount1() : -delta.amount0())));
 
         // Call `sync()` on the PoolManager to update currency reserves.
         UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
@@ -94,10 +98,10 @@ contract V4SwapRouter {
 
         // Call `take()` on the PoolManager with `takeAmount` sent to `swapper` (with switch case on `exactIn`).
         UNISWAP_V4_POOL_MANAGER.take(
-            toCurrency, swapper, exactIn ? takeAmount : uint256(-params.amountSpecified)
+            toCurrency, swapper, exactIn ? takeAmount : uint256(params.amountSpecified)
         );
 
-        return ""; // End callback with empty output to follow interface.
+        return abi.encode(delta); // Return the swap delta.
     }
 }
 

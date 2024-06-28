@@ -45,7 +45,22 @@ contract V4SwapRouter {
         bytes calldata hookData
     ) public payable returns (BalanceDelta) {
         return abi.decode(
-            UNISWAP_V4_POOL_MANAGER.unlock(abi.encode(msg.sender, key, params, hookData)),
+            UNISWAP_V4_POOL_MANAGER.unlock(abi.encodePacked(false, abi.encode(msg.sender, key, params, hookData))),
+            (BalanceDelta)
+        );
+    }
+
+    /// @dev Multi-hop struct.
+    struct CallbackData {
+        PoolKey key;
+        IPoolManager.SwapParams params;
+        bytes hookData;
+    }
+
+    /// @dev Perform multi-hop swap.
+    function swapMulti(CallbackData[] calldata swaps) public payable returns (BalanceDelta) {
+        return abi.decode(
+            UNISWAP_V4_POOL_MANAGER.unlock(abi.encodePacked(true, abi.encode(swaps))),
             (BalanceDelta)
         );
     }
@@ -53,6 +68,21 @@ contract V4SwapRouter {
     /// @dev Receive call from PoolManager and perform swap actions in sequence based on inputs.
     function unlockCallback(bytes calldata callBackData) public payable returns (bytes memory) {
         if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
+
+        bool multi; // Flag in first byte.
+        assembly ("memory-safe") {
+            multi := byte(0, calldataload(0))
+        }
+
+        if (!multi) {
+            return _singleSwap(callBackData);
+        } else {
+            return _multiSwap(callBackData);
+        }
+    }
+    
+    /// @dev Complete single swap exact-in/out.
+    function _singleSwap(bytes calldata callBackData) internal returns (bytes memory) {
         (
             address swapper,
             PoolKey memory key,
@@ -102,6 +132,43 @@ contract V4SwapRouter {
         );
 
         return abi.encode(delta); // Return the swap delta.
+    }
+
+    /// @dev Complete multi-hop swap exact-in/out in for loop sequence.
+    function _multiSwap(bytes calldata callBackData) internal returns (bytes memory) {
+        CallbackData[] memory swaps = abi.decode(callBackData[1:], (CallbackData[]));
+        BalanceDelta totalDelta;
+
+        for (uint256 i = 0; i < swaps.length; i++) {
+            PoolKey memory key = swaps[i].key;
+            IPoolManager.SwapParams memory params = swaps[i].params;
+            bytes memory hookData = swaps[i].hookData;
+
+            // Adjust parameters for each hop
+            if (params.sqrtPriceLimitX96 == 0) {
+                params.sqrtPriceLimitX96 =
+                    params.zeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1;
+            }
+
+            BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(key, params, hookData);
+            totalDelta = totalDelta + delta;
+
+            // Synchronize and settle as needed
+            UNISWAP_V4_POOL_MANAGER.sync(params.zeroForOne ? key.currency0 : key.currency1);
+            UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}(
+                params.zeroForOne ? key.currency0 : key.currency1
+            );
+        }
+
+        // Final settlement and take
+        CallbackData memory lastSwap = swaps[swaps.length - 1];
+        UNISWAP_V4_POOL_MANAGER.take(
+            lastSwap.params.zeroForOne ? lastSwap.key.currency1 : lastSwap.key.currency0,
+            msg.sender,
+            uint256(lastSwap.params.amountSpecified)
+        );
+
+        return abi.encode(totalDelta); // Return the total swap delta.
     }
 }
 

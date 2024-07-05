@@ -103,15 +103,9 @@ contract V4SwapRouter {
 
     function _swapSingle(address swapper, Swap memory swaps) internal returns (bytes memory) {
         bool exactIn = swaps.amountSpecified < 0;
-        bool zeroForOne = swaps.fromCurrency < swaps.keys[0].key.currency1;
-        Currency toCurrency = zeroForOne ? swaps.keys[0].key.currency1 : swaps.keys[0].key.currency0;
 
-        uint160 sqrtPriceLimitX96 = zeroForOne ? MIN : MAX;
-        BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(
-            swaps.keys[0].key,
-            IPoolManager.SwapParams(zeroForOne, swaps.amountSpecified, sqrtPriceLimitX96),
-            swaps.keys[0].hookData
-        );
+        (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
+            _handleSwap(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[0]);
 
         uint256 takeAmount = zeroForOne
             ? (exactIn ? uint256(uint128(delta.amount1())) : uint256(uint128(-delta.amount0())))
@@ -138,15 +132,9 @@ contract V4SwapRouter {
 
     function _swapInitial(address swapper, Swap memory swaps) internal returns (Currency, int256) {
         bool exactIn = swaps.amountSpecified < 0;
-        bool zeroForOne = swaps.fromCurrency < swaps.keys[0].key.currency1;
-        Currency toCurrency = zeroForOne ? swaps.keys[0].key.currency1 : swaps.keys[0].key.currency0;
 
-        uint160 sqrtPriceLimitX96 = zeroForOne ? MIN : MAX;
-        BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(
-            swaps.keys[0].key,
-            IPoolManager.SwapParams(zeroForOne, swaps.amountSpecified, sqrtPriceLimitX96),
-            swaps.keys[0].hookData
-        );
+        (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
+            _handleSwap(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[0]);
 
         uint256 takeAmount = zeroForOne
             ? (exactIn ? uint256(uint128(delta.amount1())) : uint256(uint128(-delta.amount0())))
@@ -175,13 +163,8 @@ contract V4SwapRouter {
         internal
         returns (Currency, int256)
     {
-        bool zeroForOne = fromCurrency < key.key.currency1;
-        Currency toCurrency = zeroForOne ? key.key.currency1 : key.key.currency0;
-
-        uint160 sqrtPriceLimitX96 = zeroForOne ? MIN : MAX;
-        BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(
-            key.key, IPoolManager.SwapParams(zeroForOne, -takeIn, sqrtPriceLimitX96), key.hookData
-        );
+        (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
+            _handleSwap(fromCurrency, -takeIn, key);
 
         uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
         UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
@@ -207,13 +190,8 @@ contract V4SwapRouter {
         address receiver,
         uint256 amountOutMin
     ) internal returns (bytes memory) {
-        bool zeroForOne = fromCurrency < key.key.currency1;
-        Currency toCurrency = zeroForOne ? key.key.currency1 : key.key.currency0;
-
-        uint160 sqrtPriceLimitX96 = zeroForOne ? MIN : MAX;
-        BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(
-            key.key, IPoolManager.SwapParams(zeroForOne, -takeIn, sqrtPriceLimitX96), key.hookData
-        );
+        (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
+            _handleSwap(fromCurrency, -takeIn, key);
 
         uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
         if (takeAmount < amountOutMin) revert InsufficientOutput();
@@ -231,6 +209,19 @@ contract V4SwapRouter {
         UNISWAP_V4_POOL_MANAGER.take(toCurrency, receiver, takeAmount);
 
         return abi.encode(delta);
+    }
+
+    function _handleSwap(Currency fromCurrency, int256 amountSpecified, Key memory key)
+        internal
+        returns (bool zeroForOne, Currency toCurrency, BalanceDelta delta)
+    {
+        zeroForOne = fromCurrency < key.key.currency1;
+        toCurrency = zeroForOne ? key.key.currency1 : key.key.currency0;
+        delta = UNISWAP_V4_POOL_MANAGER.swap(
+            key.key,
+            IPoolManager.SwapParams(zeroForOne, amountSpecified, zeroForOne ? MIN : MAX),
+            key.hookData
+        );
     }
 
     receive() external payable {

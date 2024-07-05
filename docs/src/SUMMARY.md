@@ -1,10 +1,6 @@
 # Summary
 - [Home](README.md)
 # src
-  - [V3SwapRouter](src/V3Router.sol/contract.V3SwapRouter.md)
-  - [ISwapRouter](src/V3Router.sol/interface.ISwapRouter.md)
-  - [safeTransferETH](src/V3Router.sol/function.safeTransferETH.md)
-  - [safeTransferFrom](src/V3Router.sol/function.safeTransferFrom.md)
   - [SwapParams](src/V4SwapRouter.sol/struct.SwapParams.md)
   - [Swap](src/V4SwapRouter.sol/struct.Swap.md)
   - [Key](src/V4SwapRouter.sol/struct.Key.md)

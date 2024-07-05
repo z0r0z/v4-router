@@ -1,5 +1,5 @@
 # V4SwapRouter
-[Git Source](https://github.com/z0r0z/v4-router/blob/c527d235b3c39fc8a223c2459527adade0c283d0/src/V4SwapRouter.sol)
+[Git Source](https://github.com/z0r0z/v4-router/blob/9c91d5ee278185c656d5983b3c07b8004a248d0c/src/V4SwapRouter.sol)
 
 Router for stateless execution of swaps against Uniswap V4.
 
@@ -102,6 +102,15 @@ function _swapFinal(
     address receiver,
     uint256 amountOutMin
 ) internal returns (bytes memory);
+```
+
+### _swap
+
+
+```solidity
+function _swap(Currency fromCurrency, int256 amountSpecified, Key memory key)
+    internal
+    returns (bool zeroForOne, Currency toCurrency, BalanceDelta delta);
 ```
 
 ### receive

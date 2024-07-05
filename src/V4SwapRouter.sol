@@ -105,7 +105,7 @@ contract V4SwapRouter {
         bool exactIn = swaps.amountSpecified < 0;
 
         (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
-            _handleSwap(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[0]);
+            _swap(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[0]);
 
         uint256 takeAmount = zeroForOne
             ? (exactIn ? uint256(uint128(delta.amount1())) : uint256(uint128(-delta.amount0())))
@@ -134,7 +134,7 @@ contract V4SwapRouter {
         bool exactIn = swaps.amountSpecified < 0;
 
         (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
-            _handleSwap(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[0]);
+            _swap(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[0]);
 
         uint256 takeAmount = zeroForOne
             ? (exactIn ? uint256(uint128(delta.amount1())) : uint256(uint128(-delta.amount0())))
@@ -164,7 +164,7 @@ contract V4SwapRouter {
         returns (Currency, int256)
     {
         (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
-            _handleSwap(fromCurrency, -takeIn, key);
+            _swap(fromCurrency, -takeIn, key);
 
         uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
         UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
@@ -191,7 +191,7 @@ contract V4SwapRouter {
         uint256 amountOutMin
     ) internal returns (bytes memory) {
         (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
-            _handleSwap(fromCurrency, -takeIn, key);
+            _swap(fromCurrency, -takeIn, key);
 
         uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
         if (takeAmount < amountOutMin) revert InsufficientOutput();
@@ -211,7 +211,7 @@ contract V4SwapRouter {
         return abi.encode(delta);
     }
 
-    function _handleSwap(Currency fromCurrency, int256 amountSpecified, Key memory key)
+    function _swap(Currency fromCurrency, int256 amountSpecified, Key memory key)
         internal
         returns (bool zeroForOne, Currency toCurrency, BalanceDelta delta)
     {

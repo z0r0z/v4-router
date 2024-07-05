@@ -1,10 +1,6 @@
 
 
 # Contents
-- [V3SwapRouter](V3Router.sol/contract.V3SwapRouter.md)
-- [ISwapRouter](V3Router.sol/interface.ISwapRouter.md)
-- [safeTransferETH](V3Router.sol/function.safeTransferETH.md)
-- [safeTransferFrom](V3Router.sol/function.safeTransferFrom.md)
 - [SwapParams](V4SwapRouter.sol/struct.SwapParams.md)
 - [Swap](V4SwapRouter.sol/struct.Swap.md)
 - [Key](V4SwapRouter.sol/struct.Key.md)

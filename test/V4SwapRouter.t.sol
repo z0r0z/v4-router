@@ -45,6 +45,9 @@ contract TesterTest is Test {
     // Vanilla variant for cf.
     PoolKey internal keyNoHook4;
 
+    // Vanilla variant for cf.
+    PoolKey internal keyNoHook5;
+
     // ETH based pool (no hook).
     PoolKey internal ethKeyNoHook;
 
@@ -142,6 +145,16 @@ contract TesterTest is Test {
 
         PoolManager(manager).initialize(keyNoHook4, startingPrice, "");
 
+        keyNoHook5 = PoolKey({
+            currency0: Currency.wrap(currency0Addr),
+            currency1: Currency.wrap(currency3Addr),
+            fee: 3000,
+            tickSpacing: 60,
+            hooks: IHooks(address(0))
+        });
+
+        PoolManager(manager).initialize(keyNoHook5, startingPrice, "");
+
         /*noOpSwapHook = IHooks(address(new NoOpSwapHook(IPoolManager(manager))));
 
         keyNoOpSwapHook = PoolKey({
@@ -203,6 +216,17 @@ contract TesterTest is Test {
         vm.prank(aliceSwapper);
         liqRouter.modifyLiquidity(
             keyNoHook4,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: tickLower,
+                tickUpper: tickUpper,
+                liquidityDelta: liquidity,
+                salt: 0
+            }),
+            ""
+        );
+        vm.prank(aliceSwapper);
+        liqRouter.modifyLiquidity(
+            keyNoHook5,
             IPoolManager.ModifyLiquidityParams({
                 tickLower: tickLower,
                 tickUpper: tickUpper,
@@ -327,6 +351,45 @@ contract TesterTest is Test {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap(swap); // 0 for 3.
+    }
+
+    function testMultihopSwapExactInputTwoHopAlt() public payable {
+        Key[] memory keys = new Key[](2);
+        keys[0].key = keyNoHook;
+        keys[1].key = keyNoHook5;
+        Swap memory swap;
+        swap.receiver = aliceSwapper;
+        swap.fromCurrency = keyNoHook.currency1;
+        swap.amountSpecified = -(0.1 ether);
+        swap.keys = keys;
+        vm.prank(aliceSwapper);
+        router.swap(swap); // 1 for 3.
+    }
+
+    function testMultihopSwapExactOutputTwoHops() public payable {
+        Key[] memory keys = new Key[](2);
+        keys[0].key = keyNoHook;
+        keys[1].key = keyNoHook3;
+        Swap memory swap;
+        swap.receiver = aliceSwapper;
+        swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
+        swap.amountSpecified = 0.1 ether;
+        swap.keys = keys;
+        vm.prank(aliceSwapper);
+        router.swap(swap); // 0 for 3.
+    }
+
+    function testMultihopSwapExactOutputTwoHopsAlt() public payable {
+        Key[] memory keys = new Key[](2);
+        keys[0].key = keyNoHook;
+        keys[1].key = keyNoHook5;
+        Swap memory swap;
+        swap.receiver = aliceSwapper;
+        swap.fromCurrency = keyNoHook.currency1;
+        swap.amountSpecified = 0.1 ether;
+        swap.keys = keys;
+        vm.prank(aliceSwapper);
+        router.swap(swap); // 1 for 3.
     }
 
     function testMultihopSwapExactInputThreeHops() public payable {

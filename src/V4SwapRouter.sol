@@ -14,11 +14,12 @@ struct SwapParams {
     uint160 sqrtPriceLimitX96;
 }
 
-/// @dev The router swap params.
+/// @dev The swap router params.
 struct Swap {
     address receiver;
     Currency fromCurrency;
     int256 amountSpecified;
+    uint256 amountOutMin;
     Key[] keys;
 }
 
@@ -33,8 +34,11 @@ struct Key {
 contract V4SwapRouter {
     /// ======================= CUSTOM ERRORS ======================= ///
 
-    /// @dev Pool auth.
+    /// @dev Pool authority check.
     error Unauthorized();
+
+    /// @dev Insufficient swap output.
+    error InsufficientOutput();
 
     /// ========================= CONSTANTS ========================= ///
 
@@ -42,6 +46,12 @@ contract V4SwapRouter {
     /// note: This is made `internal` to save gas. PoolManager
     /// will be a canonical deployment, so address is known.
     IPoolManager internal immutable UNISWAP_V4_POOL_MANAGER;
+
+    /// @dev The minimum sqrt price limit for the swap.
+    uint160 internal constant MIN = TickMath.MIN_SQRT_PRICE + 1;
+
+    /// @dev The maximum sqrt price limit for the swap.
+    uint160 internal constant MAX = TickMath.MAX_SQRT_PRICE - 1;
 
     /// ======================== CONSTRUCTOR ======================== ///
 
@@ -52,6 +62,7 @@ contract V4SwapRouter {
 
     /// ===================== SWAP EXECUTION ===================== ///
 
+    /// @dev Call into the PoolManager with Swap struct and path of keys.
     function swap(Swap calldata swaps) public payable returns (BalanceDelta) {
         return abi.decode(
             UNISWAP_V4_POOL_MANAGER.unlock(abi.encodePacked(msg.sender, abi.encode(swaps))),
@@ -59,6 +70,7 @@ contract V4SwapRouter {
         );
     }
 
+    /// @dev Handle PoolManager Swap instructions and perform swaps in their key sequence.
     function unlockCallback(bytes calldata callbackData) public payable returns (bytes memory) {
         if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
 
@@ -79,8 +91,13 @@ contract V4SwapRouter {
                     }
                 }
             }
-            return
-                _swapFinal(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[i], swaps.receiver);
+            return _swapFinal(
+                swaps.fromCurrency,
+                swaps.amountSpecified,
+                swaps.keys[i],
+                swaps.receiver,
+                swaps.amountOutMin
+            );
         }
     }
 
@@ -89,8 +106,7 @@ contract V4SwapRouter {
         bool zeroForOne = swaps.fromCurrency < swaps.keys[0].key.currency1;
         Currency toCurrency = zeroForOne ? swaps.keys[0].key.currency1 : swaps.keys[0].key.currency0;
 
-        uint160 sqrtPriceLimitX96 =
-            zeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1;
+        uint160 sqrtPriceLimitX96 = zeroForOne ? MIN : MAX;
         BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(
             swaps.keys[0].key,
             IPoolManager.SwapParams(zeroForOne, swaps.amountSpecified, sqrtPriceLimitX96),
@@ -125,8 +141,7 @@ contract V4SwapRouter {
         bool zeroForOne = swaps.fromCurrency < swaps.keys[0].key.currency1;
         Currency toCurrency = zeroForOne ? swaps.keys[0].key.currency1 : swaps.keys[0].key.currency0;
 
-        uint160 sqrtPriceLimitX96 =
-            zeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1;
+        uint160 sqrtPriceLimitX96 = zeroForOne ? MIN : MAX;
         BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(
             swaps.keys[0].key,
             IPoolManager.SwapParams(zeroForOne, swaps.amountSpecified, sqrtPriceLimitX96),
@@ -163,8 +178,7 @@ contract V4SwapRouter {
         bool zeroForOne = fromCurrency < key.key.currency1;
         Currency toCurrency = zeroForOne ? key.key.currency1 : key.key.currency0;
 
-        uint160 sqrtPriceLimitX96 =
-            zeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1;
+        uint160 sqrtPriceLimitX96 = zeroForOne ? MIN : MAX;
         BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(
             key.key, IPoolManager.SwapParams(zeroForOne, -takeIn, sqrtPriceLimitX96), key.hookData
         );
@@ -186,20 +200,23 @@ contract V4SwapRouter {
         return (toCurrency, int256(takeAmount));
     }
 
-    function _swapFinal(Currency fromCurrency, int256 takeIn, Key memory key, address receiver)
-        internal
-        returns (bytes memory)
-    {
+    function _swapFinal(
+        Currency fromCurrency,
+        int256 takeIn,
+        Key memory key,
+        address receiver,
+        uint256 amountOutMin
+    ) internal returns (bytes memory) {
         bool zeroForOne = fromCurrency < key.key.currency1;
         Currency toCurrency = zeroForOne ? key.key.currency1 : key.key.currency0;
 
-        uint160 sqrtPriceLimitX96 =
-            zeroForOne ? TickMath.MIN_SQRT_PRICE + 1 : TickMath.MAX_SQRT_PRICE - 1;
+        uint160 sqrtPriceLimitX96 = zeroForOne ? MIN : MAX;
         BalanceDelta delta = UNISWAP_V4_POOL_MANAGER.swap(
             key.key, IPoolManager.SwapParams(zeroForOne, -takeIn, sqrtPriceLimitX96), key.hookData
         );
 
         uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
+        if (takeAmount < amountOutMin) revert InsufficientOutput();
         UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
 
         if (Currency.unwrap(fromCurrency) != address(0)) {

@@ -5,11 +5,8 @@ evm_version = "cancun"
 optimizer = true
 optimizer_runs = 9_999_999
 
-via_ir = true
-
 remappings = [
   "@v4=lib/v4-core/",
-  "v4-periphery=lib/v4-periphery/contracts/",
   "@solady=lib/solady/",
   "@forge=lib/forge-std/src/"
 ]

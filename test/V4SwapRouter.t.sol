@@ -15,7 +15,7 @@ import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
 
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
 
-contract TesterTest is Test {
+contract V4SwapRouterTest is Test {
     address internal aliceSwapper;
 
     address internal manager;

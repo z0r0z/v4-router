@@ -70,7 +70,7 @@ contract V4SwapRouter {
         );
     }
 
-    /// @dev Handle PoolManager Swap instructions and perform swaps in their key sequence.
+    /// @dev Handle PoolManager Swap instructions and perform any swaps in their key sequence.
     function unlockCallback(bytes calldata callbackData) public payable returns (bytes memory) {
         if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
 
@@ -122,10 +122,11 @@ contract V4SwapRouter {
             );
         }
 
+        uint256 amountOut = exactIn ? takeAmount : uint256(swaps.amountSpecified);
+        if (amountOut < swaps.amountOutMin) revert InsufficientOutput();
+
         UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}(swaps.fromCurrency);
-        UNISWAP_V4_POOL_MANAGER.take(
-            toCurrency, swaps.receiver, exactIn ? takeAmount : uint256(swaps.amountSpecified)
-        );
+        UNISWAP_V4_POOL_MANAGER.take(toCurrency, swaps.receiver, amountOut);
 
         return abi.encode(delta);
     }

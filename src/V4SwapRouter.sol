@@ -125,7 +125,7 @@ contract V4SwapRouter {
         uint256 amountOut = exactIn ? takeAmount : uint256(swaps.amountSpecified);
         if (amountOut < swaps.amountOutMin) revert InsufficientOutput();
 
-        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}(swaps.fromCurrency);
+        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
         UNISWAP_V4_POOL_MANAGER.take(toCurrency, swaps.receiver, amountOut);
 
         return abi.encode(delta);
@@ -152,7 +152,7 @@ contract V4SwapRouter {
             );
         }
 
-        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}(swaps.fromCurrency);
+        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
         UNISWAP_V4_POOL_MANAGER.take(
             toCurrency, address(this), exactIn ? takeAmount : uint256(swaps.amountSpecified)
         );
@@ -178,7 +178,7 @@ contract V4SwapRouter {
             );
         }
 
-        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}(fromCurrency);
+        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
         UNISWAP_V4_POOL_MANAGER.take(toCurrency, address(this), takeAmount);
 
         return (toCurrency, int256(takeAmount));
@@ -206,7 +206,7 @@ contract V4SwapRouter {
             );
         }
 
-        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}(fromCurrency);
+        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
         UNISWAP_V4_POOL_MANAGER.take(toCurrency, receiver, takeAmount);
 
         return abi.encode(delta);

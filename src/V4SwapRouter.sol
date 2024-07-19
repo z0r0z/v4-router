@@ -7,13 +7,6 @@ import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
 
-/// @dev Uniswap V4 swap params.
-struct SwapParams {
-    bool zeroForOne;
-    int256 amountSpecified;
-    uint160 sqrtPriceLimitX96;
-}
-
 /// @dev The swap router params.
 struct Swap {
     address receiver;

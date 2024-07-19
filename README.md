@@ -11,15 +11,13 @@ The Uniswap V4 Swap Router (Swap Router) supports the following features:
 - Multi-hop
 - Hook calls
 
-It is optimized most efficiently for single and double-hop swaps between pools.
-
 Regardless of swap pool routes, all swaps can be made with hook data included.
 
 ## Optimizations
 
-The code is mostly high-level for readability but uses audited Solady snippets in low-level assembly code to unburden routine operations, such as token handling. Further, based on the length of a path, each swap step is especially optimized as its own internal function.
+The code is mostly high-level for readability but uses audited [*Solady* snippets](https://github.com/Vectorized/solady/blob/main/src/utils/SafeTransferLib.sol) in low-level assembly code to reduce costs for routine operations, such as token handling. Further, based on the length of a path, each swap step is particularly optimized and contained as its own internal function (see, `_swapSingle()`, `_swapFirst()`, `_swapMid()`, and `_swapLast()`). Additional efficiency decisions also include reusing memory space for multi-hop swaps (overwriting `fromCurrency` and `amountSpecified` at each step with outputs) and practical use of unchecked blocks and custom errors.
 
-## Integrating Swap Router
+## Using Swap Router
 
 Swap Router and its interface is designed to closely resemble the `swap()` method of the V4 [Pool Manager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol). Thus it only has two public functions, `swap()` and `unlockCallback()` to clearly place its role as a peripheral contract to the Pool Manager to receive a swap callback, and nothing more.
 
@@ -40,8 +38,9 @@ Where the `receiver` is the end-recipient of the swap output and currency.
 `fromCurrency` is the initial currency used to make the swap from (`address(0)` is ETH).
 
 `amountSpecified` is the amount initially paid (if negative `-`) or required as output.
-In cases where a multihop swap is made, this flag will guarantee the output of the first pool only.
-`amountOutMin` is therefore used to enforce the end-output of the final pool included in the `keys` array of structs.
+
+Note: In cases where a multi-hop swap is made, this flag will guarantee the output of the first pool only.
+`amountOutMin` is therefore used to enforce the end-output of the final pool included in the `keys` array of structs, more generally. However, the ability to include exact outputs in this fashion should still yield some precision benefits.
 
 More specifically, `keys` include the following information (and are provided in the order of the pools to cross):
 
@@ -52,7 +51,7 @@ struct Key {
 }
 ```
 
-Where `key` is the Uniswap V4 [`PoolKey`](https://github.com/Uniswap/v4-core/blob/main/src/types/PoolKey.sol) struct, and `hookData` is a dynamic field to activate any hooks included in the swap.
+Where `key` is the Uniswap V4 [`PoolKey`](https://github.com/Uniswap/v4-core/blob/main/src/types/PoolKey.sol) struct, and `hookData` is a dynamic field for any hook interactions included in the swap.
 
 ## Single Swap
 
@@ -92,7 +91,7 @@ function testMultihopSwapExactInputThreeHops() public payable {
 }
 ```
 
-Additional examples are provided in foundry tests [here](./test/V4SwapRouter.t.sol), and will serve the basis for more intensive pool simulations.
+Additional examples are provided in foundry tests [here](./test/V4SwapRouter.t.sol), and will serve the basis for more complex pool simulations.
 
 ## Getting Started
 

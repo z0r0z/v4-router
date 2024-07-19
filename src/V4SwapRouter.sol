@@ -73,18 +73,17 @@ contract V4SwapRouter {
         if (swaps.keys.length == 1) {
             return _swapSingle(swapper, swaps);
         } else {
-            (swaps.fromCurrency, swaps.amountSpecified) = _swapInitial(swapper, swaps);
+            (swaps.fromCurrency, swaps.amountSpecified) = _swapFirst(swapper, swaps);
             uint256 i = 1;
             if (swaps.keys.length > 2) {
                 unchecked {
                     for (i; i != swaps.keys.length - 1; ++i) {
-                        (swaps.fromCurrency, swaps.amountSpecified) = _swapIntermediate(
-                            swaps.fromCurrency, swaps.amountSpecified, swaps.keys[i]
-                        );
+                        (swaps.fromCurrency, swaps.amountSpecified) =
+                            _swapMid(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[i]);
                     }
                 }
             }
-            return _swapFinal(
+            return _swapLast(
                 swaps.fromCurrency,
                 swaps.amountSpecified,
                 swaps.keys[i],
@@ -124,7 +123,7 @@ contract V4SwapRouter {
         return abi.encode(delta);
     }
 
-    function _swapInitial(address swapper, Swap memory swaps) internal returns (Currency, int256) {
+    function _swapFirst(address swapper, Swap memory swaps) internal returns (Currency, int256) {
         bool exactIn = swaps.amountSpecified < 0;
 
         (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
@@ -153,7 +152,7 @@ contract V4SwapRouter {
         return (toCurrency, exactIn ? int256(takeAmount) : swaps.amountSpecified);
     }
 
-    function _swapIntermediate(Currency fromCurrency, int256 takeIn, Key memory key)
+    function _swapMid(Currency fromCurrency, int256 takeIn, Key memory key)
         internal
         returns (Currency, int256)
     {
@@ -177,7 +176,7 @@ contract V4SwapRouter {
         return (toCurrency, int256(takeAmount));
     }
 
-    function _swapFinal(
+    function _swapLast(
         Currency fromCurrency,
         int256 takeIn,
         Key memory key,

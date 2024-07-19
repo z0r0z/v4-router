@@ -1,5 +1,5 @@
 # V4SwapRouter
-[Git Source](https://github.com/z0r0z/v4-router/blob/9c91d5ee278185c656d5983b3c07b8004a248d0c/src/V4SwapRouter.sol)
+[Git Source](https://github.com/z0r0z/v4-router/blob/3606343f28d74227fb063fdd3faaccf818af5167/src/V4SwapRouter.sol)
 
 Router for stateless execution of swaps against Uniswap V4.
 
@@ -61,7 +61,7 @@ function swap(Swap calldata swaps) public payable returns (BalanceDelta);
 
 ### unlockCallback
 
-*Handle PoolManager Swap instructions and perform swaps in their key sequence.*
+*Handle PoolManager Swap instructions and perform any swaps in their key sequence.*
 
 
 ```solidity
@@ -75,27 +75,27 @@ function unlockCallback(bytes calldata callbackData) public payable returns (byt
 function _swapSingle(address swapper, Swap memory swaps) internal returns (bytes memory);
 ```
 
-### _swapInitial
+### _swapFirst
 
 
 ```solidity
-function _swapInitial(address swapper, Swap memory swaps) internal returns (Currency, int256);
+function _swapFirst(address swapper, Swap memory swaps) internal returns (Currency, int256);
 ```
 
-### _swapIntermediate
+### _swapMid
 
 
 ```solidity
-function _swapIntermediate(Currency fromCurrency, int256 takeIn, Key memory key)
+function _swapMid(Currency fromCurrency, int256 takeIn, Key memory key)
     internal
     returns (Currency, int256);
 ```
 
-### _swapFinal
+### _swapLast
 
 
 ```solidity
-function _swapFinal(
+function _swapLast(
     Currency fromCurrency,
     int256 takeIn,
     Key memory key,

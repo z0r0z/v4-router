@@ -1,6 +1,6 @@
 # V4 Swap Router
 
-A simple and optimized reference implementation for swapping on Uniswap V4.
+A simple and optimized reference router implementation for swapping on Uniswap V4.
 
 ## Design
 
@@ -15,7 +15,7 @@ Regardless of swap pool routes, all swaps can be made with hook data included.
 
 ## Optimizations
 
-The code is mostly high-level for readability but uses audited [*Solady* snippets](https://github.com/Vectorized/solady/blob/main/src/utils/SafeTransferLib.sol) in low-level assembly code to reduce costs for routine operations, such as token handling. Further, based on the length of a path, each swap step is particularly optimized and contained as its own internal function (see, `_swapSingle()`, `_swapFirst()`, `_swapMid()`, and `_swapLast()`). Additional efficiency decisions also include reusing memory space for multi-hop swaps (overwriting `fromCurrency` and `amountSpecified` at each step with outputs) and practical use of unchecked blocks and custom errors.
+The code is mostly high-level Solidity for readability but uses audited [*Solady* snippets](https://github.com/Vectorized/solady/blob/main/src/utils/SafeTransferLib.sol) in low-level assembly code to reduce costs for routine operations, such as handling ERC20 tokens. Further, based on the length of a swap path, each swap step is particularly optimized and contained as its own internal function (see, `_swapSingle()`, `_swapFirst()`, `_swapMid()`, and `_swapLast()`). Additional efficiency decisions also include reusing memory space for multi-hop swaps (overwriting `fromCurrency` and `amountSpecified` at each step with outputs) and practical use of unchecked blocks and compact custom errors.
 
 ## Using Swap Router
 
@@ -35,14 +35,14 @@ struct Swap {
 
 Where the `receiver` is the end-recipient of the swap output and currency. 
 
-`fromCurrency` is the initial currency used to make the swap from (`address(0)` is ETH).
+`fromCurrency` is the initial currency used to make the swap from (where `address(0)` is ETH).
 
-`amountSpecified` is the amount initially paid (if negative `-`) or required as output.
+`amountSpecified` is the amount initially paid or required as output (if negative `-`).
 
-Note: In cases where a multi-hop swap is made, this flag will guarantee the output of the first pool only.
-`amountOutMin` is therefore used to enforce the end-output of the final pool included in the `keys` array of structs, more generally. However, the ability to include exact outputs in this fashion should still yield some precision benefits.
+Note: In cases where a multi-hop swap is made, the `amountSpecified` flag will guarantee the output of the first pool only.
+`amountOutMin` is therefore used to enforce the end-output of the final pool included in the `keys` array of structs, more generally. However, the ability to include an exact output at the first destination should still yield some precision benefits.
 
-More specifically, `keys` include the following information (and are provided in the order of the pools to cross):
+More specifically, path swap `keys` include the following information (and are provided in the order of the pools to cross):
 
 ```solidity
 struct Key {
@@ -73,7 +73,7 @@ function testSingleSwapExactInputZeroForOne() public payable {
 
 ## Multi-hop Swap
 
-A three-hop swap can be made like so within the keys path:
+A three-part multi-hop swap can be made like so within the keys path:
 
 ```solidity
 function testMultihopSwapExactInputThreeHops() public payable {
@@ -91,7 +91,7 @@ function testMultihopSwapExactInputThreeHops() public payable {
 }
 ```
 
-Additional examples are provided in foundry tests [here](./test/V4SwapRouter.t.sol), and will serve the basis for more complex pool simulations.
+Additional examples are provided in foundry tests [here](./test/V4SwapRouter.t.sol), and will serve the basis for more complex pool simulations and demonstrations of hook interactions.
 
 ## Getting Started
 

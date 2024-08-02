@@ -67,7 +67,11 @@ contract V4SwapRouter {
     function unlockCallback(bytes calldata callbackData) public payable returns (bytes memory) {
         if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
 
-        address swapper = address(bytes20(callbackData[:20]));
+        address swapper;
+        assembly ("memory-safe") {
+            swapper := shr(96, calldataload(callbackData.offset))
+        }
+
         Swap memory swaps = abi.decode(callbackData[20:], (Swap));
 
         if (swaps.keys.length == 1) {

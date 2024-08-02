@@ -67,21 +67,23 @@ contract V4SwapRouter {
     function unlockCallback(bytes calldata callbackData) public payable returns (bytes memory) {
         if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
 
-        address swapper;
+        address swapper; // Optimize callback calldata load.
         assembly ("memory-safe") {
             swapper := shr(96, calldataload(callbackData.offset))
         }
 
         Swap memory swaps = abi.decode(callbackData[20:], (Swap));
 
-        if (swaps.keys.length == 1) {
+        uint256 swapLen = swaps.keys.length;
+
+        if (swapLen == 1) {
             return _swapSingle(swapper, swaps);
         } else {
             (swaps.fromCurrency, swaps.amountSpecified) = _swapFirst(swapper, swaps);
             uint256 i = 1;
-            if (swaps.keys.length > 2) {
+            if (swapLen > 2) {
                 unchecked {
-                    for (i; i != swaps.keys.length - 1; ++i) {
+                    for (i; i != swapLen - 1; ++i) {
                         (swaps.fromCurrency, swaps.amountSpecified) =
                             _swapMid(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[i]);
                     }

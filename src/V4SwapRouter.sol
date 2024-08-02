@@ -195,25 +195,27 @@ contract V4SwapRouter {
         address receiver,
         uint256 amountOutMin
     ) internal returns (bytes memory) {
-        (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
-            _swap(fromCurrency, -takeIn, key);
+        unchecked {
+            (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
+                _swap(fromCurrency, -takeIn, key);
 
-        uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
-        if (takeAmount < amountOutMin) revert InsufficientOutput();
-        UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
+            uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
+            if (takeAmount < amountOutMin) revert InsufficientOutput();
+            UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
 
-        if (Currency.unwrap(fromCurrency) != address(0)) {
-            safeTransfer(
-                Currency.unwrap(fromCurrency),
-                msg.sender, // PoolManager.
-                uint256(takeIn)
-            );
+            if (Currency.unwrap(fromCurrency) != address(0)) {
+                safeTransfer(
+                    Currency.unwrap(fromCurrency),
+                    msg.sender, // PoolManager.
+                    uint256(takeIn)
+                );
+            }
+
+            UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
+            UNISWAP_V4_POOL_MANAGER.take(toCurrency, receiver, takeAmount);
+
+            return abi.encode(delta);
         }
-
-        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
-        UNISWAP_V4_POOL_MANAGER.take(toCurrency, receiver, takeAmount);
-
-        return abi.encode(delta);
     }
 
     function _swap(Currency fromCurrency, int256 amountSpecified, Key memory key)

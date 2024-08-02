@@ -100,33 +100,35 @@ contract V4SwapRouter {
     }
 
     function _swapSingle(address swapper, Swap memory swaps) internal returns (bytes memory) {
-        bool exactIn = swaps.amountSpecified < 0;
+        unchecked {
+            bool exactIn = swaps.amountSpecified < 0;
 
-        (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
-            _swap(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[0]);
+            (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
+                _swap(swaps.fromCurrency, swaps.amountSpecified, swaps.keys[0]);
 
-        uint256 takeAmount = zeroForOne
-            ? (exactIn ? uint256(uint128(delta.amount1())) : uint256(uint128(-delta.amount0())))
-            : (exactIn ? uint256(uint128(delta.amount0())) : uint256(uint128(-delta.amount1())));
+            uint256 takeAmount = zeroForOne
+                ? (exactIn ? uint256(uint128(delta.amount1())) : uint256(uint128(-delta.amount0())))
+                : (exactIn ? uint256(uint128(delta.amount0())) : uint256(uint128(-delta.amount1())));
 
-        UNISWAP_V4_POOL_MANAGER.sync(swaps.fromCurrency);
+            UNISWAP_V4_POOL_MANAGER.sync(swaps.fromCurrency);
 
-        if (Currency.unwrap(swaps.fromCurrency) != address(0)) {
-            safeTransferFrom(
-                Currency.unwrap(swaps.fromCurrency),
-                swapper,
-                msg.sender, // PoolManager.
-                exactIn ? uint256(-swaps.amountSpecified) : takeAmount
-            );
+            if (Currency.unwrap(swaps.fromCurrency) != address(0)) {
+                safeTransferFrom(
+                    Currency.unwrap(swaps.fromCurrency),
+                    swapper,
+                    msg.sender, // PoolManager.
+                    exactIn ? uint256(-swaps.amountSpecified) : takeAmount
+                );
+            }
+
+            uint256 amountOut = exactIn ? takeAmount : uint256(swaps.amountSpecified);
+            if (amountOut < swaps.amountOutMin) revert InsufficientOutput();
+
+            UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
+            UNISWAP_V4_POOL_MANAGER.take(toCurrency, swaps.receiver, amountOut);
+
+            return abi.encode(delta);
         }
-
-        uint256 amountOut = exactIn ? takeAmount : uint256(swaps.amountSpecified);
-        if (amountOut < swaps.amountOutMin) revert InsufficientOutput();
-
-        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
-        UNISWAP_V4_POOL_MANAGER.take(toCurrency, swaps.receiver, amountOut);
-
-        return abi.encode(delta);
     }
 
     function _swapFirst(address swapper, Swap memory swaps) internal returns (Currency, int256) {

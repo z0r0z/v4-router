@@ -166,24 +166,26 @@ contract V4SwapRouter {
         internal
         returns (Currency, int256)
     {
-        (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
-            _swap(fromCurrency, -takeIn, key);
+        unchecked {
+            (bool zeroForOne, Currency toCurrency, BalanceDelta delta) =
+                _swap(fromCurrency, -takeIn, key);
 
-        uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
-        UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
+            uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
+            UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
 
-        if (Currency.unwrap(fromCurrency) != address(0)) {
-            safeTransfer(
-                Currency.unwrap(fromCurrency),
-                msg.sender, // PoolManager.
-                uint256(takeIn)
-            );
+            if (Currency.unwrap(fromCurrency) != address(0)) {
+                safeTransfer(
+                    Currency.unwrap(fromCurrency),
+                    msg.sender, // PoolManager.
+                    uint256(takeIn)
+                );
+            }
+
+            UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
+            UNISWAP_V4_POOL_MANAGER.take(toCurrency, address(this), takeAmount);
+
+            return (toCurrency, int256(takeAmount));
         }
-
-        UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
-        UNISWAP_V4_POOL_MANAGER.take(toCurrency, address(this), takeAmount);
-
-        return (toCurrency, int256(takeAmount));
     }
 
     function _swapLast(

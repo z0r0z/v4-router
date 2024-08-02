@@ -222,13 +222,15 @@ contract V4SwapRouter {
         internal
         returns (bool zeroForOne, Currency toCurrency, BalanceDelta delta)
     {
-        zeroForOne = fromCurrency < key.key.currency1;
-        toCurrency = zeroForOne ? key.key.currency1 : key.key.currency0;
-        delta = UNISWAP_V4_POOL_MANAGER.swap(
-            key.key,
-            IPoolManager.SwapParams(zeroForOne, amountSpecified, zeroForOne ? MIN : MAX),
-            key.hookData
-        );
+        unchecked {
+            zeroForOne = fromCurrency < key.key.currency1;
+            toCurrency = zeroForOne ? key.key.currency1 : key.key.currency0;
+            delta = UNISWAP_V4_POOL_MANAGER.swap(
+                key.key,
+                IPoolManager.SwapParams(zeroForOne, amountSpecified, zeroForOne ? MIN : MAX),
+                key.hookData
+            );
+        }
     }
 
     receive() external payable {

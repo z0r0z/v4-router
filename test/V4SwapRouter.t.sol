@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: AGPL-3.0-only
-pragma solidity ^0.8.19;
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.24;
 
 import {Key, Swap, V4SwapRouter} from "../src/V4SwapRouter.sol";
 import {IPoolManager, PoolManager} from "@v4/src/PoolManager.sol";

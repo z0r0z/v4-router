@@ -1,6 +1,8 @@
 [profile.default]
 solc_version = "0.8.26"
 evm_version = "cancun"
+ffi = true
+fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 
 optimizer = true
 optimizer_runs = 9_999_999

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
+
 import {Key, Swap, V4SwapRouter} from "../src/V4SwapRouter.sol";
 import {IPoolManager, PoolManager} from "@v4/src/PoolManager.sol";
 
@@ -15,7 +17,7 @@ import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
 
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
 
-contract V4SwapRouterTest is Test {
+contract V4SwapRouterTest is Test, GasSnapshot {
     address internal aliceSwapper;
 
     address internal manager;
@@ -280,6 +282,7 @@ contract V4SwapRouterTest is Test {
     }
 
     function testSingleSwapExactInputZeroForOne() public payable {
+        snapStart("single swap exactIn");
         Key[] memory keys = new Key[](1);
         keys[0].key = keyNoHook;
         Swap memory swap;
@@ -289,9 +292,11 @@ contract V4SwapRouterTest is Test {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap(swap);
+        snapEnd();
     }
 
     function testSingleSwapExactInputZeroForOneNative() public payable {
+        snapStart("single swap exactIn native");
         Key[] memory keys = new Key[](1);
         keys[0].key = ethKeyNoHook;
         Swap memory swap;
@@ -301,6 +306,7 @@ contract V4SwapRouterTest is Test {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap{value: 0.1 ether}(swap);
+        snapEnd();
     }
 
     function testSingleSwapExactInputOneForZero() public payable {
@@ -328,6 +334,7 @@ contract V4SwapRouterTest is Test {
     }
 
     function testSingleSwapExactOutputZeroForOne() public payable {
+        snapStart("single swap exactOut");
         Key[] memory keys = new Key[](1);
         keys[0].key = keyNoHook;
         Swap memory swap;
@@ -337,6 +344,7 @@ contract V4SwapRouterTest is Test {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap(swap);
+        snapEnd();
     }
 
     function testSingleSwapExactOutputOneForZero() public payable {
@@ -444,6 +452,7 @@ contract V4SwapRouterTest is Test {
     }
 
     function testMultihopSwapExactInputThreeHops() public payable {
+        snapStart("multihop swap");
         Key[] memory keys = new Key[](3);
         keys[0].key = keyNoHook; // 0 for 1.
         keys[1].key = keyNoHook4; // 1 for 2.
@@ -455,6 +464,7 @@ contract V4SwapRouterTest is Test {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap(swap); // 0 for 3.
+        snapEnd();
     }
 
     function testMultihopSwapExactInputThreeHopsNative() public payable {

@@ -180,9 +180,23 @@ contract V4SwapRouterTest is Test {
         int24 tickLower = -600;
         int24 tickUpper = 600;
         int256 liquidity = 20 ether;
+
+        payable(aliceSwapper).transfer(uint256(liquidity));
+
         vm.prank(aliceSwapper);
         liqRouter.modifyLiquidity(
             keyNoHook,
+            IPoolManager.ModifyLiquidityParams({
+                tickLower: tickLower,
+                tickUpper: tickUpper,
+                liquidityDelta: liquidity,
+                salt: 0
+            }),
+            ""
+        );
+        vm.prank(aliceSwapper);
+        liqRouter.modifyLiquidity{value: uint256(liquidity)}(
+            ethKeyNoHook,
             IPoolManager.ModifyLiquidityParams({
                 tickLower: tickLower,
                 tickUpper: tickUpper,
@@ -277,12 +291,36 @@ contract V4SwapRouterTest is Test {
         router.swap(swap);
     }
 
+    function testSingleSwapExactInputZeroForOneNative() public payable {
+        Key[] memory keys = new Key[](1);
+        keys[0].key = ethKeyNoHook;
+        Swap memory swap;
+        swap.receiver = aliceSwapper;
+        swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
+        swap.amountSpecified = -(0.1 ether);
+        swap.keys = keys;
+        vm.prank(aliceSwapper);
+        router.swap{value: 0.1 ether}(swap);
+    }
+
     function testSingleSwapExactInputOneForZero() public payable {
         Key[] memory keys = new Key[](1);
         keys[0].key = keyNoHook;
         Swap memory swap;
         swap.receiver = aliceSwapper;
         swap.fromCurrency = keyNoHook.currency1;
+        swap.amountSpecified = -(0.1 ether);
+        swap.keys = keys;
+        vm.prank(aliceSwapper);
+        router.swap(swap);
+    }
+
+    function testSingleSwapExactInputOneForZeroNative() public payable {
+        Key[] memory keys = new Key[](1);
+        keys[0].key = ethKeyNoHook;
+        Swap memory swap;
+        swap.receiver = aliceSwapper;
+        swap.fromCurrency = ethKeyNoHook.currency1;
         swap.amountSpecified = -(0.1 ether);
         swap.keys = keys;
         vm.prank(aliceSwapper);
@@ -353,6 +391,19 @@ contract V4SwapRouterTest is Test {
         router.swap(swap); // 0 for 3.
     }
 
+    function testMultihopSwapExactInputTwoHopsNative() public payable {
+        Key[] memory keys = new Key[](2);
+        keys[0].key = ethKeyNoHook;
+        keys[1].key = keyNoHook3;
+        Swap memory swap;
+        swap.receiver = aliceSwapper;
+        swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
+        swap.amountSpecified = -(0.1 ether);
+        swap.keys = keys;
+        vm.prank(aliceSwapper);
+        router.swap{value: 0.1 ether}(swap); // 0 for 3.
+    }
+
     function testMultihopSwapExactInputTwoHopAlt() public payable {
         Key[] memory keys = new Key[](2);
         keys[0].key = keyNoHook;
@@ -404,5 +455,32 @@ contract V4SwapRouterTest is Test {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap(swap); // 0 for 3.
+    }
+
+    function testMultihopSwapExactInputThreeHopsNative() public payable {
+        Key[] memory keys = new Key[](3);
+        keys[0].key = ethKeyNoHook; // 0 for 1.
+        keys[1].key = keyNoHook4; // 1 for 2.
+        keys[2].key = keyNoHook2; // 2 for 3.
+        Swap memory swap;
+        swap.receiver = aliceSwapper;
+        swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
+        swap.amountSpecified = -(0.1 ether);
+        swap.keys = keys;
+        vm.prank(aliceSwapper);
+        router.swap{value: 0.1 ether}(swap); // 0 for 3.
+    }
+
+    function testMultihopSwapExactInputTwoHopsNativeOutput() public payable {
+        Key[] memory keys = new Key[](2);
+        keys[0].key = keyNoHook4; // 2 for 1.
+        keys[1].key = ethKeyNoHook; // 1 for 0.
+        Swap memory swap;
+        swap.receiver = aliceSwapper;
+        swap.fromCurrency = keyNoHook4.currency1;
+        swap.amountSpecified = -(0.1 ether);
+        swap.keys = keys;
+        vm.prank(aliceSwapper);
+        router.swap(swap); // 2 for 0 (ETH).
     }
 }

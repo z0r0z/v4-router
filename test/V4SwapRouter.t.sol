@@ -282,7 +282,6 @@ contract V4SwapRouterTest is Test, GasSnapshot {
     }
 
     function testSingleSwapExactInputZeroForOne() public payable {
-        snapStart("single swap exactIn");
         Key[] memory keys = new Key[](1);
         keys[0].key = keyNoHook;
         Swap memory swap;
@@ -292,11 +291,10 @@ contract V4SwapRouterTest is Test, GasSnapshot {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap(swap);
-        snapEnd();
+        snapLastCall("single swap exactIn");
     }
 
     function testSingleSwapExactInputZeroForOneNative() public payable {
-        snapStart("single swap exactIn native");
         Key[] memory keys = new Key[](1);
         keys[0].key = ethKeyNoHook;
         Swap memory swap;
@@ -306,7 +304,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap{value: 0.1 ether}(swap);
-        snapEnd();
+        snapLastCall("single swap exactIn native");
     }
 
     function testSingleSwapExactInputOneForZero() public payable {
@@ -334,7 +332,6 @@ contract V4SwapRouterTest is Test, GasSnapshot {
     }
 
     function testSingleSwapExactOutputZeroForOne() public payable {
-        snapStart("single swap exactOut");
         Key[] memory keys = new Key[](1);
         keys[0].key = keyNoHook;
         Swap memory swap;
@@ -344,7 +341,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap(swap);
-        snapEnd();
+        snapLastCall("single swap exactOut");
     }
 
     function testSingleSwapExactOutputOneForZero() public payable {
@@ -452,7 +449,6 @@ contract V4SwapRouterTest is Test, GasSnapshot {
     }
 
     function testMultihopSwapExactInputThreeHops() public payable {
-        snapStart("multihop swap");
         Key[] memory keys = new Key[](3);
         keys[0].key = keyNoHook; // 0 for 1.
         keys[1].key = keyNoHook4; // 1 for 2.
@@ -464,7 +460,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
         swap.keys = keys;
         vm.prank(aliceSwapper);
         router.swap(swap); // 0 for 3.
-        snapEnd();
+        snapLastCall("multihop swap");
     }
 
     function testMultihopSwapExactInputThreeHopsNative() public payable {

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
@@ -67,7 +67,7 @@ contract V4SwapRouter {
     function unlockCallback(bytes calldata callbackData) public payable returns (bytes memory) {
         if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
 
-        address swapper; // Optimize callback calldata load.
+        address swapper; // Optimize `callbackData` load.
         assembly ("memory-safe") {
             swapper := shr(96, calldataload(callbackData.offset))
         }

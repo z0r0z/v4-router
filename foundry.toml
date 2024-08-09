@@ -11,7 +11,6 @@ remappings = [
   "@forge=lib/forge-std/src/"
 ]
 
-
 [fmt]
 line_length = 100
 

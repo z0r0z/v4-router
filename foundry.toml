@@ -10,7 +10,8 @@ optimizer_runs = 9_999_999
 remappings = [
   "@v4=lib/v4-core/",
   "@solady=lib/solady/",
-  "@forge=lib/forge-std/src/"
+  "@forge=lib/forge-std/src/",
+  "@uniswap/v4-core/=lib/v4-core/"
 ]
 
 [fmt]

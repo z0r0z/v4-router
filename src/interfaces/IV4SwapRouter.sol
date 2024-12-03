@@ -54,4 +54,22 @@ interface IV4SwapRouter {
         address to,
         uint256 deadline
     ) external payable returns (BalanceDelta);
+
+    /// @notice a general-purpose single-pool swap interface
+    /// @param amountSpecified the amount of tokens to be swapped, negative for exact input swaps and positive for exact output swaps
+    /// @param amountTolerance the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps
+    /// @param zeroForOne the direction of the swap, true if currency0 is being swapped for currency1
+    /// @param poolKey the pool to swap through
+    /// @param hookData the data to be passed to the hook
+    /// @param to the address to send the output tokens to
+    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    function swapSingle(
+        int256 amountSpecified,
+        uint256 amountTolerance,
+        bool zeroForOne,
+        PoolKey memory poolKey,
+        bytes memory hookData,
+        address to,
+        uint256 deadline
+    ) external payable returns (BalanceDelta);
 }

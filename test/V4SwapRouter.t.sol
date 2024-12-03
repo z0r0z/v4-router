@@ -66,7 +66,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
         aliceSwapper = makeAddr("alice");
         payable(aliceSwapper).transfer(1 ether);
 
-        manager = address(new PoolManager(500000));
+        manager = address(new PoolManager(address(this)));
         router = new V4SwapRouter(IPoolManager(manager));
 
         liqRouter = new PoolModifyLiquidityTest(IPoolManager(manager));
@@ -115,7 +115,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
             hooks: IHooks(address(0))
         });
 
-        PoolManager(manager).initialize(keyNoHook, startingPrice, "");
+        PoolManager(manager).initialize(keyNoHook, startingPrice);
 
         keyNoHook2 = PoolKey({
             currency0: Currency.wrap(currency2Addr),
@@ -125,7 +125,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
             hooks: IHooks(address(0))
         });
 
-        PoolManager(manager).initialize(keyNoHook2, startingPrice, "");
+        PoolManager(manager).initialize(keyNoHook2, startingPrice);
 
         keyNoHook3 = PoolKey({
             currency0: Currency.wrap(currency1Addr),
@@ -135,7 +135,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
             hooks: IHooks(address(0))
         });
 
-        PoolManager(manager).initialize(keyNoHook3, startingPrice, "");
+        PoolManager(manager).initialize(keyNoHook3, startingPrice);
 
         keyNoHook4 = PoolKey({
             currency0: Currency.wrap(currency1Addr),
@@ -145,7 +145,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
             hooks: IHooks(address(0))
         });
 
-        PoolManager(manager).initialize(keyNoHook4, startingPrice, "");
+        PoolManager(manager).initialize(keyNoHook4, startingPrice);
 
         keyNoHook5 = PoolKey({
             currency0: Currency.wrap(currency0Addr),
@@ -155,7 +155,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
             hooks: IHooks(address(0))
         });
 
-        PoolManager(manager).initialize(keyNoHook5, startingPrice, "");
+        PoolManager(manager).initialize(keyNoHook5, startingPrice);
 
         /*noOpSwapHook = IHooks(address(new NoOpSwapHook(IPoolManager(manager))));
 
@@ -167,7 +167,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
             hooks: noOpSwapHook
         });
 
-        PoolManager(manager).initialize(keyNoOpSwapHook, startingPrice, "");*/
+        PoolManager(manager).initialize(keyNoOpSwapHook, startingPrice);*/
 
         ethKeyNoHook = PoolKey({
             currency0: Currency.wrap(address(0)),
@@ -177,7 +177,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
             hooks: IHooks(address(0))
         });
 
-        PoolManager(manager).initialize(ethKeyNoHook, startingPrice, "");
+        PoolManager(manager).initialize(ethKeyNoHook, startingPrice);
 
         int24 tickLower = -600;
         int24 tickUpper = 600;

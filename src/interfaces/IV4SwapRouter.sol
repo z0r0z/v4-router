@@ -34,7 +34,7 @@ interface IV4SwapRouter {
         uint256 amountOut,
         uint256 amountInMax,
         Currency startCurrency,
-        address[] calldata path,
+        PathKey[] calldata path,
         address to,
         uint256 deadline
     ) external payable returns (BalanceDelta);

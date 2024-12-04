@@ -71,7 +71,7 @@ interface IV4SwapRouter {
         uint256 amountTolerance,
         bool zeroForOne,
         PoolKey memory poolKey,
-        bytes memory hookData,
+        bytes calldata hookData,
         address to,
         uint256 deadline
     ) external payable returns (BalanceDelta);

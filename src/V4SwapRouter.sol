@@ -6,6 +6,8 @@ import {Currency} from "@v4/src/types/Currency.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
+import {PathKey} from "v4-periphery/src/libraries/PathKey.sol";
+import {IV4SwapRouter} from "./interfaces/IV4SwapRouter.sol";
 
 /// @dev The swap router params.
 struct Swap {
@@ -24,7 +26,7 @@ struct Key {
 
 /// @title Uniswap V4 Swap Router
 /// @notice Router for stateless execution of swaps against Uniswap V4.
-contract V4SwapRouter {
+contract V4SwapRouter is IV4SwapRouter {
     /// ======================= CUSTOM ERRORS ======================= ///
 
     /// @dev Pool authority check.
@@ -54,6 +56,47 @@ contract V4SwapRouter {
     }
 
     /// ===================== SWAP EXECUTION ===================== ///
+
+    /// @inheritdoc IV4SwapRouter
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        Currency startCurrency,
+        PathKey[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable virtual override returns (BalanceDelta) {}
+
+    /// @inheritdoc IV4SwapRouter
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        Currency startCurrency,
+        PathKey[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable virtual override returns (BalanceDelta) {}
+
+    /// @inheritdoc IV4SwapRouter
+    function swap(
+        int256 amountSpecified,
+        uint256 amountTolerance,
+        Currency startCurrency,
+        PathKey[] calldata path,
+        address to,
+        uint256 deadline
+    ) external payable virtual override returns (BalanceDelta) {}
+
+    /// @inheritdoc IV4SwapRouter
+    function swapSingle(
+        int256 amountSpecified,
+        uint256 amountTolerance,
+        bool zeroForOne,
+        PoolKey memory poolKey,
+        bytes calldata hookData,
+        address to,
+        uint256 deadline
+    ) external payable virtual override returns (BalanceDelta) {}
 
     /// @dev Call into the PoolManager with Swap struct and path of keys.
     function swap(Swap calldata swaps) public payable returns (BalanceDelta) {

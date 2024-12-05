@@ -29,6 +29,15 @@ struct Key {
     bytes hookData;
 }
 
+struct BaseData {
+    uint256 amount;
+    uint256 amountLimit;
+    address payer;
+    bool isSingleSwap;
+    address to;
+    bool isExactOutput;
+}
+
 /// @title Uniswap V4 Swap Router
 /// @notice Router for stateless execution of swaps against Uniswap V4.
 contract V4SwapRouter is IV4SwapRouter, SafeCallback {
@@ -68,12 +77,14 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
     ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
         return _unlockAndDecode(
             abi.encode(
-                msg.sender, // payer
-                to, // recipient
-                false, // isSingleSwap
-                false, // isExactOutput
-                amountIn, // amount
-                amountOutMin, // amountLimit
+                BaseData({
+                    payer: msg.sender,
+                    to: to,
+                    isSingleSwap: false,
+                    isExactOutput: false,
+                    amount: amountIn,
+                    amountLimit: amountOutMin
+                }),
                 startCurrency,
                 path
             )
@@ -116,12 +127,14 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
     ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
         return _unlockAndDecode(
             abi.encode(
-                msg.sender, // payer
-                to, // recipient
-                true, // isSingleSwap
-                amountSpecified > 0, // isExactOutput
-                amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified), // amount
-                amountTolerance, // amountLimit
+                BaseData({
+                    payer: msg.sender,
+                    to: to,
+                    isSingleSwap: true,
+                    isExactOutput: amountSpecified > 0,
+                    amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
+                    amountLimit: amountTolerance
+                }),
                 zeroForOne,
                 poolKey,
                 hookData
@@ -144,31 +157,12 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         returns (bytes memory)
     {
         // decode the initial callback data
-        (
-            address payer,
-            address to,
-            bool isSingleSwap,
-            bool isExactOutput,
-            uint256 amount,
-            uint256 amountLimit
-        ) = abi.decode(callbackData, (address, address, bool, bool, uint256, uint256));
+        BaseData memory data = abi.decode(callbackData, (BaseData));
 
         // decode additional data, perform single-pool swap or multi-pool swap
-        Currency inputCurrency;
-        Currency outputCurrency;
-        if (isSingleSwap) {
-            (,,,,,, bool zeroForOne, PoolKey memory key, bytes memory hookData) = abi.decode(
-                callbackData, (address, address, bool, bool, uint256, uint256, bool, PoolKey, bytes)
-            );
-            (inputCurrency, outputCurrency) =
-                zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
-        } else {
-            console2.log("bruh");
-            PathKey[] memory path;
-            (,,,,,, inputCurrency, path) = abi.decode(
-                callbackData, (address, address, bool, bool, uint256, uint256, Currency, PathKey[])
-            );
-        }
+        (Currency inputCurrency, Currency outputCurrency) = _parseAndSwap(
+            data.isSingleSwap, data.isExactOutput, data.amount, data.amountLimit, callbackData
+        );
 
         // resolve deltas pay input currency and collect output currency
         // uint256 inputAmount;
@@ -177,6 +171,24 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         // outputCurrency.take(poolManager, to, outputAmount, false);
 
         return abi.encode(toBalanceDelta(0, 0));
+    }
+
+    function _parseAndSwap(
+        bool isSingleSwap,
+        bool isExactOutput,
+        uint256 amount,
+        uint256 amountLimit,
+        bytes calldata callbackData
+    ) internal returns (Currency inputCurrency, Currency outputCurrency) {
+        if (isSingleSwap) {
+            (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
+                abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
+            (inputCurrency, outputCurrency) =
+                zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
+        } else {
+            PathKey[] memory path;
+            (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+        }
     }
 
     function _swapSingle(address swapper, Swap memory swaps) internal returns (bytes memory) {

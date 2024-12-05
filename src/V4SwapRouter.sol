@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
+import "forge-std/console2.sol"; // TODO: remove
+
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
@@ -141,6 +143,7 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         override
         returns (bytes memory)
     {
+        console2.log("hmmm");
         // decode the initial callback data
         (
             address payer,
@@ -151,6 +154,7 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
             uint256 amountLimit,
             bytes memory data
         ) = abi.decode(callbackData, (address, address, bool, bool, uint256, uint256, bytes));
+        console2.log("yes");
 
         // decode additional data, perform single-pool swap or multi-pool swap
         Currency inputCurrency;
@@ -161,15 +165,17 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
             (inputCurrency, outputCurrency) =
                 zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
         } else {
+            console2.log("bruh");
             PathKey[] memory path;
             (inputCurrency, path) = abi.decode(data, (Currency, PathKey[]));
+            console2.log("ban");
         }
 
         // resolve deltas pay input currency and collect output currency
-        uint256 inputAmount;
-        uint256 outputAmount;
-        inputCurrency.settle(poolManager, payer, inputAmount, false);
-        outputCurrency.take(poolManager, to, outputAmount, false);
+        // uint256 inputAmount;
+        // uint256 outputAmount;
+        // inputCurrency.settle(poolManager, payer, inputAmount, false);
+        // outputCurrency.take(poolManager, to, outputAmount, false);
 
         return abi.encode(toBalanceDelta(0, 0));
     }

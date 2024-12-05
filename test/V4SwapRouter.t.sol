@@ -17,6 +17,8 @@ import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
 
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
 
+import {PathKey} from "v4-periphery/src/libraries/PathKey.sol";
+
 contract V4SwapRouterTest is Test, GasSnapshot {
     address internal aliceSwapper;
 
@@ -280,6 +282,33 @@ contract V4SwapRouterTest is Test, GasSnapshot {
     function testRouterDeployGas() public payable {
         router = new V4SwapRouter(IPoolManager(manager));
     }
+
+    function test_exactInput_singleSwap() public {
+        // keyNoHook.c0 -> keyNoHook.c1 -> keyNoHook3.c1
+        // currency0 -> currency1 -> currency3
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: keyNoHook.currency1,
+            fee: keyNoHook.fee,
+            tickSpacing: keyNoHook.tickSpacing,
+            hooks: keyNoHook.hooks,
+            hookData: ""
+        });
+        path[1] = PathKey({
+            intermediateCurrency: keyNoHook3.currency1,
+            fee: keyNoHook3.fee,
+            tickSpacing: keyNoHook3.tickSpacing,
+            hooks: keyNoHook3.hooks,
+            hookData: ""
+        });
+
+        vm.prank(aliceSwapper);
+        router.swapExactTokensForTokens(
+            0.1 ether, 0, keyNoHook.currency0, path, aliceSwapper, block.timestamp + 1
+        );
+    }
+
+    function test_exactInput_multiSwap() public {}
 
     function testSingleSwapExactInputZeroForOne() public payable {
         Key[] memory keys = new Key[](1);

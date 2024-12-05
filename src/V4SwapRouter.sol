@@ -9,6 +9,7 @@ import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
+import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {PathKey} from "v4-periphery/src/libraries/PathKey.sol";
 import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
@@ -43,6 +44,7 @@ struct BaseData {
 contract V4SwapRouter is IV4SwapRouter, SafeCallback {
     using CurrencySettler for Currency;
     using SafeCast for uint256;
+    using TransientStateLibrary for IPoolManager;
     /// ======================= CUSTOM ERRORS ======================= ///
 
     /// @dev Pool authority check.
@@ -165,10 +167,11 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         );
 
         // resolve deltas pay input currency and collect output currency
-        // uint256 inputAmount;
-        // uint256 outputAmount;
-        // inputCurrency.settle(poolManager, payer, inputAmount, false);
-        // outputCurrency.take(poolManager, to, outputAmount, false);
+        // TODO: optimization - use BalanceDelta from PoolManager calls?
+        uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
+        uint256 outputAmount = uint256(poolManager.currencyDelta(address(this), outputCurrency));
+        inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+        outputCurrency.take(poolManager, data.to, outputAmount, false);
 
         return abi.encode(toBalanceDelta(0, 0));
     }

@@ -284,6 +284,13 @@ contract V4SwapRouterTest is Test, GasSnapshot {
     }
 
     function test_exactInput_singleSwap() public {
+        // keyNoHook.c0 -> keyNoHook.c1
+        // currency0 -> currency1
+        vm.prank(aliceSwapper);
+        router.swapSingle(-0.1 ether, 0, true, keyNoHook, "", aliceSwapper, block.timestamp + 1);
+    }
+
+    function test_exactInput_multiSwap() public {
         // keyNoHook.c0 -> keyNoHook.c1 -> keyNoHook3.c1
         // currency0 -> currency1 -> currency3
         PathKey[] memory path = new PathKey[](2);
@@ -307,8 +314,6 @@ contract V4SwapRouterTest is Test, GasSnapshot {
             0.1 ether, 0, keyNoHook.currency0, path, aliceSwapper, block.timestamp + 1
         );
     }
-
-    function test_exactInput_multiSwap() public {}
 
     function testSingleSwapExactInputZeroForOne() public payable {
         Key[] memory keys = new Key[](1);

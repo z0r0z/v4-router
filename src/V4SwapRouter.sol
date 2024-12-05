@@ -143,7 +143,6 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         override
         returns (bytes memory)
     {
-        console2.log("hmmm");
         // decode the initial callback data
         (
             address payer,
@@ -151,24 +150,24 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
             bool isSingleSwap,
             bool isExactOutput,
             uint256 amount,
-            uint256 amountLimit,
-            bytes memory data
-        ) = abi.decode(callbackData, (address, address, bool, bool, uint256, uint256, bytes));
-        console2.log("yes");
+            uint256 amountLimit
+        ) = abi.decode(callbackData, (address, address, bool, bool, uint256, uint256));
 
         // decode additional data, perform single-pool swap or multi-pool swap
         Currency inputCurrency;
         Currency outputCurrency;
         if (isSingleSwap) {
-            (bool zeroForOne, PoolKey memory key, bytes memory hookData) =
-                abi.decode(data, (bool, PoolKey, bytes));
+            (,,,,,, bool zeroForOne, PoolKey memory key, bytes memory hookData) = abi.decode(
+                callbackData, (address, address, bool, bool, uint256, uint256, bool, PoolKey, bytes)
+            );
             (inputCurrency, outputCurrency) =
                 zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
         } else {
             console2.log("bruh");
             PathKey[] memory path;
-            (inputCurrency, path) = abi.decode(data, (Currency, PathKey[]));
-            console2.log("ban");
+            (,,,,,, inputCurrency, path) = abi.decode(
+                callbackData, (address, address, bool, bool, uint256, uint256, Currency, PathKey[])
+            );
         }
 
         // resolve deltas pay input currency and collect output currency

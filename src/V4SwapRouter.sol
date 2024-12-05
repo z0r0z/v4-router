@@ -65,7 +65,9 @@ contract V4SwapRouter is IV4SwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) external payable virtual override returns (BalanceDelta) {}
+    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(abi.encode());
+    }
 
     /// @inheritdoc IV4SwapRouter
     function swapTokensForExactTokens(
@@ -75,7 +77,9 @@ contract V4SwapRouter is IV4SwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) external payable virtual override returns (BalanceDelta) {}
+    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(abi.encode());
+    }
 
     /// @inheritdoc IV4SwapRouter
     function swap(
@@ -85,7 +89,9 @@ contract V4SwapRouter is IV4SwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) external payable virtual override returns (BalanceDelta) {}
+    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(abi.encode());
+    }
 
     /// @inheritdoc IV4SwapRouter
     function swapSingle(
@@ -96,7 +102,9 @@ contract V4SwapRouter is IV4SwapRouter {
         bytes calldata hookData,
         address to,
         uint256 deadline
-    ) external payable virtual override returns (BalanceDelta) {}
+    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(abi.encode());
+    }
 
     /// @dev Call into the PoolManager with Swap struct and path of keys.
     function swap(Swap calldata swaps) public payable returns (BalanceDelta) {
@@ -274,6 +282,17 @@ contract V4SwapRouter is IV4SwapRouter {
                 key.hookData
             );
         }
+    }
+
+    function _unlockAndDecode(bytes memory data) private returns (BalanceDelta) {
+        return abi.decode(UNISWAP_V4_POOL_MANAGER.unlock(data), (BalanceDelta));
+    }
+
+    /// @notice Reverts if the deadline has passed
+    /// @param deadline The timestamp at which the call is no longer valid, passed in by the caller
+    modifier checkDeadline(uint256 deadline) {
+        if (block.timestamp > deadline) revert(); // TODO: `revert DeadlinePassed(deadline);`
+        _;
     }
 
     receive() external payable {

@@ -11,7 +11,7 @@ import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
-import {PathKey} from "v4-periphery/src/libraries/PathKey.sol";
+import {PathKey, PathKeyLibrary} from "v4-periphery/src/libraries/PathKey.sol";
 import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {IV4SwapRouter} from "./interfaces/IV4SwapRouter.sol";
 
@@ -45,6 +45,7 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
     using CurrencySettler for Currency;
     using SafeCast for uint256;
     using TransientStateLibrary for IPoolManager;
+    using PathKeyLibrary for PathKey;
     /// ======================= CUSTOM ERRORS ======================= ///
 
     /// @dev Pool authority check.
@@ -198,6 +199,10 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         } else {
             PathKey[] memory path;
             (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+            outputCurrency = path[path.length - 1].intermediateCurrency;
+            isExactOutput
+                ? _multiExactOutputSwap(inputCurrency, path, amount)
+                : _multiExactInputSwap(inputCurrency, path, amount);
         }
     }
 
@@ -334,6 +339,28 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
             );
         }
     }
+
+    function _multiExactInputSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
+        internal
+    {
+        PoolKey memory poolKey;
+        PathKey memory pathKey;
+        bool zeroForOne;
+        int256 amountSpecified = -(amount.toInt256());
+        BalanceDelta delta;
+        for (uint256 i; i < path.length; i++) {
+            pathKey = path[i];
+            (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
+            delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+
+            inputCurrency = pathKey.intermediateCurrency;
+            amountSpecified = zeroForOne ? -delta.amount1() : -delta.amount0();
+        }
+    }
+
+    function _multiExactOutputSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
+        internal
+    {}
 
     function _swap(
         PoolKey memory poolKey,

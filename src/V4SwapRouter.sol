@@ -162,14 +162,19 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         BaseData memory data = abi.decode(callbackData, (BaseData));
 
         // decode additional data, perform single-pool swap or multi-pool swap
-        (Currency inputCurrency, Currency outputCurrency) = _parseAndSwap(
-            data.isSingleSwap, data.isExactOutput, data.amount, data.amountLimit, callbackData
-        );
+        (Currency inputCurrency, Currency outputCurrency) =
+            _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
         // resolve deltas pay input currency and collect output currency
         // TODO: optimization - use BalanceDelta from PoolManager calls?
         uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
         uint256 outputAmount = uint256(poolManager.currencyDelta(address(this), outputCurrency));
+
+        // check slippage, TODO: custom error
+        data.isExactOutput
+            ? require(inputAmount < data.amountLimit)
+            : require(outputAmount > data.amountLimit);
+
         inputCurrency.settle(poolManager, data.payer, inputAmount, false);
         outputCurrency.take(poolManager, data.to, outputAmount, false);
 
@@ -180,7 +185,6 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         bool isSingleSwap,
         bool isExactOutput,
         uint256 amount,
-        uint256 amountLimit,
         bytes calldata callbackData
     ) internal returns (Currency inputCurrency, Currency outputCurrency) {
         if (isSingleSwap) {
@@ -188,6 +192,9 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
                 abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
             (inputCurrency, outputCurrency) =
                 zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
+            _swap(
+                key, zeroForOne, isExactOutput ? amount.toInt256() : -(amount.toInt256()), hookData
+            );
         } else {
             PathKey[] memory path;
             (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
@@ -326,6 +333,23 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
                 key.hookData
             );
         }
+    }
+
+    function _swap(
+        PoolKey memory poolKey,
+        bool zeroForOne,
+        int256 amountSpecified,
+        bytes memory hookData
+    ) internal returns (BalanceDelta) {
+        return poolManager.swap(
+            poolKey,
+            IPoolManager.SwapParams({
+                zeroForOne: zeroForOne,
+                amountSpecified: amountSpecified,
+                sqrtPriceLimitX96: zeroForOne ? MIN : MAX
+            }),
+            hookData
+        );
     }
 
     function _unlockAndDecode(bytes memory data) private returns (BalanceDelta) {

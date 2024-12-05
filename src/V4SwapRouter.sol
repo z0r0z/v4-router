@@ -7,6 +7,7 @@ import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
 import {PathKey} from "v4-periphery/src/libraries/PathKey.sol";
+import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {IV4SwapRouter} from "./interfaces/IV4SwapRouter.sol";
 
 /// @dev The swap router params.
@@ -26,7 +27,7 @@ struct Key {
 
 /// @title Uniswap V4 Swap Router
 /// @notice Router for stateless execution of swaps against Uniswap V4.
-contract V4SwapRouter is IV4SwapRouter {
+contract V4SwapRouter is IV4SwapRouter, SafeCallback {
     /// ======================= CUSTOM ERRORS ======================= ///
 
     /// @dev Pool authority check.
@@ -37,11 +38,6 @@ contract V4SwapRouter is IV4SwapRouter {
 
     /// ========================= CONSTANTS ========================= ///
 
-    /// @dev The address of the Uniswap V4 pool manager singleton.
-    /// note: This is made `internal` to save gas. PoolManager
-    /// will be a canonical deployment, so address is known.
-    IPoolManager internal immutable UNISWAP_V4_POOL_MANAGER;
-
     /// @dev The minimum sqrt price limit for the swap.
     uint160 internal constant MIN = TickMath.MIN_SQRT_PRICE + 1;
 
@@ -51,9 +47,7 @@ contract V4SwapRouter is IV4SwapRouter {
     /// ======================== CONSTRUCTOR ======================== ///
 
     /// @dev Create with Uniswap V4 pool manager.
-    constructor(IPoolManager manager) payable {
-        UNISWAP_V4_POOL_MANAGER = manager;
-    }
+    constructor(IPoolManager manager) SafeCallback(manager) {}
 
     /// ===================== SWAP EXECUTION ===================== ///
 
@@ -109,14 +103,18 @@ contract V4SwapRouter is IV4SwapRouter {
     /// @dev Call into the PoolManager with Swap struct and path of keys.
     function swap(Swap calldata swaps) public payable returns (BalanceDelta) {
         return abi.decode(
-            UNISWAP_V4_POOL_MANAGER.unlock(abi.encodePacked(msg.sender, abi.encode(swaps))),
-            (BalanceDelta)
+            poolManager.unlock(abi.encodePacked(msg.sender, abi.encode(swaps))), (BalanceDelta)
         );
     }
 
     /// @dev Handle PoolManager Swap instructions and perform any swaps in their key sequence.
-    function unlockCallback(bytes calldata callbackData) public payable returns (bytes memory) {
-        if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
+    function _unlockCallback(bytes calldata callbackData)
+        internal
+        virtual
+        override
+        returns (bytes memory)
+    {
+        if (msg.sender != address(poolManager)) revert Unauthorized();
 
         address swapper; // Optimize `callbackData` load.
         assembly ("memory-safe") {
@@ -161,7 +159,7 @@ contract V4SwapRouter is IV4SwapRouter {
                 ? (exactIn ? uint256(uint128(delta.amount1())) : uint256(uint128(-delta.amount0())))
                 : (exactIn ? uint256(uint128(delta.amount0())) : uint256(uint128(-delta.amount1())));
 
-            UNISWAP_V4_POOL_MANAGER.sync(swaps.fromCurrency);
+            poolManager.sync(swaps.fromCurrency);
 
             if (Currency.unwrap(swaps.fromCurrency) != address(0)) {
                 safeTransferFrom(
@@ -175,8 +173,8 @@ contract V4SwapRouter is IV4SwapRouter {
             uint256 amountOut = exactIn ? takeAmount : uint256(swaps.amountSpecified);
             if (amountOut < swaps.amountOutMin) revert InsufficientOutput();
 
-            UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
-            UNISWAP_V4_POOL_MANAGER.take(toCurrency, swaps.receiver, amountOut);
+            poolManager.settle{value: address(this).balance}();
+            poolManager.take(toCurrency, swaps.receiver, amountOut);
 
             return abi.encode(delta);
         }
@@ -193,7 +191,7 @@ contract V4SwapRouter is IV4SwapRouter {
                 ? (exactIn ? uint256(uint128(delta.amount1())) : uint256(uint128(-delta.amount0())))
                 : (exactIn ? uint256(uint128(delta.amount0())) : uint256(uint128(-delta.amount1())));
 
-            UNISWAP_V4_POOL_MANAGER.sync(swaps.fromCurrency);
+            poolManager.sync(swaps.fromCurrency);
 
             if (Currency.unwrap(swaps.fromCurrency) != address(0)) {
                 safeTransferFrom(
@@ -204,8 +202,8 @@ contract V4SwapRouter is IV4SwapRouter {
                 );
             }
 
-            UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
-            UNISWAP_V4_POOL_MANAGER.take(
+            poolManager.settle{value: address(this).balance}();
+            poolManager.take(
                 toCurrency, address(this), exactIn ? takeAmount : uint256(swaps.amountSpecified)
             );
 
@@ -222,7 +220,7 @@ contract V4SwapRouter is IV4SwapRouter {
                 _swap(fromCurrency, -takeIn, key);
 
             uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
-            UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
+            poolManager.sync(fromCurrency);
 
             if (Currency.unwrap(fromCurrency) != address(0)) {
                 safeTransfer(
@@ -232,8 +230,8 @@ contract V4SwapRouter is IV4SwapRouter {
                 );
             }
 
-            UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
-            UNISWAP_V4_POOL_MANAGER.take(toCurrency, address(this), takeAmount);
+            poolManager.settle{value: address(this).balance}();
+            poolManager.take(toCurrency, address(this), takeAmount);
 
             return (toCurrency, int256(takeAmount));
         }
@@ -252,7 +250,7 @@ contract V4SwapRouter is IV4SwapRouter {
 
             uint256 takeAmount = uint256(uint128((zeroForOne ? delta.amount1() : delta.amount0())));
             if (takeAmount < amountOutMin) revert InsufficientOutput();
-            UNISWAP_V4_POOL_MANAGER.sync(fromCurrency);
+            poolManager.sync(fromCurrency);
 
             if (Currency.unwrap(fromCurrency) != address(0)) {
                 safeTransfer(
@@ -262,8 +260,8 @@ contract V4SwapRouter is IV4SwapRouter {
                 );
             }
 
-            UNISWAP_V4_POOL_MANAGER.settle{value: address(this).balance}();
-            UNISWAP_V4_POOL_MANAGER.take(toCurrency, receiver, takeAmount);
+            poolManager.settle{value: address(this).balance}();
+            poolManager.take(toCurrency, receiver, takeAmount);
 
             return abi.encode(delta);
         }
@@ -276,7 +274,7 @@ contract V4SwapRouter is IV4SwapRouter {
         unchecked {
             zeroForOne = fromCurrency < key.key.currency1;
             toCurrency = zeroForOne ? key.key.currency1 : key.key.currency0;
-            delta = UNISWAP_V4_POOL_MANAGER.swap(
+            delta = poolManager.swap(
                 key.key,
                 IPoolManager.SwapParams(zeroForOne, amountSpecified, zeroForOne ? MIN : MAX),
                 key.hookData
@@ -285,7 +283,7 @@ contract V4SwapRouter is IV4SwapRouter {
     }
 
     function _unlockAndDecode(bytes memory data) private returns (BalanceDelta) {
-        return abi.decode(UNISWAP_V4_POOL_MANAGER.unlock(data), (BalanceDelta));
+        return abi.decode(poolManager.unlock(data), (BalanceDelta));
     }
 
     /// @notice Reverts if the deadline has passed
@@ -296,7 +294,7 @@ contract V4SwapRouter is IV4SwapRouter {
     }
 
     receive() external payable {
-        if (msg.sender != address(UNISWAP_V4_POOL_MANAGER)) revert Unauthorized();
+        if (msg.sender != address(poolManager)) revert Unauthorized();
     }
 }
 

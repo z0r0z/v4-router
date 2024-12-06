@@ -239,8 +239,8 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
             (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
             outputCurrency = path[path.length - 1].intermediateCurrency;
             isExactOutput
-                ? _multiExactOutputSwap(inputCurrency, path, amount)
-                : _multiExactInputSwap(inputCurrency, path, amount);
+                ? _exactOutputMultiSwap(inputCurrency, path, amount)
+                : _exactInputMultiSwap(inputCurrency, path, amount);
         }
     }
 
@@ -378,7 +378,7 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         }
     }
 
-    function _multiExactInputSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
+    function _exactInputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
         internal
     {
         PoolKey memory poolKey;
@@ -396,7 +396,7 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
         }
     }
 
-    function _multiExactOutputSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
+    function _exactOutputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
         internal
     {}
 

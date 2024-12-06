@@ -11,7 +11,7 @@ import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
-import {PathKey, PathKeyLibrary} from "v4-periphery/src/libraries/PathKey.sol";
+import {PathKey, PathKeyLibrary} from "./libraries/PathKey.sol";
 import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {IV4SwapRouter} from "./interfaces/IV4SwapRouter.sol";
 

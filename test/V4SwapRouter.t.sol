@@ -17,7 +17,7 @@ import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
 
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
 
-import {PathKey} from "v4-periphery/src/libraries/PathKey.sol";
+import {PathKey} from "../src/libraries/PathKey.sol";
 
 contract V4SwapRouterTest is Test, GasSnapshot {
     address internal aliceSwapper;

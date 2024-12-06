@@ -17,6 +17,7 @@ import {IV4SwapRouter} from "./interfaces/IV4SwapRouter.sol";
 contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
     constructor(IPoolManager manager) BaseSwapRouter(manager) {}
 
+    /// @inheritdoc IV4SwapRouter
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -41,6 +42,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
     }
 
+    /// @inheritdoc IV4SwapRouter
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
@@ -52,6 +54,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(abi.encode());
     }
 
+    /// @inheritdoc IV4SwapRouter
     function swap(
         int256 amountSpecified,
         uint256 amountTolerance,
@@ -63,6 +66,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(abi.encode());
     }
 
+    /// @inheritdoc IV4SwapRouter
     function swap(bytes calldata data, uint256 deadline)
         external
         payable
@@ -76,6 +80,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
 
     /// -----------------------
 
+    /// @inheritdoc IV4SwapRouter
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -88,6 +93,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(abi.encode());
     }
 
+    /// @inheritdoc IV4SwapRouter
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
@@ -100,6 +106,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(abi.encode());
     }
 
+    /// @inheritdoc IV4SwapRouter
     function swap(
         int256 amountSpecified,
         uint256 amountTolerance,

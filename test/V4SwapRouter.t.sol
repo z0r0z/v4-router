@@ -287,7 +287,7 @@ contract V4SwapRouterTest is Test, GasSnapshot {
         // keyNoHook.c0 -> keyNoHook.c1
         // currency0 -> currency1
         vm.prank(aliceSwapper);
-        router.swapSingle(-0.1 ether, 0, true, keyNoHook, "", aliceSwapper, block.timestamp + 1);
+        router.swap(-0.1 ether, 0, true, keyNoHook, "", aliceSwapper, block.timestamp + 1);
     }
 
     function test_exactInput_multiSwap() public {

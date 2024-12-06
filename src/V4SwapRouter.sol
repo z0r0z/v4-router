@@ -107,6 +107,32 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
     }
 
     /// @inheritdoc IV4SwapRouter
+    function swapExactTokensForTokens(
+        uint256 amountIn,
+        uint256 amountOutMin,
+        bool zeroForOne,
+        PoolKey memory poolKey,
+        bytes calldata hookData,
+        address to,
+        uint256 deadline
+    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(abi.encode());
+    }
+
+    /// @inheritdoc IV4SwapRouter
+    function swapTokensForExactTokens(
+        uint256 amountOut,
+        uint256 amountInMax,
+        bool zeroForOne,
+        PoolKey memory poolKey,
+        bytes calldata hookData,
+        address to,
+        uint256 deadline
+    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(abi.encode());
+    }
+
+    /// @inheritdoc IV4SwapRouter
     function swap(
         int256 amountSpecified,
         uint256 amountTolerance,
@@ -119,7 +145,7 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
     }
 
     /// @inheritdoc IV4SwapRouter
-    function swapSingle(
+    function swap(
         int256 amountSpecified,
         uint256 amountTolerance,
         bool zeroForOne,
@@ -143,6 +169,18 @@ contract V4SwapRouter is IV4SwapRouter, SafeCallback {
                 hookData
             )
         );
+    }
+
+    /// @inheritdoc IV4SwapRouter
+    function swap(bytes calldata data, uint256 deadline)
+        external
+        payable
+        virtual
+        override
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
+        return _unlockAndDecode(data);
     }
 
     /// @dev Call into the PoolManager with Swap struct and path of keys.

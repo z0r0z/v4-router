@@ -34,6 +34,9 @@ abstract contract BaseSwapRouter is SafeCallback {
     /// @dev Pool authority check.
     error Unauthorized();
 
+    /// @dev Slippage check.
+    error SlippageExceeded();
+
     /// @dev Swap `block.timestamp` check.
     error DeadlinePassed(uint256 deadline);
 
@@ -71,10 +74,11 @@ abstract contract BaseSwapRouter is SafeCallback {
         uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
         uint256 outputAmount = uint256(poolManager.currencyDelta(address(this), outputCurrency));
 
-        // check slippage, TODO: custom error
-        data.isExactOutput
-            ? require(inputAmount < data.amountLimit)
-            : require(outputAmount > data.amountLimit);
+        // check slippage
+        if (data.isExactOutput ? inputAmount >= data.amountLimit : outputAmount <= data.amountLimit)
+        {
+            revert SlippageExceeded();
+        }
 
         inputCurrency.settle(poolManager, data.payer, inputAmount, false);
         outputCurrency.take(poolManager, data.to, outputAmount, false);

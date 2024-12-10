@@ -1,7 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.24;
-
-import "forge-std/console2.sol"; // TODO: remove
+pragma solidity ^0.8.26;
 
 import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";

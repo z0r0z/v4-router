@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
@@ -21,16 +21,21 @@ struct BaseData {
     bool isExactOutput;
 }
 
-/// TODO: natspec
+/// @title Base Swap Router
+/// @notice Template for data parsing and callback swap handling in Uniswap V4
 abstract contract BaseSwapRouter is SafeCallback {
     using CurrencySettler for Currency;
     using SafeCast for uint256;
     using TransientStateLibrary for IPoolManager;
     using PathKeyLibrary for PathKey;
+
     /// ======================= CUSTOM ERRORS ======================= ///
 
     /// @dev Pool authority check.
     error Unauthorized();
+
+    /// @dev Swap `block.timestamp` check.
+    error DeadlinePassed(uint256 deadline);
 
     /// ========================= CONSTANTS ========================= ///
 
@@ -82,7 +87,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool isExactOutput,
         uint256 amount,
         bytes calldata callbackData
-    ) internal returns (Currency inputCurrency, Currency outputCurrency) {
+    ) internal virtual returns (Currency inputCurrency, Currency outputCurrency) {
         if (isSingleSwap) {
             (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
                 abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
@@ -103,13 +108,14 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     function _exactInputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
         internal
+        virtual
     {
         PoolKey memory poolKey;
         PathKey memory pathKey;
         bool zeroForOne;
         int256 amountSpecified = -(amount.toInt256());
         BalanceDelta delta;
-        for (uint256 i; i < path.length; i++) {
+        for (uint256 i; i != path.length; ++i) {
             pathKey = path[i];
             (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
             delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
@@ -121,6 +127,7 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     function _exactOutputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
         internal
+        virtual
     {}
 
     function _swap(
@@ -128,7 +135,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool zeroForOne,
         int256 amountSpecified,
         bytes memory hookData
-    ) internal returns (BalanceDelta) {
+    ) internal virtual returns (BalanceDelta) {
         return poolManager.swap(
             poolKey,
             IPoolManager.SwapParams({
@@ -140,14 +147,14 @@ abstract contract BaseSwapRouter is SafeCallback {
         );
     }
 
-    function _unlockAndDecode(bytes memory data) internal returns (BalanceDelta) {
+    function _unlockAndDecode(bytes memory data) internal virtual returns (BalanceDelta) {
         return abi.decode(poolManager.unlock(data), (BalanceDelta));
     }
 
     /// @notice Reverts if the deadline has passed
     /// @param deadline The timestamp at which the call is no longer valid, passed in by the caller
-    modifier checkDeadline(uint256 deadline) {
-        if (block.timestamp > deadline) revert(); // TODO: `revert DeadlinePassed(deadline);`
+    modifier checkDeadline(uint256 deadline) virtual {
+        if (block.timestamp > deadline) revert DeadlinePassed(deadline);
         _;
     }
 

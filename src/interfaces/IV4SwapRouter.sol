@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
+import {PathKey} from "../libraries/PathKey.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
-import {PathKey} from "../libraries/PathKey.sol";
 
 /// @title Uniswap V4 Swap Router
 /// @notice A simple, stateless router for execution of swaps against Uniswap v4 Pools
@@ -44,7 +44,7 @@ interface IV4SwapRouter {
         uint256 deadline
     ) external payable returns (BalanceDelta);
 
-    /// @notice a general-purpose swap interface for Uniswap v4 that handles all types of swaps
+    /// @notice General-purpose swap interface for Uniswap v4 that handles all types of swaps
     /// @param amountSpecified the amount of tokens to be swapped, negative for exact input swaps and positive for exact output swaps
     /// @param amountLimit the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps
     /// @param startCurrency the currency to start the swap from
@@ -98,7 +98,7 @@ interface IV4SwapRouter {
         uint256 deadline
     ) external payable returns (BalanceDelta);
 
-    /// @notice a general-purpose single-pool swap interface
+    /// @notice General-purpose single-pool swap interface
     /// @param amountSpecified the amount of tokens to be swapped, negative for exact input swaps and positive for exact output swaps
     /// @param amountLimit the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps
     /// @param zeroForOne the direction of the swap, true if currency0 is being swapped for currency1
@@ -118,8 +118,8 @@ interface IV4SwapRouter {
 
     /// ================ OPTIMIZED ================ ///
 
-    /// @notice An generic multi-pool swap function that accepts pre-encoded calldata
-    /// @dev a minor optimization to reduce the number of onchain abi.encode calls
+    /// @notice Generic multi-pool swap function that accepts pre-encoded calldata
+    /// @dev Minor optimization to reduce the number of onchain abi.encode calls
     /// @param data TODO: pre-encoded swap data, abi.encode(TODO: )
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
     function swap(bytes calldata data, uint256 deadline) external payable returns (BalanceDelta);

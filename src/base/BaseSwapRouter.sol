@@ -3,14 +3,14 @@ pragma solidity ^0.8.26;
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
-import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
-import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
-import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
-import {PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
-import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
+import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
+import {PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
+import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
+import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
+import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
 
 struct BaseData {
     uint256 amount;
@@ -24,14 +24,14 @@ struct BaseData {
 /// @title Base Swap Router
 /// @notice Template for data parsing and callback swap handling in Uniswap V4
 abstract contract BaseSwapRouter is SafeCallback {
-    using CurrencySettler for Currency;
-    using SafeCast for uint256;
     using TransientStateLibrary for IPoolManager;
+    using CurrencySettler for Currency;
     using PathKeyLibrary for PathKey;
+    using SafeCast for uint256;
 
     /// ======================= CUSTOM ERRORS ======================= ///
 
-    /// @dev Pool authority check.
+    /// @dev Auth check.
     error Unauthorized();
 
     /// @dev Slippage check.
@@ -101,12 +101,15 @@ abstract contract BaseSwapRouter is SafeCallback {
                 key, zeroForOne, isExactOutput ? amount.toInt256() : -(amount.toInt256()), hookData
             );
         } else {
-            PathKey[] memory path;
-            (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
-            outputCurrency = path[path.length - 1].intermediateCurrency;
-            isExactOutput
-                ? _exactOutputMultiSwap(inputCurrency, path, amount)
-                : _exactInputMultiSwap(inputCurrency, path, amount);
+            // cannot underflow as path will always be greater than one
+            unchecked {
+                PathKey[] memory path;
+                (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+                outputCurrency = path[path.length - 1].intermediateCurrency;
+                isExactOutput
+                    ? _exactOutputMultiSwap(inputCurrency, path, amount)
+                    : _exactInputMultiSwap(inputCurrency, path, amount);
+            }
         }
     }
 
@@ -132,7 +135,24 @@ abstract contract BaseSwapRouter is SafeCallback {
     function _exactOutputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
-    {}
+    {
+        PoolKey memory poolKey;
+        PathKey memory pathKey;
+        bool zeroForOne;
+        int256 amountSpecified = amount.toInt256();
+        BalanceDelta delta;
+
+        // loop through the path in reverse for exact output
+        for (uint256 i = path.length; i > 0; i--) {
+            pathKey = path[i - 1];
+            (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(
+                i == path.length ? pathKey.intermediateCurrency : path[i].intermediateCurrency
+            );
+
+            delta = _swap(poolKey, !zeroForOne, amountSpecified, pathKey.hookData);
+            amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
+        }
+    }
 
     function _swap(
         PoolKey memory poolKey,
@@ -155,8 +175,8 @@ abstract contract BaseSwapRouter is SafeCallback {
         return abi.decode(poolManager.unlock(data), (BalanceDelta));
     }
 
-    /// @notice Reverts if the deadline has passed
-    /// @param deadline The timestamp at which the call is no longer valid, passed in by the caller
+    /// @notice Reverts if the deadline has expired
+    /// @param deadline User-provided timestamp cutoff
     modifier checkDeadline(uint256 deadline) virtual {
         if (block.timestamp > deadline) revert DeadlinePassed(deadline);
         _;

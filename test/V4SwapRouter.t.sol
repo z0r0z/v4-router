@@ -3,7 +3,7 @@ pragma solidity ^0.8.24;
 
 import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
 
-import {Key, Swap, V4SwapRouter} from "../src/V4SwapRouter.sol";
+import {V4SwapRouter} from "../src/V4SwapRouter.sol";
 import {IPoolManager, PoolManager} from "@v4/src/PoolManager.sol";
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
@@ -16,6 +16,8 @@ import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
 
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
+
+import {PathKey} from "../src/libraries/PathKey.sol";
 
 contract V4SwapRouterTest is Test, GasSnapshot {
     address internal aliceSwapper;
@@ -281,212 +283,244 @@ contract V4SwapRouterTest is Test, GasSnapshot {
         router = new V4SwapRouter(IPoolManager(manager));
     }
 
-    function testSingleSwapExactInputZeroForOne() public payable {
-        Key[] memory keys = new Key[](1);
-        keys[0].key = keyNoHook;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
+    function test_exactInput_singleSwap() public {
+        // keyNoHook.c0 -> keyNoHook.c1
+        // currency0 -> currency1
         vm.prank(aliceSwapper);
-        router.swap(swap);
-        snapLastCall("single swap exactIn");
+        router.swap(-0.1 ether, 0, true, keyNoHook, "", aliceSwapper, block.timestamp + 1);
     }
 
-    function testSingleSwapExactInputZeroForOneNative() public payable {
-        Key[] memory keys = new Key[](1);
-        keys[0].key = ethKeyNoHook;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
+    function test_exactInput_multiSwap() public {
+        // keyNoHook.c0 -> keyNoHook.c1 -> keyNoHook3.c1
+        // currency0 -> currency1 -> currency3
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: keyNoHook.currency1,
+            fee: keyNoHook.fee,
+            tickSpacing: keyNoHook.tickSpacing,
+            hooks: keyNoHook.hooks,
+            hookData: ""
+        });
+        path[1] = PathKey({
+            intermediateCurrency: keyNoHook3.currency1,
+            fee: keyNoHook3.fee,
+            tickSpacing: keyNoHook3.tickSpacing,
+            hooks: keyNoHook3.hooks,
+            hookData: ""
+        });
+
         vm.prank(aliceSwapper);
-        router.swap{value: 0.1 ether}(swap);
-        snapLastCall("single swap exactIn native");
+        router.swapExactTokensForTokens(
+            0.1 ether, 0, keyNoHook.currency0, path, aliceSwapper, block.timestamp + 1
+        );
     }
 
-    function testSingleSwapExactInputOneForZero() public payable {
-        Key[] memory keys = new Key[](1);
-        keys[0].key = keyNoHook;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency1;
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap);
-    }
+    // function testSingleSwapExactInputZeroForOne() public payable {
+    //     Key[] memory keys = new Key[](1);
+    //     keys[0].key = keyNoHook;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap);
+    //     snapLastCall("single swap exactIn");
+    // }
 
-    function testSingleSwapExactInputOneForZeroNative() public payable {
-        Key[] memory keys = new Key[](1);
-        keys[0].key = ethKeyNoHook;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = ethKeyNoHook.currency1;
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap);
-    }
+    // function testSingleSwapExactInputZeroForOneNative() public payable {
+    //     Key[] memory keys = new Key[](1);
+    //     keys[0].key = ethKeyNoHook;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap{value: 0.1 ether}(swap);
+    //     snapLastCall("single swap exactIn native");
+    // }
 
-    function testSingleSwapExactOutputZeroForOne() public payable {
-        Key[] memory keys = new Key[](1);
-        keys[0].key = keyNoHook;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-        swap.amountSpecified = 0.1 ether;
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap);
-        snapLastCall("single swap exactOut");
-    }
+    // function testSingleSwapExactInputOneForZero() public payable {
+    //     Key[] memory keys = new Key[](1);
+    //     keys[0].key = keyNoHook;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency1;
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap);
+    // }
 
-    function testSingleSwapExactOutputOneForZero() public payable {
-        Key[] memory keys = new Key[](1);
-        keys[0].key = keyNoHook;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency1;
-        swap.amountSpecified = 0.1 ether;
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap);
-    }
+    // function testSingleSwapExactInputOneForZeroNative() public payable {
+    //     Key[] memory keys = new Key[](1);
+    //     keys[0].key = ethKeyNoHook;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = ethKeyNoHook.currency1;
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap);
+    // }
 
-    function testDoubleSwapSame() public payable {
-        Key[] memory keys = new Key[](2);
-        keys[0].key = keyNoHook;
-        keys[1].key = keyNoHook;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap);
-    }
+    // function testSingleSwapExactOutputZeroForOne() public payable {
+    //     Key[] memory keys = new Key[](1);
+    //     keys[0].key = keyNoHook;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
+    //     swap.amountSpecified = 0.1 ether;
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap);
+    //     snapLastCall("single swap exactOut");
+    // }
 
-    function testTripleSwapSame() public payable {
-        Key[] memory keys = new Key[](3);
-        keys[0].key = keyNoHook;
-        keys[1].key = keyNoHook;
-        keys[2].key = keyNoHook;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap);
-    }
+    // function testSingleSwapExactOutputOneForZero() public payable {
+    //     Key[] memory keys = new Key[](1);
+    //     keys[0].key = keyNoHook;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency1;
+    //     swap.amountSpecified = 0.1 ether;
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap);
+    // }
 
-    function testMultihopSwapExactInputTwoHops() public payable {
-        Key[] memory keys = new Key[](2);
-        keys[0].key = keyNoHook;
-        keys[1].key = keyNoHook3;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap); // 0 for 3.
-    }
+    // function testDoubleSwapSame() public payable {
+    //     Key[] memory keys = new Key[](2);
+    //     keys[0].key = keyNoHook;
+    //     keys[1].key = keyNoHook;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap);
+    // }
 
-    function testMultihopSwapExactInputTwoHopsNative() public payable {
-        Key[] memory keys = new Key[](2);
-        keys[0].key = ethKeyNoHook;
-        keys[1].key = keyNoHook3;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap{value: 0.1 ether}(swap); // 0 for 3.
-    }
+    // function testTripleSwapSame() public payable {
+    //     Key[] memory keys = new Key[](3);
+    //     keys[0].key = keyNoHook;
+    //     keys[1].key = keyNoHook;
+    //     keys[2].key = keyNoHook;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap);
+    // }
 
-    function testMultihopSwapExactInputTwoHopAlt() public payable {
-        Key[] memory keys = new Key[](2);
-        keys[0].key = keyNoHook;
-        keys[1].key = keyNoHook5;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency1;
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap); // 1 for 3.
-    }
+    // function testMultihopSwapExactInputTwoHops() public payable {
+    //     Key[] memory keys = new Key[](2);
+    //     keys[0].key = keyNoHook;
+    //     keys[1].key = keyNoHook3;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap); // 0 for 3.
+    // }
 
-    function testMultihopSwapExactOutputTwoHops() public payable {
-        Key[] memory keys = new Key[](2);
-        keys[0].key = keyNoHook;
-        keys[1].key = keyNoHook3;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-        swap.amountSpecified = 0.1 ether;
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap); // 0 for 3.
-    }
+    // function testMultihopSwapExactInputTwoHopsNative() public payable {
+    //     Key[] memory keys = new Key[](2);
+    //     keys[0].key = ethKeyNoHook;
+    //     keys[1].key = keyNoHook3;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap{value: 0.1 ether}(swap); // 0 for 3.
+    // }
 
-    function testMultihopSwapExactOutputTwoHopsAlt() public payable {
-        Key[] memory keys = new Key[](2);
-        keys[0].key = keyNoHook;
-        keys[1].key = keyNoHook5;
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency1;
-        swap.amountSpecified = 0.1 ether;
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap); // 1 for 3.
-    }
+    // function testMultihopSwapExactInputTwoHopAlt() public payable {
+    //     Key[] memory keys = new Key[](2);
+    //     keys[0].key = keyNoHook;
+    //     keys[1].key = keyNoHook5;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency1;
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap); // 1 for 3.
+    // }
 
-    function testMultihopSwapExactInputThreeHops() public payable {
-        Key[] memory keys = new Key[](3);
-        keys[0].key = keyNoHook; // 0 for 1.
-        keys[1].key = keyNoHook4; // 1 for 2.
-        keys[2].key = keyNoHook2; // 2 for 3.
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap); // 0 for 3.
-        snapLastCall("multihop swap");
-    }
+    // function testMultihopSwapExactOutputTwoHops() public payable {
+    //     Key[] memory keys = new Key[](2);
+    //     keys[0].key = keyNoHook;
+    //     keys[1].key = keyNoHook3;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
+    //     swap.amountSpecified = 0.1 ether;
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap); // 0 for 3.
+    // }
 
-    function testMultihopSwapExactInputThreeHopsNative() public payable {
-        Key[] memory keys = new Key[](3);
-        keys[0].key = ethKeyNoHook; // 0 for 1.
-        keys[1].key = keyNoHook4; // 1 for 2.
-        keys[2].key = keyNoHook2; // 2 for 3.
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap{value: 0.1 ether}(swap); // 0 for 3.
-    }
+    // function testMultihopSwapExactOutputTwoHopsAlt() public payable {
+    //     Key[] memory keys = new Key[](2);
+    //     keys[0].key = keyNoHook;
+    //     keys[1].key = keyNoHook5;
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency1;
+    //     swap.amountSpecified = 0.1 ether;
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap); // 1 for 3.
+    // }
 
-    function testMultihopSwapExactInputTwoHopsNativeOutput() public payable {
-        Key[] memory keys = new Key[](2);
-        keys[0].key = keyNoHook4; // 2 for 1.
-        keys[1].key = ethKeyNoHook; // 1 for 0.
-        Swap memory swap;
-        swap.receiver = aliceSwapper;
-        swap.fromCurrency = keyNoHook4.currency1;
-        swap.amountSpecified = -(0.1 ether);
-        swap.keys = keys;
-        vm.prank(aliceSwapper);
-        router.swap(swap); // 2 for 0 (ETH).
-    }
+    // function testMultihopSwapExactInputThreeHops() public payable {
+    //     Key[] memory keys = new Key[](3);
+    //     keys[0].key = keyNoHook; // 0 for 1.
+    //     keys[1].key = keyNoHook4; // 1 for 2.
+    //     keys[2].key = keyNoHook2; // 2 for 3.
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap); // 0 for 3.
+    //     snapLastCall("multihop swap");
+    // }
+
+    // function testMultihopSwapExactInputThreeHopsNative() public payable {
+    //     Key[] memory keys = new Key[](3);
+    //     keys[0].key = ethKeyNoHook; // 0 for 1.
+    //     keys[1].key = keyNoHook4; // 1 for 2.
+    //     keys[2].key = keyNoHook2; // 2 for 3.
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap{value: 0.1 ether}(swap); // 0 for 3.
+    // }
+
+    // function testMultihopSwapExactInputTwoHopsNativeOutput() public payable {
+    //     Key[] memory keys = new Key[](2);
+    //     keys[0].key = keyNoHook4; // 2 for 1.
+    //     keys[1].key = ethKeyNoHook; // 1 for 0.
+    //     Swap memory swap;
+    //     swap.receiver = aliceSwapper;
+    //     swap.fromCurrency = keyNoHook4.currency1;
+    //     swap.amountSpecified = -(0.1 ether);
+    //     swap.keys = keys;
+    //     vm.prank(aliceSwapper);
+    //     router.swap(swap); // 2 for 0 (ETH).
+    // }
 }

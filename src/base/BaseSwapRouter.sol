@@ -31,6 +31,9 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     /// ======================= CUSTOM ERRORS ======================= ///
 
+    /// @dev No path.
+    error EmptyPath();
+
     /// @dev Auth check.
     error Unauthorized();
 
@@ -50,31 +53,24 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     /// ======================== CONSTRUCTOR ======================== ///
 
-    /// @dev Create with Uniswap V4 pool manager.
     constructor(IPoolManager manager) SafeCallback(manager) {}
 
     /// ===================== SWAP EXECUTION ===================== ///
 
-    /// @dev Handle PoolManager Swap instructions and perform any swaps in their key sequence.
     function _unlockCallback(bytes calldata callbackData)
         internal
         virtual
         override
         returns (bytes memory)
     {
-        // decode the initial callback data
         BaseData memory data = abi.decode(callbackData, (BaseData));
 
-        // decode additional data, perform single-pool swap or multi-pool swap
         (Currency inputCurrency, Currency outputCurrency) =
             _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
-        // resolve deltas pay input currency and collect output currency
-        // TODO: optimization - use BalanceDelta from PoolManager calls?
         uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
         uint256 outputAmount = uint256(poolManager.currencyDelta(address(this), outputCurrency));
 
-        // check slippage
         if (data.isExactOutput ? inputAmount >= data.amountLimit : outputAmount <= data.amountLimit)
         {
             revert SlippageExceeded();
@@ -83,7 +79,9 @@ abstract contract BaseSwapRouter is SafeCallback {
         inputCurrency.settle(poolManager, data.payer, inputAmount, false);
         outputCurrency.take(poolManager, data.to, outputAmount, false);
 
-        return abi.encode(toBalanceDelta(0, 0));
+        return abi.encode(
+            toBalanceDelta(-(inputAmount.toInt256().toInt128()), outputAmount.toInt256().toInt128())
+        );
     }
 
     function _parseAndSwap(
@@ -95,21 +93,24 @@ abstract contract BaseSwapRouter is SafeCallback {
         if (isSingleSwap) {
             (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
                 abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
+
             (inputCurrency, outputCurrency) =
                 zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
+
             _swap(
                 key, zeroForOne, isExactOutput ? amount.toInt256() : -(amount.toInt256()), hookData
             );
         } else {
-            // cannot underflow as path will always be greater than one
-            unchecked {
-                PathKey[] memory path;
-                (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
-                outputCurrency = path[path.length - 1].intermediateCurrency;
-                isExactOutput
-                    ? _exactOutputMultiSwap(inputCurrency, path, amount)
-                    : _exactInputMultiSwap(inputCurrency, path, amount);
-            }
+            PathKey[] memory path;
+            (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+
+            if (path.length == 0) revert EmptyPath();
+
+            outputCurrency = path[path.length - 1].intermediateCurrency;
+
+            isExactOutput
+                ? _exactOutputMultiSwap(inputCurrency, path, amount)
+                : _exactInputMultiSwap(inputCurrency, path, amount);
         }
     }
 
@@ -122,6 +123,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool zeroForOne;
         int256 amountSpecified = -(amount.toInt256());
         BalanceDelta delta;
+
         for (uint256 i; i != path.length; ++i) {
             pathKey = path[i];
             (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
@@ -142,7 +144,6 @@ abstract contract BaseSwapRouter is SafeCallback {
         int256 amountSpecified = amount.toInt256();
         BalanceDelta delta;
 
-        // loop through the path in reverse for exact output
         for (uint256 i = path.length; i > 0; i--) {
             pathKey = path[i - 1];
             (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(
@@ -175,8 +176,6 @@ abstract contract BaseSwapRouter is SafeCallback {
         return abi.decode(poolManager.unlock(data), (BalanceDelta));
     }
 
-    /// @notice Reverts if the deadline has expired
-    /// @param deadline User-provided timestamp cutoff
     modifier checkDeadline(uint256 deadline) virtual {
         if (block.timestamp > deadline) revert DeadlinePassed(deadline);
         _;

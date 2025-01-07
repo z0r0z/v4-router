@@ -28,6 +28,7 @@ abstract contract BaseSwapRouter is SafeCallback {
     using CurrencySettler for Currency;
     using PathKeyLibrary for PathKey;
     using SafeCast for uint256;
+    using SafeCast for int256;
 
     /// ======================= CUSTOM ERRORS ======================= ///
 

@@ -68,6 +68,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         (Currency inputCurrency, Currency outputCurrency) =
             _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
+        // TODO: optimization - use BalanceDelta from PoolManager calls?
         uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
         uint256 outputAmount = uint256(poolManager.currencyDelta(address(this), outputCurrency));
 

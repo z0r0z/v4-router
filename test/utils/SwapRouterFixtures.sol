@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {IERC20} from "@forge/interfaces/IERC20.sol";
+
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {IHooks} from "@v4/src/interfaces/IHooks.sol";
+import {Hooks} from "@v4/src/libraries/Hooks.sol";
 import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 import {Deployers} from "@v4/test/utils/Deployers.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
@@ -10,6 +13,7 @@ import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 
 import {MockCurrencyLibrary} from "./mocks/MockCurrencyLibrary.sol";
+import {CSMM} from "./mocks/hooks/CSMM.sol";
 import "@forge/console2.sol";
 
 contract SwapRouterFixtures is Deployers {
@@ -19,6 +23,8 @@ contract SwapRouterFixtures is Deployers {
     Currency currencyB;
     Currency currencyC;
     Currency currencyD;
+
+    CSMM csmm;
 
     uint24 constant FEE = 3000;
     int24 constant TICK_SPACING = 60;
@@ -43,6 +49,30 @@ contract SwapRouterFixtures is Deployers {
             modifyLiquidityRouter.modifyLiquidity{value: msgValue}(
                 _poolKey, LIQUIDITY_PARAMS, ZERO_BYTES
             );
+        }
+    }
+
+    /// Hook Deployment Functions ///
+
+    function _deployCSMM() internal {
+        address flags = address(
+            uint160(
+                Hooks.BEFORE_SWAP_FLAG | Hooks.BEFORE_SWAP_RETURNS_DELTA_FLAG
+                    | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
+            ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
+        );
+        bytes memory constructorArgs = abi.encode(manager); //Add all the necessary constructor arguments from the hook
+        deployCodeTo("test/utils/mocks/hooks/CSMM.sol:CSMM", constructorArgs, flags);
+        csmm = CSMM(flags);
+    }
+
+    function _addLiquidityCSMM(PoolKey[] memory poolKeys, uint256 liquidity) internal {
+        PoolKey memory poolKey;
+        for (uint256 i = 0; i < poolKeys.length; i++) {
+            poolKey = poolKeys[i];
+            IERC20(Currency.unwrap(poolKey.currency0)).approve(address(csmm), liquidity);
+            IERC20(Currency.unwrap(poolKey.currency1)).approve(address(csmm), liquidity);
+            csmm.addLiquidity(poolKey, liquidity);
         }
     }
 

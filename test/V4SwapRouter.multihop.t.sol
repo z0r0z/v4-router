@@ -39,6 +39,8 @@ contract MultihopTest is SwapRouterFixtures {
         currencyD.maxApprove(address(modifyLiquidityRouter));
 
         // TODO: deploy hooks
+        // Deploy the hook to an address with the correct flags
+        _deployCSMM();
 
         // Define and create pools with liquidity
         PoolKey[] memory _vanillaPoolKeys = _createPoolKeys(address(0));
@@ -47,13 +49,16 @@ contract MultihopTest is SwapRouterFixtures {
         _copyArrayToStorage(_nativePoolKeys, nativePoolKeys);
         PoolKey[] memory _hookedPoolKeys = _createPoolKeys(address(Hooks.BEFORE_SWAP_FLAG));
         _copyArrayToStorage(_hookedPoolKeys, hookedPoolKeys);
-        PoolKey[] memory _csmmPoolKeys = _createPoolKeys(address(Hooks.AFTER_SWAP_FLAG));
+        PoolKey[] memory _csmmPoolKeys = _createPoolKeys(address(csmm));
         _copyArrayToStorage(_csmmPoolKeys, csmmPoolKeys);
 
         PoolKey[] memory allPoolKeys =
             _concatPools(vanillaPoolKeys, nativePoolKeys, hookedPoolKeys, csmmPoolKeys);
         _initializePools(allPoolKeys);
-        _addLiquidity(allPoolKeys, 10_000e18);
+        _addLiquidity(vanillaPoolKeys, 10_000e18);
+        _addLiquidity(nativePoolKeys, 10_000e18);
+        _addLiquidity(hookedPoolKeys, 10_000e18);
+        _addLiquidityCSMM(csmmPoolKeys, 1_000e18);
     }
 
     function test_multi_exactInput() public {}

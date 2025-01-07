@@ -114,7 +114,21 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         address to,
         uint256 deadline
     ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
-        return _unlockAndDecode(abi.encode());
+        return _unlockAndDecode(
+            abi.encode(
+                BaseData({
+                    payer: msg.sender,
+                    to: to,
+                    isSingleSwap: true,
+                    isExactOutput: false,
+                    amount: amountIn,
+                    amountLimit: amountOutMin
+                }),
+                zeroForOne,
+                poolKey,
+                hookData
+            )
+        );
     }
 
     /// @inheritdoc IV4SwapRouter
@@ -127,7 +141,21 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         address to,
         uint256 deadline
     ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
-        return _unlockAndDecode(abi.encode());
+        return _unlockAndDecode(
+            abi.encode(
+                BaseData({
+                    payer: msg.sender,
+                    to: to,
+                    isSingleSwap: true,
+                    isExactOutput: true,
+                    amount: amountOut,
+                    amountLimit: amountInMax
+                }),
+                zeroForOne,
+                poolKey,
+                hookData
+            )
+        );
     }
 
     /// @inheritdoc IV4SwapRouter

@@ -120,7 +120,25 @@ interface IV4SwapRouter {
 
     /// @notice Generic multi-pool swap function that accepts pre-encoded calldata
     /// @dev Minor optimization to reduce the number of onchain abi.encode calls
-    /// @param data TODO: pre-encoded swap data, abi.encode(TODO: )
+    /// @param data Pre-encoded swap data in one of two formats:
+    ///     1. For single-pool swaps: abi.encode(
+    ///         BaseData baseData,             // struct containing swap parameters
+    ///         bool zeroForOne,               // direction of swap
+    ///         PoolKey poolKey,               // key of the pool to swap through
+    ///         bytes hookData                 // data to pass to hooks
+    ///     )
+    ///     2. For multi-pool swaps: abi.encode(
+    ///         BaseData baseData,             // struct containing swap parameters
+    ///         Currency startCurrency,        // initial currency in the swap
+    ///         PathKey[] path                 // array of path keys defining the route
+    ///     )
+    ///     where BaseData contains:
+    ///         address payer                  // who pays for the swap
+    ///         address to                     // recipient of output tokens
+    ///         bool isSingleSwap              // whether this is a single or multi-pool swap
+    ///         bool isExactOutput             // whether this is an exact output swap
+    ///         uint256 amount                 // amount to swap
+    ///         uint256 amountLimit            // slippage limit
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
     function swap(bytes calldata data, uint256 deadline) external payable returns (BalanceDelta);
 }

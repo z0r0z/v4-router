@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.24;
 
-import {GasSnapshot} from "forge-gas-snapshot/GasSnapshot.sol";
-
 import {V4SwapRouter} from "../src/V4SwapRouter.sol";
 import {IPoolManager, PoolManager} from "@v4/src/PoolManager.sol";
 
@@ -10,7 +8,7 @@ import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {IHooks} from "@v4/src/interfaces/IHooks.sol";
 import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 
-import {Test} from "../lib/forge-std/src/Test.sol";
+import {Test} from "@forge/Test.sol";
 import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 
 import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
@@ -19,7 +17,7 @@ import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol"
 
 import {PathKey} from "../src/libraries/PathKey.sol";
 
-contract V4SwapRouterTest is Test, GasSnapshot {
+contract V4SwapRouterTest is Test {
     address internal aliceSwapper;
 
     address internal manager;

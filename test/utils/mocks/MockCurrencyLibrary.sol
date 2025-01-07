@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 import {IERC20} from "@forge/interfaces/IERC20.sol";
 import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";

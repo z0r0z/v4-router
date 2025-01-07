@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.24;
+pragma solidity ^0.8.26;
 
 import {V4SwapRouter} from "../src/V4SwapRouter.sol";
 import {IPoolManager, PoolManager} from "@v4/src/PoolManager.sol";
@@ -16,6 +16,8 @@ import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
 
 import {PathKey} from "../src/libraries/PathKey.sol";
+
+import {console} from "forge-std/console.sol";
 
 contract V4SwapRouterTest is Test {
     address internal aliceSwapper;
@@ -157,18 +159,6 @@ contract V4SwapRouterTest is Test {
 
         PoolManager(manager).initialize(keyNoHook5, startingPrice);
 
-        /*noOpSwapHook = IHooks(address(new NoOpSwapHook(IPoolManager(manager))));
-
-        keyNoOpSwapHook = PoolKey({
-            currency0: Currency.wrap(currency0Addr),
-            currency1: Currency.wrap(currency1Addr),
-            fee: 3000,
-            tickSpacing: 60,
-            hooks: noOpSwapHook
-        });
-
-        PoolManager(manager).initialize(keyNoOpSwapHook, startingPrice);*/
-
         ethKeyNoHook = PoolKey({
             currency0: Currency.wrap(address(0)),
             currency1: Currency.wrap(currency1Addr),
@@ -251,17 +241,11 @@ contract V4SwapRouterTest is Test {
             }),
             ""
         );
-        /*vm.prank(aliceSwapper);
-        liqRouter.modifyLiquidity(
-            keyNoOpSwapHook,
-            IPoolManager.ModifyLiquidityParams({
-                tickLower: tickLower,
-                tickUpper: tickUpper,
-                liquidityDelta: liquidity,
-                salt: 0
-            }),
-            ""
-        );*/
+
+        console.log("currency0:", currency0Addr);
+        console.log("currency1:", currency1Addr);
+        console.log("currency2:", currency2Addr);
+        console.log("currency3:", currency3Addr);
     }
 
     function _sortAddresses(address[] memory addresses) internal pure returns (address[] memory) {
@@ -313,212 +297,195 @@ contract V4SwapRouterTest is Test {
         );
     }
 
-    // function testSingleSwapExactInputZeroForOne() public payable {
-    //     Key[] memory keys = new Key[](1);
-    //     keys[0].key = keyNoHook;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap);
-    //     snapLastCall("single swap exactIn");
-    // }
+    function test_exactOutput_singleSwap() public {
+        uint256 balanceBefore = MockERC20(currency1Addr).balanceOf(aliceSwapper);
 
-    // function testSingleSwapExactInputZeroForOneNative() public payable {
-    //     Key[] memory keys = new Key[](1);
-    //     keys[0].key = ethKeyNoHook;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap{value: 0.1 ether}(swap);
-    //     snapLastCall("single swap exactIn native");
-    // }
+        // Want exactly 0.1 ether of currency1, providing up to 0.15 ether of currency0
+        vm.prank(aliceSwapper);
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact amount out
+            0.15 ether, // maximum amount in
+            true, // zeroForOne
+            keyNoHook, // pool key
+            "", // hook data
+            aliceSwapper, // recipient
+            block.timestamp + 1
+        );
 
-    // function testSingleSwapExactInputOneForZero() public payable {
-    //     Key[] memory keys = new Key[](1);
-    //     keys[0].key = keyNoHook;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency1;
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap);
-    // }
+        uint256 balanceAfter = MockERC20(currency1Addr).balanceOf(aliceSwapper);
+        assertEq(balanceAfter - balanceBefore, 0.1 ether, "Incorrect output amount");
+    }
 
-    // function testSingleSwapExactInputOneForZeroNative() public payable {
-    //     Key[] memory keys = new Key[](1);
-    //     keys[0].key = ethKeyNoHook;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = ethKeyNoHook.currency1;
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap);
-    // }
+    function test_exactOutput_multiSwap() public {
+        uint256 initialBalance0 = MockERC20(currency0Addr).balanceOf(aliceSwapper);
+        uint256 initialBalance1 = MockERC20(currency1Addr).balanceOf(aliceSwapper);
+        uint256 initialBalance2 = MockERC20(currency2Addr).balanceOf(aliceSwapper);
 
-    // function testSingleSwapExactOutputZeroForOne() public payable {
-    //     Key[] memory keys = new Key[](1);
-    //     keys[0].key = keyNoHook;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    //     swap.amountSpecified = 0.1 ether;
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap);
-    //     snapLastCall("single swap exactOut");
-    // }
+        // First swap: currency0 -> currency1
+        vm.prank(aliceSwapper);
+        router.swapTokensForExactTokens(
+            0.1 ether, 0.15 ether, true, keyNoHook, "", aliceSwapper, block.timestamp + 1
+        );
 
-    // function testSingleSwapExactOutputOneForZero() public payable {
-    //     Key[] memory keys = new Key[](1);
-    //     keys[0].key = keyNoHook;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency1;
-    //     swap.amountSpecified = 0.1 ether;
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap);
-    // }
+        uint256 midBalance1 = MockERC20(currency1Addr).balanceOf(aliceSwapper);
+        assertEq(midBalance1 - initialBalance1, 0.1 ether, "First swap output incorrect");
 
-    // function testDoubleSwapSame() public payable {
-    //     Key[] memory keys = new Key[](2);
-    //     keys[0].key = keyNoHook;
-    //     keys[1].key = keyNoHook;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap);
-    // }
+        // Second swap: currency1 -> currency2
+        vm.prank(aliceSwapper);
+        router.swapTokensForExactTokens(
+            0.1 ether, 0.15 ether, true, keyNoHook4, "", aliceSwapper, block.timestamp + 1
+        );
 
-    // function testTripleSwapSame() public payable {
-    //     Key[] memory keys = new Key[](3);
-    //     keys[0].key = keyNoHook;
-    //     keys[1].key = keyNoHook;
-    //     keys[2].key = keyNoHook;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap);
-    // }
+        uint256 finalBalance2 = MockERC20(currency2Addr).balanceOf(aliceSwapper);
+        assertEq(finalBalance2 - initialBalance2, 0.1 ether, "Final output amount incorrect");
+    }
 
-    // function testMultihopSwapExactInputTwoHops() public payable {
-    //     Key[] memory keys = new Key[](2);
-    //     keys[0].key = keyNoHook;
-    //     keys[1].key = keyNoHook3;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap); // 0 for 3.
-    // }
+    function test_slippageProtection_exactInput() public {
+        vm.prank(aliceSwapper);
+        vm.expectRevert(); // Should revert due to insufficient output
+        router.swapExactTokensForTokens(
+            0.1 ether, // input amount
+            1 ether, // minimum output (unreasonably high)
+            keyNoHook.currency0,
+            new PathKey[](0),
+            aliceSwapper,
+            block.timestamp + 1
+        );
+    }
 
-    // function testMultihopSwapExactInputTwoHopsNative() public payable {
-    //     Key[] memory keys = new Key[](2);
-    //     keys[0].key = ethKeyNoHook;
-    //     keys[1].key = keyNoHook3;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap{value: 0.1 ether}(swap); // 0 for 3.
-    // }
+    function test_deadline() public {
+        vm.prank(aliceSwapper);
+        vm.expectRevert(); // Should revert due to expired deadline
+        router.swapExactTokensForTokens(
+            0.1 ether,
+            0,
+            keyNoHook.currency0,
+            new PathKey[](0),
+            aliceSwapper,
+            block.timestamp - 1 // Past deadline
+        );
+    }
 
-    // function testMultihopSwapExactInputTwoHopAlt() public payable {
-    //     Key[] memory keys = new Key[](2);
-    //     keys[0].key = keyNoHook;
-    //     keys[1].key = keyNoHook5;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency1;
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap); // 1 for 3.
-    // }
+    function test_improperPath() public {
+        // Setup invalid path (missing intermediate currencies)
+        PathKey[] memory path = new PathKey[](2);
 
-    // function testMultihopSwapExactOutputTwoHops() public payable {
-    //     Key[] memory keys = new Key[](2);
-    //     keys[0].key = keyNoHook;
-    //     keys[1].key = keyNoHook3;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    //     swap.amountSpecified = 0.1 ether;
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap); // 0 for 3.
-    // }
+        vm.prank(aliceSwapper);
+        vm.expectRevert(); // Should revert due to invalid path
+        router.swapExactTokensForTokens(
+            0.1 ether, 0, keyNoHook.currency0, path, aliceSwapper, block.timestamp + 1
+        );
+    }
 
-    // function testMultihopSwapExactOutputTwoHopsAlt() public payable {
-    //     Key[] memory keys = new Key[](2);
-    //     keys[0].key = keyNoHook;
-    //     keys[1].key = keyNoHook5;
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency1;
-    //     swap.amountSpecified = 0.1 ether;
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap); // 1 for 3.
-    // }
+    function test_zeroAmount() public {
+        vm.prank(aliceSwapper);
+        vm.expectRevert(); // Should revert due to zero amount
+        router.swapExactTokensForTokens(
+            0, // zero amount
+            0,
+            keyNoHook.currency0,
+            new PathKey[](0),
+            aliceSwapper,
+            block.timestamp + 1
+        );
+    }
 
-    // function testMultihopSwapExactInputThreeHops() public payable {
-    //     Key[] memory keys = new Key[](3);
-    //     keys[0].key = keyNoHook; // 0 for 1.
-    //     keys[1].key = keyNoHook4; // 1 for 2.
-    //     keys[2].key = keyNoHook2; // 2 for 3.
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap); // 0 for 3.
-    //     snapLastCall("multihop swap");
-    // }
+    function test_insufficientBalance() public {
+        uint256 hugeAmount = 1000 ether;
 
-    // function testMultihopSwapExactInputThreeHopsNative() public payable {
-    //     Key[] memory keys = new Key[](3);
-    //     keys[0].key = ethKeyNoHook; // 0 for 1.
-    //     keys[1].key = keyNoHook4; // 1 for 2.
-    //     keys[2].key = keyNoHook2; // 2 for 3.
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = ethKeyNoHook.currency0; // zeroForOne (ETH).
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap{value: 0.1 ether}(swap); // 0 for 3.
-    // }
+        vm.prank(aliceSwapper);
+        vm.expectRevert(); // Should revert due to insufficient balance
+        router.swapExactTokensForTokens(
+            hugeAmount, 0, keyNoHook.currency0, new PathKey[](0), aliceSwapper, block.timestamp + 1
+        );
+    }
 
-    // function testMultihopSwapExactInputTwoHopsNativeOutput() public payable {
-    //     Key[] memory keys = new Key[](2);
-    //     keys[0].key = keyNoHook4; // 2 for 1.
-    //     keys[1].key = ethKeyNoHook; // 1 for 0.
-    //     Swap memory swap;
-    //     swap.receiver = aliceSwapper;
-    //     swap.fromCurrency = keyNoHook4.currency1;
-    //     swap.amountSpecified = -(0.1 ether);
-    //     swap.keys = keys;
-    //     vm.prank(aliceSwapper);
-    //     router.swap(swap); // 2 for 0 (ETH).
-    // }
+    function test_exactInput_zeroForOne() public {
+        uint256 balanceBefore = MockERC20(currency1Addr).balanceOf(aliceSwapper);
+
+        // Provide 0.1 ether of currency0, expect at least 0.09 ether of currency1
+        vm.prank(aliceSwapper);
+        router.swapExactTokensForTokens(
+            0.1 ether, // exact amount in
+            0.09 ether, // minimum amount out
+            true, // zeroForOne
+            keyNoHook, // pool key
+            "", // hook data
+            aliceSwapper, // recipient
+            block.timestamp + 1
+        );
+
+        uint256 balanceAfter = MockERC20(currency1Addr).balanceOf(aliceSwapper);
+        assertGt(balanceAfter, balanceBefore, "Balance should increase");
+        assertGe(balanceAfter - balanceBefore, 0.09 ether, "Insufficient output amount");
+    }
+
+    function test_exactInput_oneForZero() public {
+        uint256 balanceBefore = MockERC20(currency0Addr).balanceOf(aliceSwapper);
+
+        // Provide 0.1 ether of currency1, expect at least 0.09 ether of currency0
+        vm.prank(aliceSwapper);
+        router.swapExactTokensForTokens(
+            0.1 ether, // exact amount in
+            0.09 ether, // minimum amount out
+            false, // oneForZero
+            keyNoHook, // pool key
+            "", // hook data
+            aliceSwapper, // recipient
+            block.timestamp + 1
+        );
+
+        uint256 balanceAfter = MockERC20(currency0Addr).balanceOf(aliceSwapper);
+        assertGt(balanceAfter, balanceBefore, "Balance should increase");
+        assertGe(balanceAfter - balanceBefore, 0.09 ether, "Insufficient output amount");
+    }
+
+    function test_exactOutput_oneForZero() public {
+        uint256 balanceBefore = MockERC20(currency0Addr).balanceOf(aliceSwapper);
+
+        // Want exactly 0.1 ether of currency0, providing up to 0.15 ether of currency1
+        vm.prank(aliceSwapper);
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact amount out
+            0.15 ether, // maximum amount in
+            false, // oneForZero
+            keyNoHook, // pool key
+            "", // hook data
+            aliceSwapper, // recipient
+            block.timestamp + 1
+        );
+
+        uint256 balanceAfter = MockERC20(currency0Addr).balanceOf(aliceSwapper);
+        assertEq(balanceAfter - balanceBefore, 0.1 ether, "Incorrect output amount");
+    }
+
+    function test_revertDeadlinePassed() public {
+        vm.warp(100); // Set current timestamp
+
+        vm.prank(aliceSwapper);
+        vm.expectRevert(abi.encodeWithSignature("DeadlinePassed(uint256)", 99));
+        router.swapExactTokensForTokens(
+            0.1 ether, // exact amount in
+            0.09 ether, // minimum amount out
+            true, // zeroForOne
+            keyNoHook, // pool key
+            "", // hook data
+            aliceSwapper, // recipient
+            99 // deadline in the past
+        );
+    }
+
+    function test_revertInsufficientOutputAmount() public {
+        vm.prank(aliceSwapper);
+        vm.expectRevert(abi.encodeWithSignature("SlippageExceeded()"));
+        router.swapExactTokensForTokens(
+            0.1 ether, // exact amount in
+            1000 ether, // unreasonably high minimum output
+            true, // zeroForOne
+            keyNoHook, // pool key
+            "", // hook data
+            aliceSwapper, // recipient
+            block.timestamp + 1
+        );
+    }
 }

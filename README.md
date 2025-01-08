@@ -1,97 +1,64 @@
 # V4 Swap Router
 
-A simple and optimized reference router implementation for swapping on Uniswap V4.
+A simple and optimized router for swapping on Uniswap V4. ABI inspired by [`UniswapV2Router02`](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol).
 
 ## Design
 
-The Uniswap V4 Swap Router (Swap Router) supports the following features:
+The Uniswap V4 Swap Router supports the following features:
 
-- Exact-in
-- Exact-out
-- Multi-hop
-- Hook calls
+- Exact input swaps
+- Exact output swaps
+- Multi-hop swaps
+- Native token (ETH) swaps
+- Hook interactions
+- Custom swap curves
 
-Regardless of swap pool routes, all swaps can be made with hook data included.
+## Architecture
+
+The router is implemented in two main contracts:
+
+1. `BaseSwapRouter`: Contains core swap logic and handles callbacks from the Pool Manager
+2. `V4SwapRouter`: Inherits from BaseSwapRouter and implements the user-facing interface
 
 ## Optimizations
 
-The code is mostly high-level Solidity for readability but uses audited [*Solady* snippets](https://github.com/Vectorized/solady/blob/main/src/utils/SafeTransferLib.sol) in low-level assembly code to reduce costs for routine operations, such as handling ERC20 tokens. Further, based on the length of a swap path, each swap step is particularly optimized and contained as its own internal function (see, `_swapSingle()`, `_swapFirst()`, `_swapMid()`, and `_swapLast()`). Additional efficiency decisions also include reusing memory space for multi-hop swaps (overwriting `fromCurrency` and `amountSpecified` at each step with outputs) and practical use of unchecked blocks and compact custom errors.
+The implementation prioritizes gas efficiency through:
 
-## Using Swap Router
+- Minimal state changes
+- Optimized memory usage in multi-hop swaps
+- Single-swap vs multi-swap specific codepaths
+- Efficient native token handling
+- Reuse of Pool Manager callbacks
 
-Swap Router and its interface is designed to closely resemble the `swap()` method of the V4 [Pool Manager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol). Thus it only has two public functions, `swap()` and `unlockCallback()` to clearly place its role as a peripheral contract to the Pool Manager to receive a swap callback, and nothing more.
+## Interface
 
-Some parameter additions have been made to simplify complex swaps, and the single argument made to `swap()` on Swap Router is just the following struct:
+The router provides three categories of swap functions:
 
+### Multi-pool Swaps
+- `swapExactTokensForTokens`: Swap exact input amount through multiple pools
+- `swapTokensForExactTokens`: Receive exact output amount through multiple pools
+- `swap`: Generic multi-pool swap interface
+
+### Single-pool Swaps
+- `swapExactTokensForTokens`: Swap exact input in a single pool
+- `swapTokensForExactTokens`: Receive exact output from a single pool
+- `swap`: Generic single-pool swap interface
+
+### Optimized Swaps
+- `swap(bytes, uint256)`: Pre-encoded swap data for reduced gas costs
+
+## Path Construction
+
+Multi-hop swaps are defined using the `PathKey` struct:
 ```solidity
-struct Swap {
-    address receiver;
-    Currency fromCurrency;
-    int256 amountSpecified;
-    uint256 amountOutMin;
-    Key[] keys;
-}
-```
-
-Where the `receiver` is the end-recipient of the swap output and currency. 
-
-`fromCurrency` is the initial currency used to make the swap from (where `address(0)` is ETH).
-
-`amountSpecified` is the amount initially paid or required as output (if negative `-`).
-
-Note: In cases where a multi-hop swap is made, the `amountSpecified` flag will guarantee the output of the first pool only.
-`amountOutMin` is therefore used to enforce the end-output of the final pool included in the `keys` array of structs, more generally. However, the ability to include an exact output at the first destination should still yield some precision benefits.
-
-More specifically, path swap `keys` include the following information (and are provided in the order of the pools to cross):
-
-```solidity
-struct Key {
-    PoolKey key;
+struct PathKey {
+    Currency intermediateCurrency;
+    uint24 fee;
+    int24 tickSpacing;
+    IHooks hooks;
     bytes hookData;
 }
 ```
-
-Where `key` is the Uniswap V4 [`PoolKey`](https://github.com/Uniswap/v4-core/blob/main/src/types/PoolKey.sol) struct, and `hookData` is a dynamic field for any hook interactions included in the swap.
-
-## Single Swap
-
-A single swap for a given pool key can be made like so:
-
-```solidity
-function testSingleSwapExactInputZeroForOne() public payable {
-    Key[] memory keys = new Key[](1);
-    keys[0].key = keyNoHook; // Basic no-hook pool.
-    Swap memory swap;
-    swap.receiver = aliceSwapper;
-    swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    swap.amountSpecified = -(0.1 ether); // Exact-in.
-    swap.keys = keys;
-    vm.prank(aliceSwapper);
-    router.swap(swap);
-}
-```
-
-## Multi-hop Swap
-
-A three-part multi-hop swap can be made like so within the keys path:
-
-```solidity
-function testMultihopSwapExactInputThreeHops() public payable {
-    Key[] memory keys = new Key[](3);
-    keys[0].key = keyNoHook; // 0 for 1.
-    keys[1].key = keyNoHook4; // 1 for 2.
-    keys[2].key = keyNoHook2; // 2 for 3.
-    Swap memory swap;
-    swap.receiver = aliceSwapper;
-    swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    swap.amountSpecified = -(0.1 ether);
-    swap.keys = keys;
-    vm.prank(aliceSwapper);
-    router.swap(swap); // 0 for 3.
-}
-```
-
-Additional examples are provided in foundry tests [here](./test/V4SwapRouter.t.sol), and will serve the basis for more complex pool simulations and demonstrations of hook interactions.
 
 ## Getting Started
 

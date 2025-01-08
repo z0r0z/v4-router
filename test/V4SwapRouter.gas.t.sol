@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {Hooks} from "@v4/src/libraries/Hooks.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
+import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
 import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
@@ -97,6 +98,32 @@ contract RouterGasTest is SwapRouterFixtures {
         );
     }
 
+    function test_gas_single_exactInput_native() public {
+        uint256 initialBalance = address(this).balance;
+
+        router.swapExactTokensForTokens{value: 0.1 ether}(
+            0.1 ether, // exact ETH input
+            0.09 ether, // minimum token output
+            true, // zeroForOne (ETH -> token)
+            nativePoolKeys[0], // pool with ETH as currency0
+            "", // no hook data
+            address(this), // recipient
+            block.timestamp + 1
+        );
+
+        // Verify ETH was spent
+        assertEq(
+            address(this).balance,
+            initialBalance - 0.1 ether,
+            "ETH balance should decrease by exact input"
+        );
+
+        // Verify token received
+        Currency tokenOut = nativePoolKeys[0].currency1;
+        uint256 tokenBalance = IERC20Minimal(Currency.unwrap(tokenOut)).balanceOf(address(this));
+        assertTrue(tokenBalance >= 0.09 ether, "Should receive at least minimum token amount");
+    }
+
     function test_gas_single_exactInput_hooked() public {
         currencyA.mint(address(this), 1 ether);
         currencyA.maxApprove(address(router));
@@ -133,6 +160,49 @@ contract RouterGasTest is SwapRouterFixtures {
         router.swapExactTokensForTokens(
             0.09 ether, 0.08 ether, true, vanillaPoolKeys[1], "", address(this), block.timestamp + 1
         );
+    }
+
+    function test_gas_multi_exactInput_native() public {
+        uint256 initialBalance = address(this).balance;
+
+        // First swap: ETH -> Token A
+        router.swapExactTokensForTokens{value: 0.1 ether}(
+            0.1 ether, // exact ETH input
+            0.09 ether, // minimum token output
+            true, // zeroForOne
+            nativePoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+
+        // Get intermediate token balance and approve
+        Currency tokenA = nativePoolKeys[0].currency1;
+        uint256 tokenAAmount = IERC20Minimal(Currency.unwrap(tokenA)).balanceOf(address(this));
+        IERC20Minimal(Currency.unwrap(tokenA)).approve(address(router), type(uint256).max);
+
+        // Second swap: Token A -> Token B (non-native pool)
+        router.swapExactTokensForTokens(
+            tokenAAmount, // exact token input
+            0.08 ether, // minimum output
+            true, // zeroForOne
+            vanillaPoolKeys[0], // Use vanilla pool instead of native pool for second swap
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+
+        // Verify ETH was spent
+        assertEq(
+            address(this).balance,
+            initialBalance - 0.1 ether,
+            "ETH balance should decrease by exact input"
+        );
+
+        // Verify final token received
+        Currency tokenB = vanillaPoolKeys[0].currency1;
+        uint256 tokenBBalance = IERC20Minimal(Currency.unwrap(tokenB)).balanceOf(address(this));
+        assertTrue(tokenBBalance >= 0.08 ether, "Should receive at least minimum token amount");
     }
 
     function test_gas_multi_exactInput_hooked() public {
@@ -185,6 +255,30 @@ contract RouterGasTest is SwapRouterFixtures {
             "", // no hook data
             address(this), // recipient
             block.timestamp + 1
+        );
+    }
+
+    function test_gas_single_exactOutput_native() public {
+        uint256 initialBalance = address(this).balance;
+
+        // Approve token for input
+        Currency tokenIn = nativePoolKeys[0].currency1;
+        IERC20Minimal(Currency.unwrap(tokenIn)).approve(address(router), type(uint256).max);
+
+        // Native token as output, token as input
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact ETH output wanted
+            0.15 ether, // maximum token input
+            false, // !zeroForOne (token -> ETH)
+            nativePoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+
+        // Verify ETH received
+        assertEq(
+            address(this).balance - initialBalance, 0.1 ether, "Should receive exact ETH amount"
         );
     }
 
@@ -248,6 +342,43 @@ contract RouterGasTest is SwapRouterFixtures {
         );
     }
 
+    function test_gas_multi_exactOutput_native() public {
+        uint256 initialBalance = address(this).balance;
+
+        // Approve tokens for input
+        Currency tokenA = vanillaPoolKeys[0].currency0;
+        Currency tokenB = vanillaPoolKeys[0].currency1;
+        IERC20Minimal(Currency.unwrap(tokenA)).approve(address(router), type(uint256).max);
+        IERC20Minimal(Currency.unwrap(tokenB)).approve(address(router), type(uint256).max);
+
+        // First swap: TokenA -> TokenB
+        router.swapTokensForExactTokens(
+            0.15 ether, // exact token output
+            0.2 ether, // maximum input
+            true, // zeroForOne
+            vanillaPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+
+        // Second swap: TokenB -> ETH
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact ETH output
+            0.15 ether, // maximum token input
+            false, // !zeroForOne
+            nativePoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+
+        // Verify ETH received
+        assertEq(
+            address(this).balance - initialBalance, 0.1 ether, "Should receive exact ETH amount"
+        );
+    }
+
     function test_gas_multi_exactOutput_hooked() public {
         currencyA.mint(address(this), 1 ether);
         currencyA.maxApprove(address(router));
@@ -285,10 +416,4 @@ contract RouterGasTest is SwapRouterFixtures {
             0.15 ether, 0.2 ether, true, csmmPoolKeys[0], "", address(this), block.timestamp + 1
         );
     }
-
-    // Native token tests WIP
-    //function test_gas_single_exactInput_native() public {}
-    //function test_gas_multi_exactInput_native() public {}
-    //function test_gas_single_exactOutput_native() public {}
-    //function test_gas_multi_exactOutput_native() public {}
 }

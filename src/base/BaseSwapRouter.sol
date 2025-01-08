@@ -5,10 +5,9 @@ import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
-import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {IPoolManager, SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
 
@@ -183,7 +182,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         _;
     }
 
-    receive() external payable {
+    receive() external payable virtual {
         if (msg.sender != address(poolManager)) revert Unauthorized();
     }
 }

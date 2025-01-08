@@ -56,23 +56,158 @@ contract RouterGasTest is SwapRouterFixtures {
         _addLiquidity(allPoolKeys, 10_000e18);
     }
 
-    function test_gas_multi_exactInput() public {}
-    function test_gas_multi_exactInput_native() public {}
-    function test_gas_multi_exactInput_hooked() public {}
-    function test_gas_multi_exactInput_customCurve() public {}
+    function test_gas_single_exactOutput() public {
+        currencyA.mint(address(this), 1 ether);
+        currencyA.maxApprove(address(router));
 
-    function test_gas_multi_exactOutput() public {}
-    function test_gas_multi_exactOutput_native() public {}
-    function test_gas_multi_exactOutput_hooked() public {}
-    function test_gas_multi_exactOutput_customCurve() public {}
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact amount out
+            0.15 ether, // maximum amount in
+            true, // zeroForOne
+            vanillaPoolKeys[0], // standard pool without hooks
+            "", // no hook data
+            address(this), // recipient
+            block.timestamp + 1
+        );
+    }
 
-    function test_gas_single_exactInput() public {}
-    function test_gas_single_exactInput_native() public {}
-    function test_gas_single_exactInput_hooked() public {}
-    function test_gas_single_exactInput_customCurve() public {}
-
-    function test_gas_single_exactOutput() public {}
+    // Skip native token test as not implemented yet
     function test_gas_single_exactOutput_native() public {}
-    function test_gas_single_exactOutput_hooked() public {}
-    function test_gas_single_exactOutput_customCurve() public {}
+
+    /*function test_gas_single_exactOutput_hooked() public {
+        currencyA.mint(address(this), 1 ether);
+        currencyA.maxApprove(address(router));
+
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact amount out
+            0.15 ether, // maximum amount in
+            true, // zeroForOne
+            hookedPoolKeys[0], // pool with hooks
+            "", // hook data (empty for now)
+            address(this), // recipient
+            block.timestamp + 1
+        );
+    }
+
+    function test_gas_single_exactOutput_customCurve() public {
+        currencyA.mint(address(this), 1 ether);
+        currencyA.maxApprove(address(router));
+
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact amount out
+            0.15 ether, // maximum amount in
+            true, // zeroForOne
+            csmmPoolKeys[0], // pool with custom curve
+            "", // no hook data
+            address(this), // recipient
+            block.timestamp + 1
+        );
+    }*/
+
+    function test_gas_multi_exactOutput() public {
+        currencyA.mint(address(this), 1 ether);
+        currencyA.maxApprove(address(router));
+        currencyB.maxApprove(address(router));
+
+        // Second swap (B->C)
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact amount of C wanted
+            0.15 ether, // maximum B to spend
+            true,
+            vanillaPoolKeys[1],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+
+        // First swap (A->B)
+        router.swapTokensForExactTokens(
+            0.15 ether, // exact amount of B needed for second swap
+            0.2 ether, // maximum A to spend
+            true,
+            vanillaPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+    }
+
+    // Skip native token test as not implemented yet
+    function test_gas_multi_exactOutput_native() public {}
+
+    /*function test_gas_multi_exactOutput_hooked() public {
+        currencyA.mint(address(this), 1 ether);
+        currencyA.maxApprove(address(router));
+        currencyB.maxApprove(address(router));
+
+        // Second swap (B->C)
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact amount of C wanted
+            0.15 ether, // maximum B to spend
+            true,
+            hookedPoolKeys[1],
+            "", // hook data (empty for now)
+            address(this),
+            block.timestamp + 1
+        );
+
+        // First swap (A->B)
+        router.swapTokensForExactTokens(
+            0.15 ether, // exact amount of B needed for second swap
+            0.2 ether, // maximum A to spend
+            true,
+            hookedPoolKeys[0],
+            "", // hook data (empty for now)
+            address(this),
+            block.timestamp + 1
+        );
+    }
+
+    function test_gas_multi_exactOutput_customCurve() public {
+        currencyA.mint(address(this), 1 ether);
+        currencyA.maxApprove(address(router));
+        currencyB.maxApprove(address(router));
+
+        // Second swap (B->C)
+        router.swapTokensForExactTokens(
+            0.1 ether, // exact amount of C wanted
+            0.15 ether, // maximum B to spend
+            true,
+            csmmPoolKeys[1],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+
+        // First swap (A->B)
+        router.swapTokensForExactTokens(
+            0.15 ether, // exact amount of B needed for second swap
+            0.2 ether, // maximum A to spend
+            true,
+            csmmPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+    }*/
+
+    //function test_gas_multi_exactInput() public {}
+    //function test_gas_multi_exactInput_native() public {}
+    //function test_gas_multi_exactInput_hooked() public {}
+    //function test_gas_multi_exactInput_customCurve() public {}
+
+    //function test_gas_multi_exactOutput() public {}
+    //function test_gas_multi_exactOutput_native() public {}
+    //function test_gas_multi_exactOutput_hooked() public {}
+    //function test_gas_multi_exactOutput_customCurve() public {}
+
+    //function test_gas_single_exactInput() public {}
+    //function test_gas_single_exactInput_native() public {}
+    //function test_gas_single_exactInput_hooked() public {}
+    //function test_gas_single_exactInput_customCurve() public {}
+
+    //function test_gas_single_exactOutput() public {}
+    //function test_gas_single_exactOutput_native() public {}
+    //function test_gas_single_exactOutput_hooked() public {}
+    //function test_gas_single_exactOutput_customCurve() public {}
 }

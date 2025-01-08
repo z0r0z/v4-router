@@ -18,7 +18,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
@@ -43,7 +43,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({

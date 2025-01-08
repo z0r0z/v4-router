@@ -16,6 +16,13 @@ import {MockCurrencyLibrary} from "./mocks/MockCurrencyLibrary.sol";
 import {CSMM} from "./mocks/hooks/CSMM.sol";
 import "@forge/console2.sol";
 
+struct TestCurrencyBalances {
+    uint256 currencyA;
+    uint256 currencyB;
+    uint256 currencyC;
+    uint256 currencyD;
+}
+
 contract SwapRouterFixtures is Deployers {
     using SafeCast for uint256;
 
@@ -29,6 +36,7 @@ contract SwapRouterFixtures is Deployers {
     uint24 constant FEE = 3000;
     int24 constant TICK_SPACING = 60;
     Currency constant native = CurrencyLibrary.ADDRESS_ZERO;
+    IHooks constant HOOKLESS = IHooks(address(0));
 
     /// Lifecycle Functions ///
 
@@ -208,5 +216,14 @@ contract SwapRouterFixtures is Deployers {
         for (uint256 i = 0; i < source.length; i++) {
             destination.push(source[i]);
         }
+    }
+
+    function currencyBalances(address addr) internal view returns (TestCurrencyBalances memory) {
+        return TestCurrencyBalances({
+            currencyA: currencyA.balanceOf(addr),
+            currencyB: currencyB.balanceOf(addr),
+            currencyC: currencyC.balanceOf(addr),
+            currencyD: currencyD.balanceOf(addr)
+        });
     }
 }

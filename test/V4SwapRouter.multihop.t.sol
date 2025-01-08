@@ -2,12 +2,14 @@
 pragma solidity ^0.8.26;
 
 import {Hooks} from "@v4/src/libraries/Hooks.sol";
+import {IHooks} from "@v4/src/interfaces/IHooks.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
+import {PathKey} from "../src/libraries/PathKey.sol";
 
 import {V4SwapRouter} from "../src/V4SwapRouter.sol";
 
-import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
+import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 
 contract MultihopTest is SwapRouterFixtures {
@@ -38,6 +40,11 @@ contract MultihopTest is SwapRouterFixtures {
         currencyC.maxApprove(address(modifyLiquidityRouter));
         currencyD.maxApprove(address(modifyLiquidityRouter));
 
+        currencyA.maxApprove(address(router));
+        currencyB.maxApprove(address(router));
+        currencyC.maxApprove(address(router));
+        currencyD.maxApprove(address(router));
+
         // TODO: deploy hooks
         // Deploy the hook to an address with the correct flags
         _deployCSMM();
@@ -55,6 +62,7 @@ contract MultihopTest is SwapRouterFixtures {
         PoolKey[] memory allPoolKeys =
             _concatPools(vanillaPoolKeys, nativePoolKeys, hookedPoolKeys, csmmPoolKeys);
         _initializePools(allPoolKeys);
+
         _addLiquidity(vanillaPoolKeys, 10_000e18);
         _addLiquidity(nativePoolKeys, 10_000e18);
         _addLiquidity(hookedPoolKeys, 10_000e18);
@@ -64,7 +72,56 @@ contract MultihopTest is SwapRouterFixtures {
     function test_multi_exactInput() public {}
     function test_multi_exactInput_native() public {}
     function test_multi_exactInput_hookData() public {}
-    function test_multi_exactInput_customCurve() public {}
+
+    function test_multi_exactInput_customCurve(address recipient) public {
+        // Swap Path: A -(vanilla)-> B -(CSMM)-> C
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyC,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(csmm)),
+            hookData: ZERO_BYTES
+        });
+
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.995e18;
+        router.swapExactTokensForTokens(
+            amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract paid currencyA
+        // recipient did not spend currencyA
+        assertEq(thisBefore.currencyA - thisAfter.currencyA, amountIn);
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+
+        // currencyB unspent
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+
+        // test contract did not receive currencyC
+        // recipient received currencyC
+        assertEq(thisBefore.currencyC, thisAfter.currencyC);
+        assertApproxEqRel(recipientAfter.currencyC - recipientBefore.currencyC, amountIn, 0.005e18); // allow 50 bips error
+
+        // verify slippage: recieved > amountOutMin
+        assertGt((recipientAfter.currencyC - recipientBefore.currencyC), amountOutMin);
+    }
 
     function test_multi_exactOutput() public {}
     function test_multi_exactOutput_native() public {}

@@ -11,8 +11,6 @@ import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 import {Test} from "@forge/Test.sol";
 import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 
-import {NoOpSwapHook} from "./utils/mocks/hooks/NoOpSwapHook.sol";
-
 import {PoolModifyLiquidityTest} from "@v4/src/test/PoolModifyLiquidityTest.sol";
 
 import {PathKey} from "../src/libraries/PathKey.sol";
@@ -54,12 +52,6 @@ contract V4SwapRouterTest is Test {
 
     // ETH based pool (no hook).
     PoolKey internal ethKeyNoHook;
-
-    // Basic no-op hook pool.
-    PoolKey internal keyNoOpSwapHook;
-
-    // Basic no-op hook for testing.
-    IHooks internal noOpSwapHook;
 
     // floor(sqrt(1) * 2^96)
     uint160 constant startingPrice = 79228162514264337593543950336;
@@ -327,7 +319,11 @@ contract V4SwapRouterTest is Test {
             0.1 ether, 0.15 ether, true, keyNoHook, "", aliceSwapper, block.timestamp + 1
         );
 
+        uint256 midBalance0 = MockERC20(currency0Addr).balanceOf(aliceSwapper);
         uint256 midBalance1 = MockERC20(currency1Addr).balanceOf(aliceSwapper);
+
+        // Verify both input spent and output received for first swap
+        assertTrue(initialBalance0 > midBalance0, "Should have spent currency0");
         assertEq(midBalance1 - initialBalance1, 0.1 ether, "First swap output incorrect");
 
         // Second swap: currency1 -> currency2
@@ -336,7 +332,11 @@ contract V4SwapRouterTest is Test {
             0.1 ether, 0.15 ether, true, keyNoHook4, "", aliceSwapper, block.timestamp + 1
         );
 
+        uint256 finalBalance1 = MockERC20(currency1Addr).balanceOf(aliceSwapper);
         uint256 finalBalance2 = MockERC20(currency2Addr).balanceOf(aliceSwapper);
+
+        // Verify both input spent and output received for second swap
+        assertTrue(midBalance1 > finalBalance1, "Should have spent currency1");
         assertEq(finalBalance2 - initialBalance2, 0.1 ether, "Final output amount incorrect");
     }
 

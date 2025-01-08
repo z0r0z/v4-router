@@ -136,7 +136,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         }
     }
 
-    function _exactOutputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
+    function _exactOutputMultiSwap(Currency, PathKey[] memory path, uint256 amount)
         internal
         virtual
     {

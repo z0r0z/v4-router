@@ -13,7 +13,8 @@ import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 
 import {MockCurrencyLibrary} from "./mocks/MockCurrencyLibrary.sol";
-import {CSMM} from "./mocks/hooks/CSMM.sol";
+import {CSMM} from "./hooks/CSMM.sol";
+
 import "@forge/console2.sol";
 
 struct TestCurrencyBalances {
@@ -70,7 +71,7 @@ contract SwapRouterFixtures is Deployers {
             ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
         bytes memory constructorArgs = abi.encode(manager); //Add all the necessary constructor arguments from the hook
-        deployCodeTo("test/utils/mocks/hooks/CSMM.sol:CSMM", constructorArgs, flags);
+        deployCodeTo("test/utils/hooks/CSMM.sol:CSMM", constructorArgs, flags);
         csmm = CSMM(flags);
     }
 

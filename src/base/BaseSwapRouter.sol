@@ -5,10 +5,9 @@ import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
-import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
 import {PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {IPoolManager, SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
 
@@ -92,27 +91,32 @@ abstract contract BaseSwapRouter is SafeCallback {
         uint256 amount,
         bytes calldata callbackData
     ) internal virtual returns (Currency inputCurrency, Currency outputCurrency) {
-        if (isSingleSwap) {
-            (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
-                abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
+        unchecked {
+            if (isSingleSwap) {
+                (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
+                    abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
 
-            (inputCurrency, outputCurrency) =
-                zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
+                (inputCurrency, outputCurrency) =
+                    zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
-            _swap(
-                key, zeroForOne, isExactOutput ? amount.toInt256() : -(amount.toInt256()), hookData
-            );
-        } else {
-            PathKey[] memory path;
-            (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+                _swap(
+                    key,
+                    zeroForOne,
+                    isExactOutput ? amount.toInt256() : -(amount.toInt256()),
+                    hookData
+                );
+            } else {
+                PathKey[] memory path;
+                (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
 
-            if (path.length == 0) revert EmptyPath();
+                if (path.length == 0) revert EmptyPath();
 
-            outputCurrency = path[path.length - 1].intermediateCurrency;
+                outputCurrency = path[path.length - 1].intermediateCurrency;
 
-            isExactOutput
-                ? _exactOutputMultiSwap(inputCurrency, path, amount)
-                : _exactInputMultiSwap(inputCurrency, path, amount);
+                isExactOutput
+                    ? _exactOutputMultiSwap(inputCurrency, path, amount)
+                    : _exactInputMultiSwap(inputCurrency, path, amount);
+            }
         }
     }
 
@@ -136,24 +140,26 @@ abstract contract BaseSwapRouter is SafeCallback {
         }
     }
 
-    function _exactOutputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
+    function _exactOutputMultiSwap(Currency, PathKey[] memory path, uint256 amount)
         internal
         virtual
     {
-        PoolKey memory poolKey;
-        PathKey memory pathKey;
-        bool zeroForOne;
-        int256 amountSpecified = amount.toInt256();
-        BalanceDelta delta;
+        unchecked {
+            PoolKey memory poolKey;
+            PathKey memory pathKey;
+            bool zeroForOne;
+            int256 amountSpecified = amount.toInt256();
+            BalanceDelta delta;
 
-        for (uint256 i = path.length; i > 0; i--) {
-            pathKey = path[i - 1];
-            (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(
-                i == path.length ? pathKey.intermediateCurrency : path[i].intermediateCurrency
-            );
+            for (uint256 i = path.length; i != 0; --i) {
+                pathKey = path[i - 1];
+                (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(
+                    i == path.length ? pathKey.intermediateCurrency : path[i].intermediateCurrency
+                );
 
-            delta = _swap(poolKey, !zeroForOne, amountSpecified, pathKey.hookData);
-            amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
+                delta = _swap(poolKey, !zeroForOne, amountSpecified, pathKey.hookData);
+                amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
+            }
         }
     }
 
@@ -183,7 +189,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         _;
     }
 
-    receive() external payable {
+    receive() external payable virtual {
         if (msg.sender != address(poolManager)) revert Unauthorized();
     }
 }

@@ -1,15 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {Currency} from "@v4/src/types/Currency.sol";
-import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
-import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
-
-import {PathKey} from "./libraries/PathKey.sol";
-import {IV4SwapRouter} from "./interfaces/IV4SwapRouter.sol";
-import {BaseSwapRouter, BaseData} from "./base/BaseSwapRouter.sol";
-import {ImmutableState} from "v4-periphery/src/base/ImmutableState.sol";
+import {
+    PathKey, PoolKey, Currency, BalanceDelta, IV4SwapRouter
+} from "./interfaces/IV4SwapRouter.sol";
+import {IPoolManager, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
 
 /// @title Uniswap V4 Swap Router
 contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
@@ -23,7 +18,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
@@ -48,7 +43,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) external payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({

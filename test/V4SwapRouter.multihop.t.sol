@@ -15,6 +15,7 @@ import {V4SwapRouter} from "../src/V4SwapRouter.sol";
 
 import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
+import {HookData} from "./utils/hooks/HookData.sol";
 
 contract MultihopTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
@@ -52,6 +53,7 @@ contract MultihopTest is SwapRouterFixtures {
 
         // Deploy the hook to an address with the correct flags
         _deployCSMM();
+        _deployHookWithData();
 
         // Define and create all pools with their respective hooks
         PoolKey[] memory _vanillaPoolKeys = _createPoolKeys(address(0));
@@ -60,7 +62,7 @@ contract MultihopTest is SwapRouterFixtures {
         PoolKey[] memory _nativePoolKeys = _createNativePoolKeys(address(0));
         _copyArrayToStorage(_nativePoolKeys, nativePoolKeys);
 
-        PoolKey[] memory _hookedPoolKeys = _createPoolKeys(address(Hooks.BEFORE_SWAP_FLAG)); // TODO: set proper hook address
+        PoolKey[] memory _hookedPoolKeys = _createPoolKeys(address(hookWithData));
         _copyArrayToStorage(_hookedPoolKeys, hookedPoolKeys);
         PoolKey[] memory _csmmPoolKeys = _createPoolKeys(address(csmm));
         _copyArrayToStorage(_csmmPoolKeys, csmmPoolKeys);
@@ -125,31 +127,44 @@ contract MultihopTest is SwapRouterFixtures {
         assertTrue(tokenBBalance >= 0.08 ether, "Should receive at least minimum token amount");
     }
 
-    function test_multi_exactInput_hookData() public {
-        // TODO: use hook which operates on hookData
-        // TODO: encode multi-pool path
+    function test_multi_exactInput_hookData(address recipient) public {
+        // data to be passed to the hook
+        uint256 num0 = 111;
+        uint256 num1 = 222;
 
-        // currencyA.mint(address(this), 1 ether);
-        // currencyA.maxApprove(address(router));
-        // currencyB.maxApprove(address(router));
+        // Swap Path: C -(hookWithData)-> D -(hookWithData)-> A
+        Currency startCurrency = currencyC;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyD,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(hookWithData)),
+            hookData: abi.encode(num0) // C -> D emits num0
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyA,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(hookWithData)),
+            hookData: abi.encode(num1) // D -> A emits num1
+        });
 
-        // assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 0);
-        // assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 0);
-        // assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 0);
-        // assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 0);
+        vm.expectEmit(true, true, true, true, address(hookWithData));
+        emit HookData.BeforeSwapData(num0);
+        vm.expectEmit(true, true, true, true, address(hookWithData));
+        emit HookData.AfterSwapData(num0);
 
-        // router.swapExactTokensForTokens(
-        //     0.1 ether, 0.09 ether, true, hookedPoolKeys[0], "", address(this), block.timestamp + 1
-        // );
+        vm.expectEmit(true, true, true, true, address(hookWithData));
+        emit HookData.BeforeSwapData(num1);
+        vm.expectEmit(true, true, true, true, address(hookWithData));
+        emit HookData.AfterSwapData(num1);
 
-        // router.swapExactTokensForTokens(
-        //     0.09 ether, 0.08 ether, true, hookedPoolKeys[1], "", address(this), block.timestamp + 1
-        // );
-
-        // assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 1);
-        // assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 1);
-        // assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 1);
-        // assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 1);
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        router.swapExactTokensForTokens(
+            amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
+        );
     }
 
     function test_multi_exactInput_customCurve(address recipient) public {

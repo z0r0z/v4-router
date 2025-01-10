@@ -14,6 +14,7 @@ import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 
 import {MockCurrencyLibrary} from "./mocks/MockCurrencyLibrary.sol";
 import {CSMM} from "./hooks/CSMM.sol";
+import {HookData} from "./hooks/HookData.sol";
 
 import "@forge/console2.sol";
 
@@ -33,6 +34,7 @@ contract SwapRouterFixtures is Deployers {
     Currency currencyD;
 
     CSMM csmm;
+    HookData hookWithData;
 
     uint24 constant FEE = 3000;
     int24 constant TICK_SPACING = 60;
@@ -70,9 +72,18 @@ contract SwapRouterFixtures is Deployers {
                     | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
             ) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
         );
-        bytes memory constructorArgs = abi.encode(manager); //Add all the necessary constructor arguments from the hook
+        bytes memory constructorArgs = abi.encode(manager);
         deployCodeTo("test/utils/hooks/CSMM.sol:CSMM", constructorArgs, flags);
         csmm = CSMM(flags);
+    }
+
+    function _deployHookWithData() internal {
+        address flags = address(
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) ^ (0x4444 << 144) // Namespace the hook to avoid collisions
+        );
+        bytes memory constructorArgs = abi.encode(manager);
+        deployCodeTo("test/utils/hooks/HookData.sol:HookData", constructorArgs, flags);
+        hookWithData = HookData(flags);
     }
 
     function _addLiquidityCSMM(PoolKey[] memory poolKeys, uint256 liquidity) internal {

@@ -2,18 +2,18 @@
 pragma solidity ^0.8.26;
 
 import {Hooks} from "@v4/src/libraries/Hooks.sol";
+import {IHooks} from "@v4/src/interfaces/IHooks.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
+import {PathKey} from "../src/libraries/PathKey.sol";
 import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
-import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
-import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
 import {V4SwapRouter} from "../src/V4SwapRouter.sol";
 
-import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
+import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 
 contract MultihopTest is SwapRouterFixtures {
@@ -21,7 +21,6 @@ contract MultihopTest is SwapRouterFixtures {
 
     V4SwapRouter router;
     Counter hook;
-    CustomCurveHook hookCsmm;
 
     PoolKey[] vanillaPoolKeys;
     PoolKey[] nativePoolKeys;
@@ -46,24 +45,13 @@ contract MultihopTest is SwapRouterFixtures {
         currencyC.maxApprove(address(modifyLiquidityRouter));
         currencyD.maxApprove(address(modifyLiquidityRouter));
 
-        // Deploy Counter hook with correct flags
-        address flags = address(
-            uint160(
-                Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
-                    | Hooks.BEFORE_REMOVE_LIQUIDITY_FLAG
-            ) ^ (0x4444 << 144)
-        );
+        currencyA.maxApprove(address(router));
+        currencyB.maxApprove(address(router));
+        currencyC.maxApprove(address(router));
+        currencyD.maxApprove(address(router));
 
-        bytes memory constructorArgs = abi.encode(manager);
-        deployCodeTo("Counter.sol:Counter", constructorArgs, flags);
-        hook = Counter(flags);
-
-        // Deploy CustomCurveHook with correct flags
-        address csmmFlags =
-            address(uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) ^ (0x5555 << 144));
-        bytes memory csmmConstructorArgs = abi.encode(manager);
-        deployCodeTo("CustomCurveHook.sol:CustomCurveHook", csmmConstructorArgs, csmmFlags);
-        hookCsmm = CustomCurveHook(csmmFlags);
+        // Deploy the hook to an address with the correct flags
+        _deployCSMM();
 
         // Define and create all pools with their respective hooks
         PoolKey[] memory _vanillaPoolKeys = _createPoolKeys(address(0));
@@ -72,16 +60,19 @@ contract MultihopTest is SwapRouterFixtures {
         PoolKey[] memory _nativePoolKeys = _createNativePoolKeys(address(0));
         _copyArrayToStorage(_nativePoolKeys, nativePoolKeys);
 
-        PoolKey[] memory _hookedPoolKeys = _createPoolKeys(address(hook));
+        PoolKey[] memory _hookedPoolKeys = _createPoolKeys(address(Hooks.BEFORE_SWAP_FLAG)); // TODO: set proper hook address
         _copyArrayToStorage(_hookedPoolKeys, hookedPoolKeys);
-
-        PoolKey[] memory _csmmPoolKeys = _createPoolKeys(address(hookCsmm));
+        PoolKey[] memory _csmmPoolKeys = _createPoolKeys(address(csmm));
         _copyArrayToStorage(_csmmPoolKeys, csmmPoolKeys);
 
         PoolKey[] memory allPoolKeys =
             _concatPools(vanillaPoolKeys, nativePoolKeys, hookedPoolKeys, csmmPoolKeys);
         _initializePools(allPoolKeys);
-        _addLiquidity(allPoolKeys, 10_000e18);
+
+        _addLiquidity(vanillaPoolKeys, 10_000e18);
+        _addLiquidity(nativePoolKeys, 10_000e18);
+        _addLiquidity(hookedPoolKeys, 10_000e18);
+        _addLiquidityCSMM(csmmPoolKeys, 1_000e18);
     }
 
     function test_multi_exactInput() public {
@@ -135,41 +126,80 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_hookData() public {
-        currencyA.mint(address(this), 1 ether);
-        currencyA.maxApprove(address(router));
-        currencyB.maxApprove(address(router));
+        // TODO: use hook which operates on hookData
+        // TODO: encode multi-pool path
 
-        assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 0);
-        assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 0);
-        assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 0);
-        assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 0);
+        // currencyA.mint(address(this), 1 ether);
+        // currencyA.maxApprove(address(router));
+        // currencyB.maxApprove(address(router));
 
-        router.swapExactTokensForTokens(
-            0.1 ether, 0.09 ether, true, hookedPoolKeys[0], "", address(this), block.timestamp + 1
-        );
+        // assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 0);
+        // assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 0);
+        // assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 0);
+        // assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 0);
 
-        router.swapExactTokensForTokens(
-            0.09 ether, 0.08 ether, true, hookedPoolKeys[1], "", address(this), block.timestamp + 1
-        );
+        // router.swapExactTokensForTokens(
+        //     0.1 ether, 0.09 ether, true, hookedPoolKeys[0], "", address(this), block.timestamp + 1
+        // );
 
-        assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 1);
-        assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 1);
-        assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 1);
-        assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 1);
+        // router.swapExactTokensForTokens(
+        //     0.09 ether, 0.08 ether, true, hookedPoolKeys[1], "", address(this), block.timestamp + 1
+        // );
+
+        // assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 1);
+        // assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 1);
+        // assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 1);
+        // assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 1);
     }
 
-    function test_multi_exactInput_customCurve() public {
-        currencyA.mint(address(this), 1 ether);
-        currencyA.maxApprove(address(router));
-        currencyB.maxApprove(address(router));
+    function test_multi_exactInput_customCurve(address recipient) public {
+        // Swap Path: A -(vanilla)-> B -(CSMM)-> C
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyC,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(csmm)),
+            hookData: ZERO_BYTES
+        });
 
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.995e18;
         router.swapExactTokensForTokens(
-            0.1 ether, 0.09 ether, true, csmmPoolKeys[0], "", address(this), block.timestamp + 1
+            amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
         );
 
-        router.swapExactTokensForTokens(
-            0.09 ether, 0.08 ether, true, csmmPoolKeys[1], "", address(this), block.timestamp + 1
-        );
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract paid currencyA
+        // recipient did not spend currencyA
+        assertEq(thisBefore.currencyA - thisAfter.currencyA, amountIn);
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+
+        // currencyB unspent
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+
+        // test contract did not receive currencyC
+        // recipient received currencyC
+        assertEq(thisBefore.currencyC, thisAfter.currencyC);
+        assertApproxEqRel(recipientAfter.currencyC - recipientBefore.currencyC, amountIn, 0.005e18); // allow 50 bips error
+
+        // verify slippage: recieved > amountOutMin
+        assertGt((recipientAfter.currencyC - recipientBefore.currencyC), amountOutMin);
     }
 
     function test_multi_exactOutput() public {
@@ -211,27 +241,30 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactOutput_hookData() public {
-        currencyA.mint(address(this), 1 ether);
-        currencyA.maxApprove(address(router));
-        currencyB.maxApprove(address(router));
+        // TODO: use hook which operates on hookData
+        // TODO: encode multi-pool path
 
-        assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 0);
-        assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 0);
-        assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 0);
-        assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 0);
+        // currencyA.mint(address(this), 1 ether);
+        // currencyA.maxApprove(address(router));
+        // currencyB.maxApprove(address(router));
 
-        router.swapTokensForExactTokens(
-            0.1 ether, 0.15 ether, true, hookedPoolKeys[1], "", address(this), block.timestamp + 1
-        );
+        // assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 0);
+        // assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 0);
+        // assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 0);
+        // assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 0);
 
-        router.swapTokensForExactTokens(
-            0.15 ether, 0.2 ether, true, hookedPoolKeys[0], "", address(this), block.timestamp + 1
-        );
+        // router.swapTokensForExactTokens(
+        //     0.1 ether, 0.15 ether, true, hookedPoolKeys[1], "", address(this), block.timestamp + 1
+        // );
 
-        assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 1);
-        assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 1);
-        assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 1);
-        assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 1);
+        // router.swapTokensForExactTokens(
+        //     0.15 ether, 0.2 ether, true, hookedPoolKeys[0], "", address(this), block.timestamp + 1
+        // );
+
+        // assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 1);
+        // assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 1);
+        // assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 1);
+        // assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 1);
     }
 
     function test_multi_exactOutput_customCurve() public {

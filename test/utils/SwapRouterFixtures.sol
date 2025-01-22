@@ -23,6 +23,7 @@ struct TestCurrencyBalances {
     uint256 currencyB;
     uint256 currencyC;
     uint256 currencyD;
+    uint256 native;
 }
 
 contract SwapRouterFixtures is Deployers {
@@ -235,7 +236,8 @@ contract SwapRouterFixtures is Deployers {
             currencyA: currencyA.balanceOf(addr),
             currencyB: currencyB.balanceOf(addr),
             currencyC: currencyC.balanceOf(addr),
-            currencyD: currencyD.balanceOf(addr)
+            currencyD: currencyD.balanceOf(addr),
+            native: native.balanceOf(addr)
         });
     }
 }

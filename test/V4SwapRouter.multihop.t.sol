@@ -28,6 +28,8 @@ contract MultihopTest is SwapRouterFixtures {
     PoolKey[] hookedPoolKeys;
     PoolKey[] csmmPoolKeys;
 
+    // Test contract inherits `receive` function through SwapRouterFixtures' Deployers contract
+
     function setUp() public payable {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
@@ -77,54 +79,104 @@ contract MultihopTest is SwapRouterFixtures {
         _addLiquidityCSMM(csmmPoolKeys, 1_000e18);
     }
 
-    function test_multi_exactInput() public {
-        currencyA.mint(address(this), 1 ether);
-        currencyA.maxApprove(address(router));
-        currencyB.maxApprove(address(router));
+    function test_multi_exactInput(address recipient) public {
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
+        // Swap Path: A --> B --> C
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyC,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
         router.swapExactTokensForTokens(
-            0.1 ether, 0.09 ether, true, vanillaPoolKeys[0], "", address(this), block.timestamp + 1
+            amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
         );
 
-        router.swapExactTokensForTokens(
-            0.09 ether, 0.08 ether, true, vanillaPoolKeys[1], "", address(this), block.timestamp + 1
-        );
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
 
-        // Verify final token balance
-        Currency tokenC = vanillaPoolKeys[1].currency1;
-        uint256 tokenCBalance = IERC20Minimal(Currency.unwrap(tokenC)).balanceOf(address(this));
-        assertTrue(tokenCBalance >= 0.08 ether, "Should receive at least minimum token amount");
+        // Check balances
+        // test contract paid currencyA
+        // recipient did not spend currencyA
+        assertEq(thisBefore.currencyA - thisAfter.currencyA, amountIn);
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+
+        // currencyB unspent
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+
+        // test contract did not receive currencyC
+        // recipient received currencyC
+        assertEq(thisBefore.currencyC, thisAfter.currencyC);
+        assertApproxEqRel(recipientAfter.currencyC - recipientBefore.currencyC, amountIn, 0.01e18); // allow 1% error
+
+        // verify slippage: recieved > amountOutMin
+        assertGt((recipientAfter.currencyC - recipientBefore.currencyC), amountOutMin);
     }
 
-    function test_multi_exactInput_native() public {
-        uint256 initialBalance = address(this).balance;
+    function test_multi_exactInput_nativeInput(address recipient) public {
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
-        // First swap: ETH -> Token A
-        router.swapExactTokensForTokens{value: 0.1 ether}(
-            0.1 ether, 0.09 ether, true, nativePoolKeys[0], "", address(this), block.timestamp + 1
+        // Swap Path: ETH --> C --> D
+        Currency startCurrency = native;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyC,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyD,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        router.swapExactTokensForTokens{value: amountIn}(
+            amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
         );
 
-        // Get intermediate token balance and approve
-        Currency tokenA = nativePoolKeys[0].currency1;
-        uint256 tokenAAmount = IERC20Minimal(Currency.unwrap(tokenA)).balanceOf(address(this));
-        IERC20Minimal(Currency.unwrap(tokenA)).approve(address(router), type(uint256).max);
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
 
-        // Second swap: Token A -> Token B
-        router.swapExactTokensForTokens(
-            tokenAAmount,
-            0.08 ether,
-            true,
-            vanillaPoolKeys[0],
-            "",
-            address(this),
-            block.timestamp + 1
-        );
+        // Check balances
+        // test contract paid native
+        // recipient did not spend currencyA
+        assertEq(thisBefore.native - thisAfter.native, amountIn);
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
 
-        // Verify ETH spent and final token received
-        assertEq(address(this).balance, initialBalance - 0.1 ether, "ETH balance should decrease");
-        Currency tokenB = vanillaPoolKeys[0].currency1;
-        uint256 tokenBBalance = IERC20Minimal(Currency.unwrap(tokenB)).balanceOf(address(this));
-        assertTrue(tokenBBalance >= 0.08 ether, "Should receive at least minimum token amount");
+        // intermediate currencyC unspent
+        assertEq(thisBefore.currencyC, thisAfter.currencyC);
+        assertEq(recipientBefore.currencyC, recipientAfter.currencyC);
+
+        // test contract did not receive currencyD
+        // recipient received currencyD
+        assertEq(thisBefore.currencyD, thisAfter.currencyD);
+        assertApproxEqRel(recipientAfter.currencyD - recipientBefore.currencyD, amountIn, 0.01e18); // allow 1% error
+
+        // verify slippage: recieved > amountOutMin
+        assertGt((recipientAfter.currencyD - recipientBefore.currencyD), amountOutMin);
     }
 
     function test_multi_exactInput_hookData(address recipient) public {

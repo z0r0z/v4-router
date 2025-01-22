@@ -371,18 +371,54 @@ contract MultihopTest is SwapRouterFixtures {
         assertGt((recipientAfter.currencyC - recipientBefore.currencyC), amountOutMin);
     }
 
-    function test_multi_exactOutput() public {
-        currencyA.mint(address(this), 1 ether);
-        currencyA.maxApprove(address(router));
-        currencyB.maxApprove(address(router));
+    function test_multi_exactOutput(address recipient) public {
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
+        // Swap Path: B --> A --> D
+        Currency startCurrency = currencyB;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyA,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyD,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 0.99e18;
         router.swapTokensForExactTokens(
-            0.1 ether, 0.15 ether, true, vanillaPoolKeys[1], "", address(this), block.timestamp + 1
+            amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
         );
 
-        router.swapTokensForExactTokens(
-            0.15 ether, 0.2 ether, true, vanillaPoolKeys[0], "", address(this), block.timestamp + 1
-        );
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract did not receive currencyD
+        // recipient received currencyD
+        assertEq(thisBefore.currencyD, thisAfter.currencyD);
+        assertEq(recipientAfter.currencyD - recipientBefore.currencyD, amountOut);
+
+        // intermediate currencyA unspent
+        assertEq(thisBefore.currencyA, thisAfter.currencyA);
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+
+        // test contract paid currencyB
+        // recipient did not spend currencyB
+        assertApproxEqRel(thisBefore.currencyB - thisAfter.currencyB, amountOut, 0.01e18); // allow 1% error
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+        
+        // verify slippage: amountIn < amountInMax
+        assertLt((thisBefore.currencyB - thisAfter.currencyB), amountInMax);
     }
 
     function test_multi_exactOutput_native() public {

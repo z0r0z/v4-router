@@ -478,6 +478,109 @@ contract MultihopTest is SwapRouterFixtures {
         assertLt((thisBefore.native - thisAfter.native), amountInMax);
     }
 
+    function test_multi_exactOutput_nativeIntermediate(address recipient) public {
+        vm.assume(recipient != address(manager) && recipient != address(this));
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
+
+        // Swap Path: A --> native --> D
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: native,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyD,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 1.01e18;
+        router.swapTokensForExactTokens(
+            amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract did not receive currencyD
+        // recipient received currencyD
+        assertEq(thisBefore.currencyD, thisAfter.currencyD);
+        assertEq(recipientAfter.currencyD - recipientBefore.currencyD, amountOut);
+
+        // intermediate native unspent
+        assertEq(thisBefore.native, thisAfter.native);
+        assertEq(recipientBefore.native, recipientAfter.native);
+
+        // test contract paid currencyA
+        // recipient did not spend currencyA
+        assertApproxEqRel(thisBefore.currencyA - thisAfter.currencyA, amountOut, 0.01e18); // allow 1% error
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+
+        // verify slippage: amountIn < amountInMax
+        assertLt((thisBefore.currencyA - thisAfter.currencyA), amountInMax);
+    }
+
+    function test_multi_exactOutput_nativeOutput() public {
+        // do not fuzz recipient since not all addresses have a receive function
+        address recipient = address(0xABC123);
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
+
+        // Swap Path: A --> B --> native
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: native,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 1.01e18;
+        router.swapTokensForExactTokens(
+            amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract did not receive native
+        // recipient received native
+        assertEq(thisBefore.native, thisAfter.native);
+        assertEq(recipientAfter.native - recipientBefore.native, amountOut);
+
+        // intermediate currencyB unspent
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+
+        // test contract paid currencyA
+        // recipient did not spend currencyA
+        assertApproxEqRel(thisBefore.currencyA - thisAfter.currencyA, amountOut, 0.01e18); // allow 1% error
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+
+        // verify slippage: amountIn < amountInMax
+        assertLt((thisBefore.currencyA - thisAfter.currencyA), amountInMax);
+    }
+
     function test_multi_exactOutput_hookData(address recipient) public {
         vm.assume(recipient != address(manager) && recipient != address(this));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));

@@ -14,7 +14,7 @@ interface IV4SwapRouter {
 
     /// @notice Exact Input Swap; swap the specified amount of input tokens for as many output tokens as possible, along the path
     /// @param amountIn the amount of input tokens to swap
-    /// @param amountOutMin the minimum amount of output tokens that must be received for the transaction not to revert
+    /// @param amountOutMin the minimum amount of output tokens that must be received for the transaction not to revert. reverts on equals to
     /// @param startCurrency the currency to start the swap from
     /// @param path the path of v4 Pools to swap through
     /// @param to the address to send the output tokens to
@@ -30,7 +30,7 @@ interface IV4SwapRouter {
 
     /// @notice Exact Output Swap; swap as few input tokens as possible for the specified amount of output tokens, along the path
     /// @param amountOut the amount of output tokens to receive
-    /// @param amountInMax the maximum amount of input tokens that can be spent for the transaction not to revert
+    /// @param amountInMax the maximum amount of input tokens that can be spent for the transaction not to revert. reverts on equal to
     /// @param startCurrency the currency to start the swap from
     /// @param path the path of v4 Pools to swap through
     /// @param to the address to send the output tokens to

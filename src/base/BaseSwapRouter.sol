@@ -2,11 +2,11 @@
 pragma solidity ^0.8.26;
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {Currency} from "@v4/src/types/Currency.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
+import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 import {IPoolManager, SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
@@ -40,6 +40,9 @@ abstract contract BaseSwapRouter is SafeCallback {
     /// @dev Slippage check.
     error SlippageExceeded();
 
+    /// @dev ETH refund fail.
+    error ETHTransferFailed();
+
     /// @dev Swap `block.timestamp` check.
     error DeadlinePassed(uint256 deadline);
 
@@ -65,24 +68,33 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         BaseData memory data = abi.decode(callbackData, (BaseData));
 
-        (Currency inputCurrency, Currency outputCurrency) =
+        (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
             _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
-        // TODO: optimization - use BalanceDelta from PoolManager calls?
-        uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
-        uint256 outputAmount = uint256(poolManager.currencyDelta(address(this), outputCurrency));
+        // get the actual currency delta from pool manager
+        int256 inputAmount = poolManager.currencyDelta(address(this), inputCurrency);
 
-        if (data.isExactOutput ? inputAmount >= data.amountLimit : outputAmount <= data.amountLimit)
-        {
-            revert SlippageExceeded();
-        }
+        // ensure settlement matches the delta
+        inputCurrency.settle(poolManager, data.payer, uint256(-inputAmount), false);
 
-        inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+        // for output, use the actual delta from the swap
+        uint256 outputAmount = data.isExactOutput
+            ? data.amount
+            : (
+                inputCurrency < outputCurrency
+                    ? uint256(uint128(delta.amount1()))
+                    : uint256(uint128(delta.amount0()))
+            );
+
         outputCurrency.take(poolManager, data.to, outputAmount, false);
 
-        return abi.encode(
-            toBalanceDelta(-(inputAmount.toInt256().toInt128()), outputAmount.toInt256().toInt128())
-        );
+        if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
+            if ((outputAmount = address(this).balance) != 0) {
+                _refundETH(data.payer, outputAmount);
+            }
+        }
+
+        return abi.encode(delta);
     }
 
     function _parseAndSwap(
@@ -90,7 +102,11 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool isExactOutput,
         uint256 amount,
         bytes calldata callbackData
-    ) internal virtual returns (Currency inputCurrency, Currency outputCurrency) {
+    )
+        internal
+        virtual
+        returns (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta)
+    {
         unchecked {
             if (isSingleSwap) {
                 (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
@@ -99,7 +115,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 (inputCurrency, outputCurrency) =
                     zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
-                _swap(
+                delta = _swap(
                     key,
                     zeroForOne,
                     isExactOutput ? amount.toInt256() : -(amount.toInt256()),
@@ -113,7 +129,7 @@ abstract contract BaseSwapRouter is SafeCallback {
 
                 outputCurrency = path[path.length - 1].intermediateCurrency;
 
-                isExactOutput
+                delta = isExactOutput
                     ? _exactOutputMultiSwap(inputCurrency, path, amount)
                     : _exactInputMultiSwap(inputCurrency, path, amount);
             }
@@ -123,26 +139,28 @@ abstract contract BaseSwapRouter is SafeCallback {
     function _exactInputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
+        returns (BalanceDelta finalDelta)
     {
         PoolKey memory poolKey;
         PathKey memory pathKey;
         bool zeroForOne;
         int256 amountSpecified = -(amount.toInt256());
-        BalanceDelta delta;
 
         for (uint256 i; i != path.length; ++i) {
             pathKey = path[i];
             (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
-            delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+            finalDelta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
             inputCurrency = pathKey.intermediateCurrency;
-            amountSpecified = zeroForOne ? -delta.amount1() : -delta.amount0();
+            amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
         }
+        return finalDelta;
     }
 
-    function _exactOutputMultiSwap(Currency, PathKey[] memory path, uint256 amount)
+    function _exactOutputMultiSwap(Currency startCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
+        returns (BalanceDelta finalDelta)
     {
         unchecked {
             PoolKey memory poolKey;
@@ -151,15 +169,27 @@ abstract contract BaseSwapRouter is SafeCallback {
             int256 amountSpecified = amount.toInt256();
             BalanceDelta delta;
 
-            for (uint256 i = path.length; i != 0; --i) {
-                pathKey = path[i - 1];
-                (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(
-                    i == path.length ? pathKey.intermediateCurrency : path[i].intermediateCurrency
-                );
+            // iterate backwards through the path
+            // for "startCurrency -> B -> C -> D", `path` intermediate currencies are [B, C, D]
+            // swap exact output:
+            // 1. swap C for D
+            // 2. swap B for C
+            // 3  swap startCurrency for B
+            for (uint256 i = path.length - 1; i != 0; --i) {
+                pathKey = path[i];
+                (poolKey, zeroForOne) =
+                    pathKey.getPoolAndSwapDirection(path[i - 1].intermediateCurrency);
+                delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
-                delta = _swap(poolKey, !zeroForOne, amountSpecified, pathKey.hookData);
+                // if swapped token0 -> token1, then token0 is negative delta (signalling the "owed" currency)
+                // delta.amount0() value should be used as the exactOutput value for the next swap
+                // invert the negative delta to a positive value to signal an exactOutput swap
                 amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
             }
+
+            // execute final swap and return its delta
+            (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
+            finalDelta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
         }
     }
 
@@ -191,5 +221,14 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     receive() external payable virtual {
         if (msg.sender != address(poolManager)) revert Unauthorized();
+    }
+
+    function _refundETH(address to, uint256 amount) internal virtual {
+        assembly ("memory-safe") {
+            if iszero(call(gas(), to, amount, codesize(), 0x00, codesize(), 0x00)) {
+                mstore(0x00, 0xb12d13eb) // `ETHTransferFailed()`.
+                revert(0x1c, 0x04)
+            }
+        }
     }
 }

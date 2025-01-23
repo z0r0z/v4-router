@@ -63,7 +63,7 @@ abstract contract BaseSwapRouter is SafeCallback {
     function _unlockCallback(bytes calldata callbackData)
         internal
         virtual
-        override
+        override(SafeCallback)
         returns (bytes memory)
     {
         BaseData memory data = abi.decode(callbackData, (BaseData));
@@ -88,6 +88,7 @@ abstract contract BaseSwapRouter is SafeCallback {
 
         outputCurrency.take(poolManager, data.to, outputAmount, false);
 
+        // trigger refund of ETH if any left over after swap
         if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
             if ((outputAmount = address(this).balance) != 0) {
                 _refundETH(data.payer, outputAmount);
@@ -154,7 +155,6 @@ abstract contract BaseSwapRouter is SafeCallback {
             inputCurrency = pathKey.intermediateCurrency;
             amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
         }
-        return finalDelta;
     }
 
     function _exactOutputMultiSwap(Currency startCurrency, PathKey[] memory path, uint256 amount)
@@ -220,7 +220,13 @@ abstract contract BaseSwapRouter is SafeCallback {
     }
 
     receive() external payable virtual {
-        if (msg.sender != address(poolManager)) revert Unauthorized();
+        IPoolManager _poolManager = poolManager;
+        assembly ("memory-safe") {
+            if iszero(eq(caller(), _poolManager)) {
+                mstore(0x00, 0x82b42900) // `Unauthorized()`.
+                revert(0x1c, 0x04)
+            }
+        }
     }
 
     function _refundETH(address to, uint256 amount) internal virtual {

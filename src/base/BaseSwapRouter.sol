@@ -2,11 +2,11 @@
 pragma solidity ^0.8.26;
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
+import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 import {IPoolManager, SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
@@ -39,6 +39,9 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     /// @dev Slippage check.
     error SlippageExceeded();
+
+    /// @dev ETH refund fail.
+    error ETHTransferFailed();
 
     /// @dev Swap `block.timestamp` check.
     error DeadlinePassed(uint256 deadline);
@@ -80,10 +83,10 @@ abstract contract BaseSwapRouter is SafeCallback {
         inputCurrency.settle(poolManager, data.payer, inputAmount, false);
         outputCurrency.take(poolManager, data.to, outputAmount, false);
 
-        // refund any excess native Ether
-        if (0 < address(this).balance) {
-            if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-                payable(data.payer).transfer(address(this).balance);
+        // refund any excess native Ether - reuse variable
+        if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
+            if ((outputAmount = address(this).balance) != 0) {
+                _refundETH(data.payer, outputAmount);
             }
         }
 
@@ -208,5 +211,14 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     receive() external payable virtual {
         if (msg.sender != address(poolManager)) revert Unauthorized();
+    }
+
+    function _refundETH(address to, uint256 amount) internal virtual {
+        assembly ("memory-safe") {
+            if iszero(call(gas(), to, amount, codesize(), 0x00, codesize(), 0x00)) {
+                mstore(0x00, 0xb12d13eb) // `ETHTransferFailed()`.
+                revert(0x1c, 0x04)
+            }
+        }
     }
 }

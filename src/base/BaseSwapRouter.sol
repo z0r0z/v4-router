@@ -68,10 +68,9 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         BaseData memory data = abi.decode(callbackData, (BaseData));
 
-        (Currency inputCurrency, Currency outputCurrency) =
+        (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
             _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
-        // TODO: optimization - use BalanceDelta from PoolManager calls?
         uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
         uint256 outputAmount = uint256(poolManager.currencyDelta(address(this), outputCurrency));
 
@@ -83,16 +82,13 @@ abstract contract BaseSwapRouter is SafeCallback {
         inputCurrency.settle(poolManager, data.payer, inputAmount, false);
         outputCurrency.take(poolManager, data.to, outputAmount, false);
 
-        // refund any excess native Ether - reuse variable
         if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
             if ((outputAmount = address(this).balance) != 0) {
                 _refundETH(data.payer, outputAmount);
             }
         }
 
-        return abi.encode(
-            toBalanceDelta(-(inputAmount.toInt256().toInt128()), outputAmount.toInt256().toInt128())
-        );
+        return abi.encode(delta);
     }
 
     function _parseAndSwap(
@@ -100,7 +96,11 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool isExactOutput,
         uint256 amount,
         bytes calldata callbackData
-    ) internal virtual returns (Currency inputCurrency, Currency outputCurrency) {
+    )
+        internal
+        virtual
+        returns (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta)
+    {
         unchecked {
             if (isSingleSwap) {
                 (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
@@ -109,7 +109,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 (inputCurrency, outputCurrency) =
                     zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
-                _swap(
+                delta = _swap(
                     key,
                     zeroForOne,
                     isExactOutput ? amount.toInt256() : -(amount.toInt256()),
@@ -123,7 +123,7 @@ abstract contract BaseSwapRouter is SafeCallback {
 
                 outputCurrency = path[path.length - 1].intermediateCurrency;
 
-                isExactOutput
+                delta = isExactOutput
                     ? _exactOutputMultiSwap(inputCurrency, path, amount)
                     : _exactInputMultiSwap(inputCurrency, path, amount);
             }
@@ -133,26 +133,28 @@ abstract contract BaseSwapRouter is SafeCallback {
     function _exactInputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
+        returns (BalanceDelta finalDelta)
     {
         PoolKey memory poolKey;
         PathKey memory pathKey;
         bool zeroForOne;
         int256 amountSpecified = -(amount.toInt256());
-        BalanceDelta delta;
 
         for (uint256 i; i != path.length; ++i) {
             pathKey = path[i];
             (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
-            delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+            finalDelta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
             inputCurrency = pathKey.intermediateCurrency;
-            amountSpecified = zeroForOne ? -delta.amount1() : -delta.amount0();
+            amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
         }
+        return finalDelta;
     }
 
     function _exactOutputMultiSwap(Currency startCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
+        returns (BalanceDelta finalDelta)
     {
         unchecked {
             PoolKey memory poolKey;
@@ -178,8 +180,10 @@ abstract contract BaseSwapRouter is SafeCallback {
                 // invert the negative delta to a positive value to signal an exactOutput swap
                 amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
             }
+
+            // Execute final swap and return its delta
             (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
-            _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
+            finalDelta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
         }
     }
 

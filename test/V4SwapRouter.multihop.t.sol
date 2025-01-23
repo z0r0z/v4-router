@@ -478,31 +478,70 @@ contract MultihopTest is SwapRouterFixtures {
         assertLt((thisBefore.native - thisAfter.native), amountInMax);
     }
 
-    function test_multi_exactOutput_hookData() public {
-        // TODO: use hook which operates on hookData
-        // TODO: encode multi-pool path
+    function test_multi_exactOutput_hookData(address recipient) public {
+        vm.assume(recipient != address(manager));
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
-        // currencyA.mint(address(this), 1 ether);
-        // currencyA.maxApprove(address(router));
-        // currencyB.maxApprove(address(router));
+        // data to be passed to the hook
+        uint256 num0 = 333;
+        uint256 num1 = 444;
 
-        // assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 0);
-        // assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 0);
-        // assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 0);
-        // assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 0);
+        // Swap Path: A -(hookWithData)-> B -(hookWithData)-> C
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(hookWithData)),
+            hookData: abi.encode(num0) // A - B emits num0
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyC,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(hookWithData)),
+            hookData: abi.encode(num1) // B -> C emits num1
+        });
 
-        // router.swapTokensForExactTokens(
-        //     0.1 ether, 0.15 ether, true, hookedPoolKeys[1], "", address(this), block.timestamp + 1
-        // );
+        // emit B -> C (num1) first, since swaps are happening in reverse order of `path`
+        vm.expectEmit(true, true, true, true, address(hookWithData));
+        emit HookData.BeforeSwapData(num1);
+        vm.expectEmit(true, true, true, true, address(hookWithData));
+        emit HookData.AfterSwapData(num1);
 
-        // router.swapTokensForExactTokens(
-        //     0.15 ether, 0.2 ether, true, hookedPoolKeys[0], "", address(this), block.timestamp + 1
-        // );
+        vm.expectEmit(true, true, true, true, address(hookWithData));
+        emit HookData.BeforeSwapData(num0);
+        vm.expectEmit(true, true, true, true, address(hookWithData));
+        emit HookData.AfterSwapData(num0);
 
-        // assertEq(hook.beforeSwapCount(hookedPoolKeys[0].toId()), 1);
-        // assertEq(hook.afterSwapCount(hookedPoolKeys[0].toId()), 1);
-        // assertEq(hook.beforeSwapCount(hookedPoolKeys[1].toId()), 1);
-        // assertEq(hook.afterSwapCount(hookedPoolKeys[1].toId()), 1);
+        uint256 amountOut = 1e18; // currencyC
+        uint256 amountInMax = 1.01e18; // currencyA
+        router.swapTokensForExactTokens{value: amountInMax}(
+            amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract did not receive currencyC
+        // recipient received currencyC
+        assertEq(thisBefore.currencyC, thisAfter.currencyC);
+        assertEq(recipientAfter.currencyC - recipientBefore.currencyC, amountOut);
+
+        // intermediate currencyB unspent
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+
+        // test contract paid currencyA
+        // recipient did not spend currencyA
+        assertApproxEqRel(thisBefore.currencyA - thisAfter.currencyA, amountOut, 0.01e18); // allow 1% error
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+
+        // verify slippage: amountIn < amountInMax
+        assertLt((thisBefore.currencyA - thisAfter.currencyA), amountInMax);
     }
 
     function test_multi_exactOutput_customCurve() public {

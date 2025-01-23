@@ -80,6 +80,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput(address recipient) public {
+        vm.assume(recipient != address(manager));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -130,6 +131,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_nativeInput(address recipient) public {
+        vm.assume(recipient != address(manager));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -232,6 +234,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_nativeIntermediate(address recipient) public {
+        vm.assume(recipient != address(manager));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -282,6 +285,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_hookData(address recipient) public {
+        vm.assume(recipient != address(manager));
         // data to be passed to the hook
         uint256 num0 = 111;
         uint256 num1 = 222;
@@ -322,6 +326,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_customCurve(address recipient) public {
+        vm.assume(recipient != address(manager));
         // Swap Path: A -(vanilla)-> B -(CSMM)-> C
         Currency startCurrency = currencyA;
         PathKey[] memory path = new PathKey[](2);
@@ -372,6 +377,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactOutput(address recipient) public {
+        vm.assume(recipient != address(manager));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -421,28 +427,55 @@ contract MultihopTest is SwapRouterFixtures {
         assertLt((thisBefore.currencyB - thisAfter.currencyB), amountInMax);
     }
 
-    function test_multi_exactOutput_native() public {
-        uint256 initialBalance = address(this).balance;
+    function test_multi_exactOutput_nativeInput(address recipient) public {
+        vm.assume(recipient != address(manager));
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
-        // Approve tokens for input
-        Currency tokenA = vanillaPoolKeys[0].currency0;
-        Currency tokenB = vanillaPoolKeys[0].currency1;
-        IERC20Minimal(Currency.unwrap(tokenA)).approve(address(router), type(uint256).max);
-        IERC20Minimal(Currency.unwrap(tokenB)).approve(address(router), type(uint256).max);
+        // Swap Path: native --> A --> D
+        Currency startCurrency = native;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyA,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyD,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
 
-        // First swap: TokenA -> TokenB
-        router.swapTokensForExactTokens(
-            0.15 ether, 0.2 ether, true, vanillaPoolKeys[0], "", address(this), block.timestamp + 1
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 1.01e18;
+        router.swapTokensForExactTokens{value: amountInMax}(
+            amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
         );
 
-        // Second swap: TokenB -> ETH
-        router.swapTokensForExactTokens(
-            0.1 ether, 0.15 ether, false, nativePoolKeys[0], "", address(this), block.timestamp + 1
-        );
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
 
-        assertEq(
-            address(this).balance - initialBalance, 0.1 ether, "Should receive exact ETH amount"
-        );
+        // Check balances
+        // test contract did not receive currencyD
+        // recipient received currencyD
+        assertEq(thisBefore.currencyD, thisAfter.currencyD);
+        assertEq(recipientAfter.currencyD - recipientBefore.currencyD, amountOut);
+
+        // intermediate currencyA unspent
+        assertEq(thisBefore.currencyA, thisAfter.currencyA);
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+
+        // test contract paid native
+        // recipient did not spend native
+        assertApproxEqRel(thisBefore.native - thisAfter.native, amountOut, 0.01e18); // allow 1% error
+        assertEq(recipientBefore.native, recipientAfter.native);
+
+        // verify slippage: amountIn < amountInMax
+        assertLt((thisBefore.native - thisAfter.native), amountInMax);
     }
 
     function test_multi_exactOutput_hookData() public {

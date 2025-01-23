@@ -80,7 +80,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -131,7 +131,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_nativeInput(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -234,7 +234,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_nativeIntermediate(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -285,7 +285,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_hookData(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         // data to be passed to the hook
         uint256 num0 = 111;
         uint256 num1 = 222;
@@ -326,7 +326,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactInput_customCurve(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         // Swap Path: A -(vanilla)-> B -(CSMM)-> C
         Currency startCurrency = currencyA;
         PathKey[] memory path = new PathKey[](2);
@@ -377,7 +377,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactOutput(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -428,7 +428,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactOutput_nativeInput(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -462,24 +462,24 @@ contract MultihopTest is SwapRouterFixtures {
         // Check balances
         // test contract did not receive currencyD
         // recipient received currencyD
-        assertEq(thisBefore.currencyD, thisAfter.currencyD);
-        assertEq(recipientAfter.currencyD - recipientBefore.currencyD, amountOut);
+        assertEq(thisBefore.currencyD, thisAfter.currencyD, "A");
+        assertEq(recipientAfter.currencyD - recipientBefore.currencyD, amountOut, "B");
 
         // intermediate currencyA unspent
-        assertEq(thisBefore.currencyA, thisAfter.currencyA);
-        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
+        assertEq(thisBefore.currencyA, thisAfter.currencyA, "C");
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA, "D");
 
         // test contract paid native
         // recipient did not spend native
         assertApproxEqRel(thisBefore.native - thisAfter.native, amountOut, 0.01e18); // allow 1% error
-        assertEq(recipientBefore.native, recipientAfter.native);
+        assertEq(recipientBefore.native, recipientAfter.native, "G");
 
         // verify slippage: amountIn < amountInMax
-        assertLt((thisBefore.native - thisAfter.native), amountInMax);
+        assertLt((thisBefore.native - thisAfter.native), amountInMax, "F");
     }
 
     function test_multi_exactOutput_hookData(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -545,7 +545,7 @@ contract MultihopTest is SwapRouterFixtures {
     }
 
     function test_multi_exactOutput_customCurve(address recipient) public {
-        vm.assume(recipient != address(manager));
+        vm.assume(recipient != address(manager) && recipient != address(this));
         TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
         TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
 
@@ -583,8 +583,8 @@ contract MultihopTest is SwapRouterFixtures {
         assertEq(recipientAfter.currencyC - recipientBefore.currencyC, amountOut);
 
         // intermediate currencyB unspent
-        assertEq(thisBefore.currencyB, thisAfter.currencyB);
-        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+        assertEq(thisBefore.currencyB, thisAfter.currencyB, "B");
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB, "A");
 
         // test contract paid currencyA
         // recipient did not spend currencyA

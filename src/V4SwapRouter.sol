@@ -18,7 +18,14 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    )
+        public
+        payable
+        virtual
+        override(IV4SwapRouter)
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
@@ -43,7 +50,14 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    )
+        public
+        payable
+        virtual
+        override(IV4SwapRouter)
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
@@ -63,12 +77,19 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
     /// @inheritdoc IV4SwapRouter
     function swap(
         int256 amountSpecified,
-        uint256 amountTolerance,
+        uint256 amountLimit,
         Currency startCurrency,
         PathKey[] calldata path,
         address to,
         uint256 deadline
-    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    )
+        public
+        payable
+        virtual
+        override(IV4SwapRouter)
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
@@ -77,7 +98,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isSingleSwap: false,
                     isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
-                    amountLimit: amountTolerance
+                    amountLimit: amountLimit
                 }),
                 startCurrency,
                 path
@@ -90,7 +111,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         public
         payable
         virtual
-        override
+        override(IV4SwapRouter)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
@@ -108,7 +129,14 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         bytes calldata hookData,
         address to,
         uint256 deadline
-    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    )
+        public
+        payable
+        virtual
+        override(IV4SwapRouter)
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
@@ -135,7 +163,14 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         bytes calldata hookData,
         address to,
         uint256 deadline
-    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    )
+        public
+        payable
+        virtual
+        override(IV4SwapRouter)
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
@@ -156,13 +191,20 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
     /// @inheritdoc IV4SwapRouter
     function swap(
         int256 amountSpecified,
-        uint256 amountTolerance,
+        uint256 amountLimit,
         bool zeroForOne,
         PoolKey memory poolKey,
         bytes calldata hookData,
         address to,
         uint256 deadline
-    ) public payable virtual override checkDeadline(deadline) returns (BalanceDelta) {
+    )
+        public
+        payable
+        virtual
+        override(IV4SwapRouter)
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
@@ -171,7 +213,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isSingleSwap: true,
                     isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
-                    amountLimit: amountTolerance
+                    amountLimit: amountLimit
                 }),
                 zeroForOne,
                 poolKey,

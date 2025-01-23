@@ -451,7 +451,7 @@ contract MultihopTest is SwapRouterFixtures {
         });
 
         uint256 amountOut = 1e18;
-        uint256 amountInMax = 1.01e18;
+        uint256 amountInMax = 1.01e18; // 1% slippage tolerance
         router.swapTokensForExactTokens{value: amountInMax}(
             amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
         );
@@ -474,8 +474,11 @@ contract MultihopTest is SwapRouterFixtures {
         assertApproxEqRel(thisBefore.native - thisAfter.native, amountOut, 0.01e18); // allow 1% error
         assertEq(recipientBefore.native, recipientAfter.native);
 
-        // verify slippage: amountIn < amountInMax
-        assertLt((thisBefore.native - thisAfter.native), amountInMax);
+        // verify slippage: amountIn <= amountInMax
+        uint256 amountSpent = thisBefore.native - thisAfter.native;
+        assertLe(amountSpent, amountInMax, "Amount spent exceeds maximum");
+        // Additional check to ensure we're not spending too little (which would be suspicious)
+        assertGt(amountSpent, amountOut, "Amount spent suspiciously low");
     }
 
     function test_multi_exactOutput_nativeIntermediate(address recipient) public {

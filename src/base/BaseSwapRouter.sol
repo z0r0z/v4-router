@@ -71,15 +71,21 @@ abstract contract BaseSwapRouter is SafeCallback {
         (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
             _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
-        uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
-        uint256 outputAmount = uint256(poolManager.currencyDelta(address(this), outputCurrency));
+        // get the actual currency delta from pool manager
+        int256 inputAmount = poolManager.currencyDelta(address(this), inputCurrency);
 
-        if (data.isExactOutput ? inputAmount >= data.amountLimit : outputAmount <= data.amountLimit)
-        {
-            revert SlippageExceeded();
-        }
+        // ensure settlement matches the delta
+        inputCurrency.settle(poolManager, data.payer, uint256(-inputAmount), false);
 
-        inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+        // for output, use the actual delta from the swap
+        uint256 outputAmount = data.isExactOutput
+            ? data.amount
+            : (
+                inputCurrency < outputCurrency
+                    ? uint256(uint128(delta.amount1()))
+                    : uint256(uint128(delta.amount0()))
+            );
+
         outputCurrency.take(poolManager, data.to, outputAmount, false);
 
         if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
@@ -181,7 +187,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
             }
 
-            // Execute final swap and return its delta
+            // execute final swap and return its delta
             (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
             finalDelta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
         }

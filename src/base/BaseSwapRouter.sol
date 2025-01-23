@@ -66,36 +66,38 @@ abstract contract BaseSwapRouter is SafeCallback {
         override(SafeCallback)
         returns (bytes memory)
     {
-        BaseData memory data = abi.decode(callbackData, (BaseData));
+        unchecked {
+            BaseData memory data = abi.decode(callbackData, (BaseData));
 
-        (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
-            _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
+            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
+                _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
-        // get the actual currency delta from pool manager
-        int256 inputAmount = poolManager.currencyDelta(address(this), inputCurrency);
+            // get the actual currency delta from pool manager
+            int256 inputAmount = poolManager.currencyDelta(address(this), inputCurrency);
 
-        // ensure settlement matches the delta
-        inputCurrency.settle(poolManager, data.payer, uint256(-inputAmount), false);
+            // ensure settlement matches the delta
+            inputCurrency.settle(poolManager, data.payer, uint256(-inputAmount), false);
 
-        // for output, use the actual delta from the swap
-        uint256 outputAmount = data.isExactOutput
-            ? data.amount
-            : (
-                inputCurrency < outputCurrency
-                    ? uint256(uint128(delta.amount1()))
-                    : uint256(uint128(delta.amount0()))
-            );
+            // for output, use the actual delta from the swap
+            uint256 outputAmount = data.isExactOutput
+                ? data.amount
+                : (
+                    inputCurrency < outputCurrency
+                        ? uint256(uint128(delta.amount1()))
+                        : uint256(uint128(delta.amount0()))
+                );
 
-        outputCurrency.take(poolManager, data.to, outputAmount, false);
+            outputCurrency.take(poolManager, data.to, outputAmount, false);
 
-        // trigger refund of ETH if any left over after swap
-        if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-            if ((outputAmount = address(this).balance) != 0) {
-                _refundETH(data.payer, outputAmount);
+            // trigger refund of ETH if any left over after swap
+            if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
+                if ((outputAmount = address(this).balance) != 0) {
+                    _refundETH(data.payer, outputAmount);
+                }
             }
-        }
 
-        return abi.encode(delta);
+            return abi.encode(delta);
+        }
     }
 
     function _parseAndSwap(

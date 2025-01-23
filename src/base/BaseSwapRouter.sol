@@ -140,7 +140,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         }
     }
 
-    function _exactOutputMultiSwap(Currency, PathKey[] memory path, uint256 amount)
+    function _exactOutputMultiSwap(Currency startCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
     {
@@ -151,15 +151,25 @@ abstract contract BaseSwapRouter is SafeCallback {
             int256 amountSpecified = amount.toInt256();
             BalanceDelta delta;
 
-            for (uint256 i = path.length; i != 0; --i) {
-                pathKey = path[i - 1];
-                (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(
-                    i == path.length ? pathKey.intermediateCurrency : path[i].intermediateCurrency
-                );
+            // iterate backwards through the path
+            // for "startCurrency -> B -> C -> D", `path` intermediate currencies are [B, C, D]
+            // swap exact output:
+            // 1. swap C for D
+            // 2. swap B for C
+            // 3  swap startCurrency for B
+            for (uint256 i = path.length - 1; i != 0; --i) {
+                pathKey = path[i];
+                (poolKey, zeroForOne) =
+                    pathKey.getPoolAndSwapDirection(path[i - 1].intermediateCurrency);
+                delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
-                delta = _swap(poolKey, !zeroForOne, amountSpecified, pathKey.hookData);
+                // if swapped token0 -> token1, then token0 is negative delta (signalling the "owed" currency)
+                // delta.amount0() value should be used as the exactOutput value for the next swap
+                // invert the negative delta to a positive value to signal an exactOutput swap
                 amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
             }
+            (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
+            _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
         }
     }
 

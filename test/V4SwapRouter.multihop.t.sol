@@ -394,7 +394,7 @@ contract MultihopTest is SwapRouterFixtures {
         });
 
         uint256 amountOut = 1e18;
-        uint256 amountInMax = 0.99e18;
+        uint256 amountInMax = 1.01e18;
         router.swapTokensForExactTokens(
             amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
         );
@@ -416,7 +416,7 @@ contract MultihopTest is SwapRouterFixtures {
         // recipient did not spend currencyB
         assertApproxEqRel(thisBefore.currencyB - thisAfter.currencyB, amountOut, 0.01e18); // allow 1% error
         assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
-        
+
         // verify slippage: amountIn < amountInMax
         assertLt((thisBefore.currencyB - thisAfter.currencyB), amountInMax);
     }

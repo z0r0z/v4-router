@@ -19,31 +19,6 @@ using PathKeyLibrary for PathKey global;
 /// @notice Memory-oriented version of v4-periphery/src/libraries/PathKeyLibrary.sol
 /// @dev Handles PathKey operations in memory rather than calldata for router operations
 library PathKeyLibrary {
-    /// @notice Decoder for converting PathKey from calldata to memory
-    /// @param path The PathKey array in calldata to decode
-    /// @return decodedPath The PathKey array in memory
-    function decodePath(PathKey[] calldata path)
-        internal
-        pure
-        returns (PathKey[] memory decodedPath)
-    {
-        decodedPath = new PathKey[](path.length);
-        for (uint256 i = 0; i < path.length; i++) {
-            decodedPath[i] = decodePathKey(path[i]);
-        }
-    }
-
-    /// @notice Decoder for converting a single PathKey from calldata to memory
-    /// @param key The PathKey in calldata to decode
-    /// @return decoded The PathKey in memory
-    function decodePathKey(PathKey calldata key) internal pure returns (PathKey memory decoded) {
-        decoded.intermediateCurrency = key.intermediateCurrency;
-        decoded.fee = key.fee;
-        decoded.tickSpacing = key.tickSpacing;
-        decoded.hooks = key.hooks;
-        decoded.hookData = key.hookData;
-    }
-
     /// @notice Get the pool and swap direction for a given PathKey
     /// @param params the given PathKey
     /// @param currencyIn the input currency

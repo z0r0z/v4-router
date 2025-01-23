@@ -2,7 +2,7 @@
 pragma solidity ^0.8.26;
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {Currency} from "@v4/src/types/Currency.sol";
+import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
@@ -79,6 +79,13 @@ abstract contract BaseSwapRouter is SafeCallback {
 
         inputCurrency.settle(poolManager, data.payer, inputAmount, false);
         outputCurrency.take(poolManager, data.to, outputAmount, false);
+
+        // refund any excess native Ether
+        if (0 < address(this).balance) {
+            if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
+                payable(data.payer).transfer(address(this).balance);
+            }
+        }
 
         return abi.encode(
             toBalanceDelta(-(inputAmount.toInt256().toInt128()), outputAmount.toInt256().toInt128())

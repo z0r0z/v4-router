@@ -462,20 +462,20 @@ contract MultihopTest is SwapRouterFixtures {
         // Check balances
         // test contract did not receive currencyD
         // recipient received currencyD
-        assertEq(thisBefore.currencyD, thisAfter.currencyD, "A");
-        assertEq(recipientAfter.currencyD - recipientBefore.currencyD, amountOut, "B");
+        assertEq(thisBefore.currencyD, thisAfter.currencyD);
+        assertEq(recipientAfter.currencyD - recipientBefore.currencyD, amountOut);
 
         // intermediate currencyA unspent
-        assertEq(thisBefore.currencyA, thisAfter.currencyA, "C");
-        assertEq(recipientBefore.currencyA, recipientAfter.currencyA, "D");
+        assertEq(thisBefore.currencyA, thisAfter.currencyA);
+        assertEq(recipientBefore.currencyA, recipientAfter.currencyA);
 
         // test contract paid native
         // recipient did not spend native
         assertApproxEqRel(thisBefore.native - thisAfter.native, amountOut, 0.01e18); // allow 1% error
-        assertEq(recipientBefore.native, recipientAfter.native, "G");
+        assertEq(recipientBefore.native, recipientAfter.native);
 
         // verify slippage: amountIn < amountInMax
-        assertLt((thisBefore.native - thisAfter.native), amountInMax, "F");
+        assertLt((thisBefore.native - thisAfter.native), amountInMax);
     }
 
     function test_multi_exactOutput_hookData(address recipient) public {
@@ -583,8 +583,8 @@ contract MultihopTest is SwapRouterFixtures {
         assertEq(recipientAfter.currencyC - recipientBefore.currencyC, amountOut);
 
         // intermediate currencyB unspent
-        assertEq(thisBefore.currencyB, thisAfter.currencyB, "B");
-        assertEq(recipientBefore.currencyB, recipientAfter.currencyB, "A");
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
 
         // test contract paid currencyA
         // recipient did not spend currencyA

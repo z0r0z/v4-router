@@ -142,18 +142,20 @@ abstract contract BaseSwapRouter is SafeCallback {
         virtual
         returns (BalanceDelta finalDelta)
     {
-        PoolKey memory poolKey;
-        PathKey memory pathKey;
-        bool zeroForOne;
-        int256 amountSpecified = -(amount.toInt256());
+        unchecked {
+            PoolKey memory poolKey;
+            PathKey memory pathKey;
+            bool zeroForOne;
+            int256 amountSpecified = -(amount.toInt256());
 
-        for (uint256 i; i != path.length; ++i) {
-            pathKey = path[i];
-            (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
-            finalDelta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+            for (uint256 i; i != path.length; ++i) {
+                pathKey = path[i];
+                (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
+                finalDelta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
-            inputCurrency = pathKey.intermediateCurrency;
-            amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
+                inputCurrency = pathKey.intermediateCurrency;
+                amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
+            }
         }
     }
 
@@ -223,7 +225,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         IPoolManager _poolManager = poolManager;
         assembly ("memory-safe") {
             if iszero(eq(caller(), _poolManager)) {
-                mstore(0x00, 0x82b42900) // `Unauthorized()`.
+                mstore(0x00, 0x82b42900) // `Unauthorized()`
                 revert(0x1c, 0x04)
             }
         }
@@ -232,7 +234,7 @@ abstract contract BaseSwapRouter is SafeCallback {
     function _refundETH(address to, uint256 amount) internal virtual {
         assembly ("memory-safe") {
             if iszero(call(gas(), to, amount, codesize(), 0x00, codesize(), 0x00)) {
-                mstore(0x00, 0xb12d13eb) // `ETHTransferFailed()`.
+                mstore(0x00, 0xb12d13eb) // `ETHTransferFailed()`
                 revert(0x1c, 0x04)
             }
         }

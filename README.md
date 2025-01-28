@@ -29,61 +29,61 @@ forge install z0r0z/v4-router
 
 *Trade 1000 USDC into x Ether*
 
-    #### Single Pool Swaps
+#### Single Pool Swaps
 
-    For simple swaps on a singular pool
+For simple swaps on a singular pool
 
-    ```solidity
-    IV4SwapRouter router = IV4SwapRouter(...);
+```solidity
+IV4SwapRouter router = IV4SwapRouter(...);
 
-    uint256 amountIn = 1e18;                 // amount of input tokens
-    uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
-    bool zeroForOne = true;                  // swap token0 for token1
-    PoolKey memory poolKey = PoolKey(...);   // the pool to swap on
-    bytes memory hookData;                   // optional arbitrary data to be provided to the hook
-    uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
-    router.swapExactTokensForTokens(
-        amountIn,
-        amountOutMin,
-        zeroForOne,
-        poolKey,
-        hookData,
-        recipient,
-        deadline
-    );
-    ```
+uint256 amountIn = 1e18;                 // amount of input tokens
+uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
+bool zeroForOne = true;                  // swap token0 for token1
+PoolKey memory poolKey = PoolKey(...);   // the pool to swap on
+bytes memory hookData;                   // optional arbitrary data to be provided to the hook
+uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
+router.swapExactTokensForTokens(
+    amountIn,
+    amountOutMin,
+    zeroForOne,
+    poolKey,
+    hookData,
+    recipient,
+    deadline
+);
+```
 
-    ### Multihop Swaps
+### Multihop Swaps
 
-    For swaps trading through multiple pools
+For swaps trading through multiple pools
 
-    ```solidity
-    // Example swapPath: A --> B --> B
-    Currency startCurrency = currencyA;
-    PathKey[] memory path = new PathKey[](2);
-    path[0] = PathKey({
-        intermediateCurrency: currencyB,
-        fee: fee0,                   // fee tier of the (A, B) pool
-        tickSpacing: tickSpacing0,   // tick spacing of the (A, B) pool
-        hooks: IHooks(address(...)), // hook address of the (A, B) pool
-        hookData: hookData0          // optional arbitrary bytes to passed to the (A, B) pool's beforeSwap/afterSwap functions
-    });
-    path[1] = PathKey({
-        intermediateCurrency: currencyC,
-        fee: fee1,                   // fee tier of the (B, C) pool
-        tickSpacing: tickSpacing1,   // tick spacing of the (B, C) pool
-        hooks: IHooks(address(...)), // hook address of the (B, C) pool
-        hookData: hookData1          // optional arbitrary bytes to passed to the (B, C) pool's beforeSwap/afterSwap functions
-    });
+```solidity
+// Example swapPath: A --> B --> B
+Currency startCurrency = currencyA;
+PathKey[] memory path = new PathKey[](2);
+path[0] = PathKey({
+    intermediateCurrency: currencyB,
+    fee: fee0,                   // fee tier of the (A, B) pool
+    tickSpacing: tickSpacing0,   // tick spacing of the (A, B) pool
+    hooks: IHooks(address(...)), // hook address of the (A, B) pool
+    hookData: hookData0          // optional arbitrary bytes to passed to the (A, B) pool's beforeSwap/afterSwap functions
+});
+path[1] = PathKey({
+    intermediateCurrency: currencyC,
+    fee: fee1,                   // fee tier of the (B, C) pool
+    tickSpacing: tickSpacing1,   // tick spacing of the (B, C) pool
+    hooks: IHooks(address(...)), // hook address of the (B, C) pool
+    hookData: hookData1          // optional arbitrary bytes to passed to the (B, C) pool's beforeSwap/afterSwap functions
+});
 
-    uint256 amountIn = 1e18;                 // amount of input tokens
-    uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
-    bool zeroForOne = true;                  // swap token0 for token1
-    uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
-    router.swapExactTokensForTokens(
-        amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
-    );
-    ```
+uint256 amountIn = 1e18;                 // amount of input tokens
+uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
+bool zeroForOne = true;                  // swap token0 for token1
+uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
+router.swapExactTokensForTokens(
+    amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
+);
+```
 
 ## Architecture
 

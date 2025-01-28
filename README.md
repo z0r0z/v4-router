@@ -13,9 +13,9 @@ The Uniswap V4 Swap Router supports the following features:
 - Hook interactions
 - Custom swap curves
 
-## Usage
+# Usage
 
-### Install
+## Install
 
 *requires [foundry](https://book.getfoundry.sh)*
 
@@ -23,13 +23,13 @@ The Uniswap V4 Swap Router supports the following features:
 forge install z0r0z/v4-router
 ```
 
-### Exact Input
+## Exact Input
 
 - For swaps, where users are specifying the input amount and want the maximum output possible
 
 *Trade 1000 USDC into x Ether*
 
-#### Single Pool Swaps
+### Single Pool Swaps - Exact Input
 
 For simple swaps on a singular pool
 
@@ -53,37 +53,107 @@ router.swapExactTokensForTokens(
 );
 ```
 
-### Multihop Swaps
+### Multihop Swaps - Exact Input
 
 For swaps trading through multiple pools
 
 ```solidity
-// Example swapPath: A --> B --> B
+IV4SwapRouter router = IV4SwapRouter(...);
+
+// Example swapPath: A --> B --> C
 Currency startCurrency = currencyA;
 PathKey[] memory path = new PathKey[](2);
 path[0] = PathKey({
     intermediateCurrency: currencyB,
-    fee: fee0,                   // fee tier of the (A, B) pool
-    tickSpacing: tickSpacing0,   // tick spacing of the (A, B) pool
-    hooks: IHooks(address(...)), // hook address of the (A, B) pool
-    hookData: hookData0          // optional arbitrary bytes to passed to the (A, B) pool's beforeSwap/afterSwap functions
+    fee: fee0,                           // fee tier of the (A, B) pool
+    tickSpacing: tickSpacing0,           // tick spacing of the (A, B) pool
+    hooks: IHooks(address(...)),         // hook address of the (A, B) pool
+    hookData: hookData0                  // optional arbitrary bytes to passed to the (A, B) pool's beforeSwap/afterSwap functions
 });
 path[1] = PathKey({
     intermediateCurrency: currencyC,
-    fee: fee1,                   // fee tier of the (B, C) pool
-    tickSpacing: tickSpacing1,   // tick spacing of the (B, C) pool
-    hooks: IHooks(address(...)), // hook address of the (B, C) pool
-    hookData: hookData1          // optional arbitrary bytes to passed to the (B, C) pool's beforeSwap/afterSwap functions
+    fee: fee1,                           // fee tier of the (B, C) pool
+    tickSpacing: tickSpacing1,           // tick spacing of the (B, C) pool
+    hooks: IHooks(address(...)),         // hook address of the (B, C) pool
+    hookData: hookData1                  // optional arbitrary bytes to passed to the (B, C) pool's beforeSwap/afterSwap functions
 });
 
 uint256 amountIn = 1e18;                 // amount of input tokens
 uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
-bool zeroForOne = true;                  // swap token0 for token1
 uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
 router.swapExactTokensForTokens(
-    amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
+    amountIn, amountOutMin, startCurrency, path, recipient, deadline
 );
 ```
+
+
+---
+
+## Exact Output
+
+- For swaps, where users are specifying the output amount and want the minimum input possible
+
+*Trade x USDC into 1.0 Ether*
+
+### Single Pool Swaps - Exact Output
+
+For simple swaps on a singular pool
+
+```solidity
+IV4SwapRouter router = IV4SwapRouter(...);
+
+uint256 amountOut = 1e18;                // amount of output tokens expected
+uint256 amountInMax = 1.01e18;           // maximum amount of input tokens, otherwise revert
+bool zeroForOne = true;                  // swap token0 for token1
+PoolKey memory poolKey = PoolKey(...);   // the pool to swap on
+bytes memory hookData;                   // optional arbitrary data to be provided to the hook
+uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
+router.swapTokensForExactTokens(
+    amountOut,
+    amountInMax,
+    zeroForOne,
+    poolKey,
+    ZERO_BYTES,
+    recipient,
+    deadline
+);
+```
+
+### Multihop Swaps - Exact Output
+
+For swaps trading through multiple pools
+
+```solidity
+IV4SwapRouter router = IV4SwapRouter(...);
+
+// Example swapPath: A --> B --> C
+Currency startCurrency = currencyA;
+PathKey[] memory path = new PathKey[](2);
+path[0] = PathKey({
+    intermediateCurrency: currencyB,
+    fee: fee0,                           // fee tier of the (A, B) pool
+    tickSpacing: tickSpacing0,           // tick spacing of the (A, B) pool
+    hooks: IHooks(address(...)),         // hook address of the (A, B) pool
+    hookData: hookData0                  // optional arbitrary bytes to passed to the (A, B) pool's beforeSwap/afterSwap functions
+});
+path[1] = PathKey({
+    intermediateCurrency: currencyC,
+    fee: fee1,                           // fee tier of the (B, C) pool
+    tickSpacing: tickSpacing1,           // tick spacing of the (B, C) pool
+    hooks: IHooks(address(...)),         // hook address of the (B, C) pool
+    hookData: hookData1                  // optional arbitrary bytes to passed to the (B, C) pool's beforeSwap/afterSwap functions
+});
+
+uint256 amountOut = 1e18;                // amount of output tokens expected
+uint256 amountInMax = 1.01e18;           // maximum amount of input tokens, otherwise revert
+uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
+router.swapTokensForExactTokens(
+    amountOut, amountInMax, startCurrency, path, recipient, deadline
+);
+```
+
+For additional usage examples, please see [test/V4SwapRouter.multihop.t.sol](/test/V4SwapRouter.multihop.t.sol)
+
 
 ## Architecture
 

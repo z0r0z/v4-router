@@ -26,6 +26,11 @@ struct TestCurrencyBalances {
     uint256 native;
 }
 
+struct InputOutputBalances {
+    uint256 inputCurrency;
+    uint256 outputCurrency;
+}
+
 contract SwapRouterFixtures is Deployers {
     using SafeCast for uint256;
 
@@ -238,6 +243,17 @@ contract SwapRouterFixtures is Deployers {
             currencyC: currencyC.balanceOf(addr),
             currencyD: currencyD.balanceOf(addr),
             native: native.balanceOf(addr)
+        });
+    }
+
+    function inputOutputBalances(address addr, Currency input, Currency output)
+        internal
+        view
+        returns (InputOutputBalances memory)
+    {
+        return InputOutputBalances({
+            inputCurrency: input.balanceOf(addr),
+            outputCurrency: output.balanceOf(addr)
         });
     }
 }

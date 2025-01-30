@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
-import {PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
+import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
 import {IPoolManager, SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
-import {BalanceDelta, toBalanceDelta, BalanceDeltaLibrary} from "@v4/src/types/BalanceDelta.sol";
+import {
+    Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
+} from "../libraries/PathKey.sol";
 
 struct BaseData {
     uint256 amount;
@@ -73,10 +73,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
             // get the actual currency delta from pool manager
-            int256 inputAmount = poolManager.currencyDelta(address(this), inputCurrency);
-
-            // ensure settlement matches the delta
-            inputCurrency.settle(poolManager, data.payer, uint256(-inputAmount), false);
+            uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
 
             // for output, use the actual delta from the swap
             uint256 outputAmount = data.isExactOutput
@@ -87,6 +84,16 @@ abstract contract BaseSwapRouter is SafeCallback {
                         : uint256(uint128(delta.amount0()))
                 );
 
+            // apply slippage checks based on output format
+            if (
+                data.isExactOutput
+                    ? inputAmount >= data.amountLimit
+                    : outputAmount <= data.amountLimit
+            ) {
+                revert SlippageExceeded();
+            }
+
+            inputCurrency.settle(poolManager, data.payer, inputAmount, false);
             outputCurrency.take(poolManager, data.to, outputAmount, false);
 
             // trigger refund of ETH if any left over after swap

@@ -136,7 +136,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         uint256 amountIn,
         uint256 amountOutMin,
         bool zeroForOne,
-        PoolKey memory poolKey,
+        PoolKey calldata poolKey,
         bytes calldata hookData,
         address to,
         uint256 deadline
@@ -170,7 +170,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         uint256 amountOut,
         uint256 amountInMax,
         bool zeroForOne,
-        PoolKey memory poolKey,
+        PoolKey calldata poolKey,
         bytes calldata hookData,
         address to,
         uint256 deadline
@@ -204,7 +204,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         int256 amountSpecified,
         uint256 amountLimit,
         bool zeroForOne,
-        PoolKey memory poolKey,
+        PoolKey calldata poolKey,
         bytes calldata hookData,
         address to,
         uint256 deadline

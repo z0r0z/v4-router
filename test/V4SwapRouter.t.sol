@@ -168,4 +168,46 @@ contract RouterTest is SwapRouterFixtures {
         assertGt(balanceAfter, balanceBefore, "Balance should increase");
         assertGe(balanceAfter - balanceBefore, 0.09 ether, "Insufficient output amount");
     }
+
+    function test_revertSlippageExceededExactInput() public {
+        // Setup: Mint and approve tokens
+        Currency currency0 = vanillaPoolKeys[0].currency0;
+        currency0.mint(address(this), 1 ether);
+        currency0.maxApprove(address(router));
+
+        // Set minimum output amount very high to trigger slippage protection
+        uint256 unreasonablyHighMinimumOutput = 0.99 ether; // Expecting more than 99% of input
+
+        vm.expectRevert(abi.encodeWithSignature("SlippageExceeded()"));
+        router.swapExactTokensForTokens(
+            0.1 ether, // input amount
+            unreasonablyHighMinimumOutput, // minimum output (unreasonably high)
+            true, // zeroForOne
+            vanillaPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+    }
+
+    function test_revertSlippageExceededExactOutput() public {
+        // Setup: Mint and approve tokens
+        Currency currency0 = vanillaPoolKeys[0].currency0;
+        currency0.mint(address(this), 1 ether);
+        currency0.maxApprove(address(router));
+
+        // Set maximum input amount very low to trigger slippage protection
+        uint256 unreasonablyLowMaximumInput = 0.01 ether; // Only willing to pay 1% of output requested
+
+        vm.expectRevert(abi.encodeWithSignature("SlippageExceeded()"));
+        router.swapTokensForExactTokens(
+            1 ether, // exact output wanted
+            unreasonablyLowMaximumInput, // maximum input (unreasonably low)
+            true, // zeroForOne
+            vanillaPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1
+        );
+    }
 }

@@ -73,7 +73,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
 
             // get the actual currency delta from pool manager
-            int256 inputAmount = poolManager.currencyDelta(address(this), inputCurrency);
+            uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
 
             // for output, use the actual delta from the swap
             uint256 outputAmount = data.isExactOutput
@@ -87,13 +87,13 @@ abstract contract BaseSwapRouter is SafeCallback {
             // apply slippage checks based on output format
             if (
                 data.isExactOutput
-                    ? uint256(-inputAmount) >= data.amountLimit
+                    ? inputAmount >= data.amountLimit
                     : outputAmount <= data.amountLimit
             ) {
                 revert SlippageExceeded();
             }
 
-            inputCurrency.settle(poolManager, data.payer, uint256(-inputAmount), false);
+            inputCurrency.settle(poolManager, data.payer, inputAmount, false);
             outputCurrency.take(poolManager, data.to, outputAmount, false);
 
             // trigger refund of ETH if any left over after swap

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {SafeCast} from "@v4/src/libraries/SafeCast.sol"; // use Solady?
+import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
@@ -75,9 +75,6 @@ abstract contract BaseSwapRouter is SafeCallback {
             // get the actual currency delta from pool manager
             int256 inputAmount = poolManager.currencyDelta(address(this), inputCurrency);
 
-            // ensure settlement matches the delta
-            inputCurrency.settle(poolManager, data.payer, uint256(-inputAmount), false);
-
             // for output, use the actual delta from the swap
             uint256 outputAmount = data.isExactOutput
                 ? data.amount
@@ -87,6 +84,16 @@ abstract contract BaseSwapRouter is SafeCallback {
                         : uint256(uint128(delta.amount0()))
                 );
 
+            // apply slippage checks based on output format
+            if (
+                data.isExactOutput
+                    ? uint256(-inputAmount) >= data.amountLimit
+                    : outputAmount <= data.amountLimit
+            ) {
+                revert SlippageExceeded();
+            }
+
+            inputCurrency.settle(poolManager, data.payer, uint256(-inputAmount), false);
             outputCurrency.take(poolManager, data.to, outputAmount, false);
 
             // trigger refund of ETH if any left over after swap

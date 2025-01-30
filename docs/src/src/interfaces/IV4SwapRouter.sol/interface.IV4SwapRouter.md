@@ -1,33 +1,18 @@
-# V4SwapRouter
-[Git Source](https://github.com/z0r0z/v4-router/blob/9825503402f4ebdeecdea34d1747e68d7f05f281/src/V4SwapRouter.sol)
+# IV4SwapRouter
+[Git Source](https://github.com/z0r0z/v4-router/blob/9825503402f4ebdeecdea34d1747e68d7f05f281/src/interfaces/IV4SwapRouter.sol)
 
-**Inherits:**
-[IV4SwapRouter](/src/interfaces/IV4SwapRouter.sol/interface.IV4SwapRouter.md), [BaseSwapRouter](/src/base/BaseSwapRouter.sol/abstract.BaseSwapRouter.md)
+A simple, stateless router for execution of swaps against Uniswap v4 Pools
 
-**Note:**
-dislaimer: 
-This community router code provided herein is offered on an “as-is” basis and has not been audited for security, reliability, or compliance with any specific standards or regulations.
-It may contain bugs, errors, or vulnerabilities that could lead to unintended consequences.
-By utilizing this community router, you acknowledge and agree that:
-- Assumption of Risk: You assume all responsibility and risks associated with its use.
-- No Warranty: The authors and distributors of this code, namely, z0r0z and the Uniswap Foundation, disclaim all warranties, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.
-- Limitation of Liability: In no event shall the authors or distributors be held liable for any damages or losses, including but not limited to direct, indirect, incidental, or consequential damages arising out of or in connection with the use or inability to use the code.
-- Recommendation: Users are strongly encouraged to review, test, and, if necessary, audit the community router independently before deploying in any environment.
-By proceeding to utilize this community router, you indicate your understanding and acceptance of this disclaimer.
+*ABI inspired by UniswapV2Router02*
 
 
 ## Functions
-### constructor
-
-
-```solidity
-constructor(IPoolManager manager) payable BaseSwapRouter(manager);
-```
-
 ### swapExactTokensForTokens
 
 ================ MULTI POOL SWAPS ================= ///
 
+Exact Input Swap; swap the specified amount of input tokens for as many output tokens as possible, along the path
+
 
 ```solidity
 function swapExactTokensForTokens(
@@ -37,7 +22,7 @@ function swapExactTokensForTokens(
     PathKey[] calldata path,
     address to,
     uint256 deadline
-) public payable virtual override(IV4SwapRouter) checkDeadline(deadline) returns (BalanceDelta);
+) external payable returns (BalanceDelta);
 ```
 **Parameters**
 
@@ -64,7 +49,7 @@ function swapTokensForExactTokens(
     PathKey[] calldata path,
     address to,
     uint256 deadline
-) public payable virtual override(IV4SwapRouter) checkDeadline(deadline) returns (BalanceDelta);
+) external payable returns (BalanceDelta);
 ```
 **Parameters**
 
@@ -91,7 +76,7 @@ function swap(
     PathKey[] calldata path,
     address to,
     uint256 deadline
-) public payable virtual override(IV4SwapRouter) checkDeadline(deadline) returns (BalanceDelta);
+) external payable returns (BalanceDelta);
 ```
 **Parameters**
 
@@ -102,34 +87,14 @@ function swap(
 |`startCurrency`|`Currency`|the currency to start the swap from|
 |`path`|`PathKey[]`|the path of v4 Pools to swap through|
 |`to`|`address`|the address to send the output tokens to|
-|`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
-
-
-### swap
-
-General-purpose swap interface for Uniswap v4 that handles all types of swaps
-
-
-```solidity
-function swap(bytes calldata data, uint256 deadline)
-    public
-    payable
-    virtual
-    override(IV4SwapRouter)
-    checkDeadline(deadline)
-    returns (BalanceDelta);
-```
-**Parameters**
-
-|Name|Type|Description|
-|----|----|-----------|
-|`data`|`bytes`||
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
 
 
 ### swapExactTokensForTokens
 
------------------------
+================ SINGLE POOL SWAPS ================ ///
+
+Single pool, exact input swap - swap the specified amount of input tokens for as many output tokens as possible, on a single pool
 
 
 ```solidity
@@ -137,28 +102,28 @@ function swapExactTokensForTokens(
     uint256 amountIn,
     uint256 amountOutMin,
     bool zeroForOne,
-    PoolKey calldata poolKey,
+    PoolKey memory poolKey,
     bytes calldata hookData,
     address to,
     uint256 deadline
-) public payable virtual override(IV4SwapRouter) checkDeadline(deadline) returns (BalanceDelta);
+) external payable returns (BalanceDelta);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`amountIn`|`uint256`|the amount of input tokens to swap|
-|`amountOutMin`|`uint256`|the minimum amount of output tokens that must be received for the transaction not to revert. reverts on equals to|
-|`zeroForOne`|`bool`||
-|`poolKey`|`PoolKey`||
-|`hookData`|`bytes`||
+|`amountOutMin`|`uint256`|the minimum amount of output tokens that must be received for the transaction not to revert|
+|`zeroForOne`|`bool`|the direction of the swap, true if currency0 is being swapped for currency1|
+|`poolKey`|`PoolKey`|the pool to swap through|
+|`hookData`|`bytes`|the data to be passed to the hook|
 |`to`|`address`|the address to send the output tokens to|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
 
 
 ### swapTokensForExactTokens
 
-Exact Output Swap; swap as few input tokens as possible for the specified amount of output tokens, along the path
+Singe pool, exact output swap; swap as few input tokens as possible for the specified amount of output tokens, on a single pool
 
 
 ```solidity
@@ -166,28 +131,28 @@ function swapTokensForExactTokens(
     uint256 amountOut,
     uint256 amountInMax,
     bool zeroForOne,
-    PoolKey calldata poolKey,
-    bytes calldata hookData,
+    PoolKey memory poolKey,
+    bytes memory hookData,
     address to,
     uint256 deadline
-) public payable virtual override(IV4SwapRouter) checkDeadline(deadline) returns (BalanceDelta);
+) external payable returns (BalanceDelta);
 ```
 **Parameters**
 
 |Name|Type|Description|
 |----|----|-----------|
 |`amountOut`|`uint256`|the amount of output tokens to receive|
-|`amountInMax`|`uint256`|the maximum amount of input tokens that can be spent for the transaction not to revert. reverts on equal to|
-|`zeroForOne`|`bool`||
-|`poolKey`|`PoolKey`||
-|`hookData`|`bytes`||
+|`amountInMax`|`uint256`|the maximum amount of input tokens that can be spent for the transaction not to revert|
+|`zeroForOne`|`bool`|the direction of the swap, true if currency0 is being swapped for currency1|
+|`poolKey`|`PoolKey`|the pool to swap through|
+|`hookData`|`bytes`|the data to be passed to the hook|
 |`to`|`address`|the address to send the output tokens to|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
 
 
 ### swap
 
-General-purpose swap interface for Uniswap v4 that handles all types of swaps
+General-purpose single-pool swap interface
 
 
 ```solidity
@@ -195,11 +160,11 @@ function swap(
     int256 amountSpecified,
     uint256 amountLimit,
     bool zeroForOne,
-    PoolKey calldata poolKey,
-    bytes calldata hookData,
+    PoolKey memory poolKey,
+    bytes memory hookData,
     address to,
     uint256 deadline
-) public payable virtual override(IV4SwapRouter) checkDeadline(deadline) returns (BalanceDelta);
+) external payable returns (BalanceDelta);
 ```
 **Parameters**
 
@@ -207,10 +172,30 @@ function swap(
 |----|----|-----------|
 |`amountSpecified`|`int256`|the amount of tokens to be swapped, negative for exact input swaps and positive for exact output swaps|
 |`amountLimit`|`uint256`|the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps|
-|`zeroForOne`|`bool`||
-|`poolKey`|`PoolKey`||
-|`hookData`|`bytes`||
+|`zeroForOne`|`bool`|the direction of the swap, true if currency0 is being swapped for currency1|
+|`poolKey`|`PoolKey`|the pool to swap through|
+|`hookData`|`bytes`|the data to be passed to the hook|
 |`to`|`address`|the address to send the output tokens to|
+|`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
+
+
+### swap
+
+================ OPTIMIZED ================ ///
+
+Generic multi-pool swap function that accepts pre-encoded calldata
+
+*Minor optimization to reduce the number of onchain abi.encode calls*
+
+
+```solidity
+function swap(bytes calldata data, uint256 deadline) external payable returns (BalanceDelta);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`data`|`bytes`|Pre-encoded swap data in one of two formats: 1. For single-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters bool zeroForOne,               // direction of swap PoolKey poolKey,               // key of the pool to swap through bytes hookData                 // data to pass to hooks ) 2. For multi-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters Currency startCurrency,        // initial currency in the swap PathKey[] path                 // array of path keys defining the route ) where BaseData contains: address payer                  // who pays for the swap address to                     // recipient of output tokens bool isSingleSwap              // whether this is a single or multi-pool swap bool isExactOutput             // whether this is an exact output swap uint256 amount                 // amount to swap uint256 amountLimit            // slippage limit|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
 
 

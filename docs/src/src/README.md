@@ -1,8 +1,7 @@
 
 
 # Contents
-- [Swap](V4SwapRouter.sol/struct.Swap.md)
-- [Key](V4SwapRouter.sol/struct.Key.md)
+- [base](/src/base)
+- [interfaces](/src/interfaces)
+- [libraries](/src/libraries)
 - [V4SwapRouter](V4SwapRouter.sol/contract.V4SwapRouter.md)
-- [safeTransfer](V4SwapRouter.sol/function.safeTransfer.md)
-- [safeTransferFrom](V4SwapRouter.sol/function.safeTransferFrom.md)

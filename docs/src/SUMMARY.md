@@ -1,8 +1,12 @@
 # Summary
 - [Home](README.md)
 # src
-  - [Swap](src/V4SwapRouter.sol/struct.Swap.md)
-  - [Key](src/V4SwapRouter.sol/struct.Key.md)
+  - [❱ base](src/base/README.md)
+    - [BaseData](src/base/BaseSwapRouter.sol/struct.BaseData.md)
+    - [BaseSwapRouter](src/base/BaseSwapRouter.sol/abstract.BaseSwapRouter.md)
+  - [❱ interfaces](src/interfaces/README.md)
+    - [IV4SwapRouter](src/interfaces/IV4SwapRouter.sol/interface.IV4SwapRouter.md)
+  - [❱ libraries](src/libraries/README.md)
+    - [PathKey](src/libraries/PathKey.sol/struct.PathKey.md)
+    - [PathKeyLibrary](src/libraries/PathKey.sol/library.PathKeyLibrary.md)
   - [V4SwapRouter](src/V4SwapRouter.sol/contract.V4SwapRouter.md)
-  - [safeTransfer](src/V4SwapRouter.sol/function.safeTransfer.md)
-  - [safeTransferFrom](src/V4SwapRouter.sol/function.safeTransferFrom.md)

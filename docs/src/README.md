@@ -1,97 +1,206 @@
 # V4 Swap Router
 
-A simple and optimized reference router implementation for swapping on Uniswap V4.
+A simple and optimized router for swapping on Uniswap V4. ABI inspired by [`UniswapV2Router02`](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol).
 
 ## Design
 
-The Uniswap V4 Swap Router (Swap Router) supports the following features:
+The Uniswap V4 Swap Router supports the following features:
 
-- Exact-in
-- Exact-out
-- Multi-hop
-- Hook calls
+- Exact input swaps
+- Exact output swaps
+- Multi-hop swaps
+- Native token (ETH) swaps
+- Hook interactions
+- Custom swap curves
 
-Regardless of swap pool routes, all swaps can be made with hook data included.
+# Usage
+
+## Install
+
+*requires [foundry](https://book.getfoundry.sh)*
+
+```bash
+forge install z0r0z/v4-router
+```
+
+## Exact Input
+
+- For swaps, where users are specifying the input amount and want the maximum output possible
+
+*Trade 1000 USDC into x Ether*
+
+### Single Pool Swaps - Exact Input
+
+For simple swaps on a singular pool
+
+```solidity
+IV4SwapRouter router = IV4SwapRouter(...);
+
+uint256 amountIn = 1e18;                 // amount of input tokens
+uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
+bool zeroForOne = true;                  // swap token0 for token1
+PoolKey memory poolKey = PoolKey(...);   // the pool to swap on
+bytes memory hookData;                   // optional arbitrary data to be provided to the hook
+uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
+router.swapExactTokensForTokens(
+    amountIn,
+    amountOutMin,
+    zeroForOne,
+    poolKey,
+    hookData,
+    recipient,
+    deadline
+);
+```
+
+### Multihop Swaps - Exact Input
+
+For swaps trading through multiple pools
+
+```solidity
+IV4SwapRouter router = IV4SwapRouter(...);
+
+// Example swapPath: A --> B --> C
+Currency startCurrency = currencyA;
+PathKey[] memory path = new PathKey[](2);
+path[0] = PathKey({
+    intermediateCurrency: currencyB,
+    fee: fee0,                           // fee tier of the (A, B) pool
+    tickSpacing: tickSpacing0,           // tick spacing of the (A, B) pool
+    hooks: IHooks(address(...)),         // hook address of the (A, B) pool
+    hookData: hookData0                  // optional arbitrary bytes to passed to the (A, B) pool's beforeSwap/afterSwap functions
+});
+path[1] = PathKey({
+    intermediateCurrency: currencyC,
+    fee: fee1,                           // fee tier of the (B, C) pool
+    tickSpacing: tickSpacing1,           // tick spacing of the (B, C) pool
+    hooks: IHooks(address(...)),         // hook address of the (B, C) pool
+    hookData: hookData1                  // optional arbitrary bytes to passed to the (B, C) pool's beforeSwap/afterSwap functions
+});
+
+uint256 amountIn = 1e18;                 // amount of input tokens
+uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
+uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
+router.swapExactTokensForTokens(
+    amountIn, amountOutMin, startCurrency, path, recipient, deadline
+);
+```
+
+
+---
+
+## Exact Output
+
+- For swaps, where users are specifying the output amount and want the minimum input possible
+
+*Trade x USDC into 1.0 Ether*
+
+### Single Pool Swaps - Exact Output
+
+For simple swaps on a singular pool
+
+```solidity
+IV4SwapRouter router = IV4SwapRouter(...);
+
+uint256 amountOut = 1e18;                // amount of output tokens expected
+uint256 amountInMax = 1.01e18;           // maximum amount of input tokens, otherwise revert
+bool zeroForOne = true;                  // swap token0 for token1
+PoolKey memory poolKey = PoolKey(...);   // the pool to swap on
+bytes memory hookData;                   // optional arbitrary data to be provided to the hook
+uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
+router.swapTokensForExactTokens(
+    amountOut,
+    amountInMax,
+    zeroForOne,
+    poolKey,
+    ZERO_BYTES,
+    recipient,
+    deadline
+);
+```
+
+### Multihop Swaps - Exact Output
+
+For swaps trading through multiple pools
+
+```solidity
+IV4SwapRouter router = IV4SwapRouter(...);
+
+// Example swapPath: A --> B --> C
+Currency startCurrency = currencyA;
+PathKey[] memory path = new PathKey[](2);
+path[0] = PathKey({
+    intermediateCurrency: currencyB,
+    fee: fee0,                           // fee tier of the (A, B) pool
+    tickSpacing: tickSpacing0,           // tick spacing of the (A, B) pool
+    hooks: IHooks(address(...)),         // hook address of the (A, B) pool
+    hookData: hookData0                  // optional arbitrary bytes to passed to the (A, B) pool's beforeSwap/afterSwap functions
+});
+path[1] = PathKey({
+    intermediateCurrency: currencyC,
+    fee: fee1,                           // fee tier of the (B, C) pool
+    tickSpacing: tickSpacing1,           // tick spacing of the (B, C) pool
+    hooks: IHooks(address(...)),         // hook address of the (B, C) pool
+    hookData: hookData1                  // optional arbitrary bytes to passed to the (B, C) pool's beforeSwap/afterSwap functions
+});
+
+uint256 amountOut = 1e18;                // amount of output tokens expected
+uint256 amountInMax = 1.01e18;           // maximum amount of input tokens, otherwise revert
+uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
+router.swapTokensForExactTokens(
+    amountOut, amountInMax, startCurrency, path, recipient, deadline
+);
+```
+
+For additional usage examples, please see [test/V4SwapRouter.multihop.t.sol](/test/V4SwapRouter.multihop.t.sol)
+
+
+## Architecture
+
+The router is implemented in two main contracts:
+
+1. `BaseSwapRouter`: Contains core swap logic and handles callbacks from the Pool Manager
+2. `V4SwapRouter`: Inherits from BaseSwapRouter and implements the user-facing interface
 
 ## Optimizations
 
-The code is mostly high-level Solidity for readability but uses audited [*Solady* snippets](https://github.com/Vectorized/solady/blob/main/src/utils/SafeTransferLib.sol) in low-level assembly code to reduce costs for routine operations, such as handling ERC20 tokens. Further, based on the length of a swap path, each swap step is particularly optimized and contained as its own internal function (see, `_swapSingle()`, `_swapFirst()`, `_swapMid()`, and `_swapLast()`). Additional efficiency decisions also include reusing memory space for multi-hop swaps (overwriting `fromCurrency` and `amountSpecified` at each step with outputs) and practical use of unchecked blocks and compact custom errors.
+The implementation prioritizes gas efficiency through:
 
-## Using Swap Router
+- Minimal state changes
+- Optimized memory usage in multi-hop swaps
+- Single-swap vs multi-swap specific codepaths
+- Efficient native token handling
+- Reuse of Pool Manager callbacks
 
-Swap Router and its interface is designed to closely resemble the `swap()` method of the V4 [Pool Manager](https://github.com/Uniswap/v4-core/blob/main/src/PoolManager.sol). Thus it only has two public functions, `swap()` and `unlockCallback()` to clearly place its role as a peripheral contract to the Pool Manager to receive a swap callback, and nothing more.
+## Interface
 
-Some parameter additions have been made to simplify complex swaps, and the single argument made to `swap()` on Swap Router is just the following struct:
+The router provides three categories of swap functions:
 
+### Multi-pool Swaps
+- `swapExactTokensForTokens`: Swap exact input amount through multiple pools
+- `swapTokensForExactTokens`: Receive exact output amount through multiple pools
+- `swap`: Generic multi-pool swap interface
+
+### Single-pool Swaps
+- `swapExactTokensForTokens`: Swap exact input in a single pool
+- `swapTokensForExactTokens`: Receive exact output from a single pool
+- `swap`: Generic single-pool swap interface
+
+### Optimized Swaps
+- `swap(bytes, uint256)`: Pre-encoded swap data for reduced gas costs
+
+## Path Construction
+
+Multi-hop swaps are defined using the `PathKey` struct:
 ```solidity
-struct Swap {
-    address receiver;
-    Currency fromCurrency;
-    int256 amountSpecified;
-    uint256 amountOutMin;
-    Key[] keys;
-}
-```
-
-Where the `receiver` is the end-recipient of the swap output and currency. 
-
-`fromCurrency` is the initial currency used to make the swap from (where `address(0)` is ETH).
-
-`amountSpecified` is the amount initially paid or required as output (if negative `-`).
-
-Note: In cases where a multi-hop swap is made, the `amountSpecified` flag will guarantee the output of the first pool only.
-`amountOutMin` is therefore used to enforce the end-output of the final pool included in the `keys` array of structs, more generally. However, the ability to include an exact output at the first destination should still yield some precision benefits.
-
-More specifically, path swap `keys` include the following information (and are provided in the order of the pools to cross):
-
-```solidity
-struct Key {
-    PoolKey key;
+struct PathKey {
+    Currency intermediateCurrency;
+    uint24 fee;
+    int24 tickSpacing;
+    IHooks hooks;
     bytes hookData;
 }
 ```
-
-Where `key` is the Uniswap V4 [`PoolKey`](https://github.com/Uniswap/v4-core/blob/main/src/types/PoolKey.sol) struct, and `hookData` is a dynamic field for any hook interactions included in the swap.
-
-## Single Swap
-
-A single swap for a given pool key can be made like so:
-
-```solidity
-function testSingleSwapExactInputZeroForOne() public payable {
-    Key[] memory keys = new Key[](1);
-    keys[0].key = keyNoHook; // Basic no-hook pool.
-    Swap memory swap;
-    swap.receiver = aliceSwapper;
-    swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    swap.amountSpecified = -(0.1 ether); // Exact-in.
-    swap.keys = keys;
-    vm.prank(aliceSwapper);
-    router.swap(swap);
-}
-```
-
-## Multi-hop Swap
-
-A three-part multi-hop swap can be made like so within the keys path:
-
-```solidity
-function testMultihopSwapExactInputThreeHops() public payable {
-    Key[] memory keys = new Key[](3);
-    keys[0].key = keyNoHook; // 0 for 1.
-    keys[1].key = keyNoHook4; // 1 for 2.
-    keys[2].key = keyNoHook2; // 2 for 3.
-    Swap memory swap;
-    swap.receiver = aliceSwapper;
-    swap.fromCurrency = keyNoHook.currency0; // zeroForOne.
-    swap.amountSpecified = -(0.1 ether);
-    swap.keys = keys;
-    vm.prank(aliceSwapper);
-    router.swap(swap); // 0 for 3.
-}
-```
-
-Additional examples are provided in foundry tests [here](./test/V4SwapRouter.t.sol), and will serve the basis for more complex pool simulations and demonstrations of hook interactions.
 
 ## Getting Started
 
@@ -99,9 +208,18 @@ Run: `curl -L https://foundry.paradigm.xyz | bash && source ~/.bashrc && foundry
 
 Build the foundry project with `forge build`. Run tests with `forge test`. Measure gas with `forge snapshot`. Format with `forge fmt`.
 
-## Disclaimer
+## Community Router Code Disclaimer
 
-*These smart contracts and testing suite are being provided as is. No guarantee, representation or warranty is being made, express or implied, as to the safety or correctness of anything provided herein or through related user interfaces. This repository and related code have not been audited and as such there can be no assurance anything will work as intended, and users may experience delays, failures, errors, omissions, loss of transmitted information or loss of funds. The creators are not liable for any of the foregoing. Users should proceed with caution and use at their own risk.*
+This community router code provided herein is offered on an “as-is” basis and has not been audited for security, reliability, or compliance with any specific standards or regulations. It may contain bugs, errors, or vulnerabilities that could lead to unintended consequences.
+
+By utilizing this community router, you acknowledge and agree that:
+
+- Assumption of Risk: You assume all responsibility and risks associated with its use.
+- No Warranty: The authors and distributors of this code, namely, z0r0z and the Uniswap Foundation, disclaim all warranties, express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, and non-infringement.
+- Limitation of Liability: In no event shall the authors or distributors be held liable for any damages or losses, including but not limited to direct, indirect, incidental, or consequential damages arising out of or in connection with the use or inability to use the code.
+- Recommendation: Users are strongly encouraged to review, test, and, if necessary, audit the community router independently before deploying in any environment.
+
+By proceeding to utilize this community router, you indicate your understanding and acceptance of this disclaimer.
 
 ## License
 

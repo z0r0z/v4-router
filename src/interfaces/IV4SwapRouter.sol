@@ -5,6 +5,7 @@ import {PathKey} from "../libraries/PathKey.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
+import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 
 /// @title Uniswap V4 Swap Router
 /// @notice A simple, stateless router for execution of swaps against Uniswap v4 Pools
@@ -141,4 +142,16 @@ interface IV4SwapRouter {
     ///         uint256 amountLimit            // slippage limit
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
     function swap(bytes calldata data, uint256 deadline) external payable returns (BalanceDelta);
+
+    /// @notice Performs a generic swap with Permit2 approval
+    /// @param data Pre-encoded swap data
+    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @param permit The Permit2 transfer permissions
+    /// @param signature The permit signature
+    function swapWithPermit2(
+        bytes calldata data,
+        uint256 deadline,
+        ISignatureTransfer.PermitTransferFrom calldata permit,
+        bytes calldata signature
+    ) external payable returns (BalanceDelta);
 }

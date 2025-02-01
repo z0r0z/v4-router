@@ -2,9 +2,21 @@
 pragma solidity ^0.8.26;
 
 import {
-    PathKey, PoolKey, Currency, BalanceDelta, IV4SwapRouter
+    PathKey,
+    PoolKey,
+    Currency,
+    BalanceDelta,
+    IV4SwapRouter,
+    ISignatureTransfer
 } from "./interfaces/IV4SwapRouter.sol";
 import {IPoolManager, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
+
+struct PermitParams {
+    ISignatureTransfer.PermitTransferFrom permit;
+    bytes signature;
+}
+
+ISignatureTransfer constant PERMIT2 = ISignatureTransfer(0x000000000022D473030F116dDEE9F6B43aC78BA3);
 
 /// @title Uniswap V4 Swap Router
 /// @custom:dislaimer
@@ -231,5 +243,27 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                 hookData
             )
         );
+    }
+
+    /// -----------------------
+
+    /// @inheritdoc IV4SwapRouter
+    function swapWithPermit2(
+        bytes calldata data,
+        uint256 deadline,
+        ISignatureTransfer.PermitTransferFrom calldata permit,
+        bytes calldata signature
+    ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
+        PERMIT2.permitTransferFrom(
+            permit,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(this),
+                requestedAmount: permit.permitted.amount
+            }),
+            msg.sender,
+            signature
+        );
+
+        return _unlockAndDecode(data);
     }
 }

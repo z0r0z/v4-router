@@ -9,6 +9,7 @@ import {
     IV4SwapRouter,
     ISignatureTransfer
 } from "./interfaces/IV4SwapRouter.sol";
+import {LibZip} from "@solady/src/utils/LibZip.sol";
 import {IPoolManager, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
 
 struct PermitParams {
@@ -265,5 +266,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
 
         return _unlockAndDecode(data);
+    }
+
+    /// -----------------------
+
+    /// @inheritdoc IV4SwapRouter
+    fallback() external payable virtual {
+        LibZip.cdFallback();
     }
 }

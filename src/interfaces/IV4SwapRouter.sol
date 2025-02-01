@@ -154,4 +154,7 @@ interface IV4SwapRouter {
         ISignatureTransfer.PermitTransferFrom calldata permit,
         bytes calldata signature
     ) external payable returns (BalanceDelta);
+
+    /// @notice Provides calldata compression fallback
+    function fallback() external payable;
 }

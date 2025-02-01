@@ -156,5 +156,5 @@ interface IV4SwapRouter {
     ) external payable returns (BalanceDelta);
 
     /// @notice Provides calldata compression fallback
-    function fallback() external payable;
+    fallback() external payable;
 }

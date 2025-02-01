@@ -16,3 +16,6 @@
 [submodule "lib/v4-template"]
 	path = lib/v4-template
 	url = https://github.com/uniswapfoundation/v4-template
+[submodule "lib/permit2"]
+	path = lib/permit2
+	url = https://github.com/uniswap/permit2

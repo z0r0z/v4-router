@@ -146,14 +146,10 @@ interface IV4SwapRouter {
     /// @notice Performs a generic swap with Permit2 approval
     /// @param data Pre-encoded swap data
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @param permit The Permit2 transfer permissions
-    /// @param signature The permit signature
-    function swapWithPermit2(
-        bytes calldata data,
-        uint256 deadline,
-        ISignatureTransfer.PermitTransferFrom calldata permit,
-        bytes calldata signature
-    ) external payable returns (BalanceDelta);
+    function swapWithPermit2(bytes calldata data, uint256 deadline)
+        external
+        payable
+        returns (BalanceDelta);
 
     /// @notice Provides calldata compression fallback
     fallback() external payable;

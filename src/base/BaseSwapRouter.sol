@@ -10,6 +10,10 @@ import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol
 import {
     Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
 } from "../libraries/PathKey.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {SettleWithPermit2} from "../libraries/SettleWithPermit2.sol";
+
+import "forge-std/console2.sol";
 
 struct BaseData {
     uint256 amount;
@@ -18,6 +22,12 @@ struct BaseData {
     bool isSingleSwap;
     address to;
     bool isExactOutput;
+    bool settleWithPermit2;
+}
+
+struct PermitPayload {
+    ISignatureTransfer.PermitTransferFrom permit;
+    bytes signature;
 }
 
 /// @title Base Swap Router
@@ -25,9 +35,12 @@ struct BaseData {
 abstract contract BaseSwapRouter is SafeCallback {
     using TransientStateLibrary for IPoolManager;
     using CurrencySettler for Currency;
+    using SettleWithPermit2 for Currency;
     using PathKeyLibrary for PathKey;
     using SafeCast for uint256;
     using SafeCast for int256;
+
+    ISignatureTransfer public immutable permit2;
 
     /// ======================= CUSTOM ERRORS ======================= ///
 
@@ -56,7 +69,9 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     /// ======================== CONSTRUCTOR ======================== ///
 
-    constructor(IPoolManager manager) SafeCallback(manager) {}
+    constructor(IPoolManager manager, ISignatureTransfer _permit2) SafeCallback(manager) {
+        permit2 = _permit2;
+    }
 
     /// ===================== SWAP EXECUTION ===================== ///
 
@@ -93,7 +108,27 @@ abstract contract BaseSwapRouter is SafeCallback {
                 revert SlippageExceeded();
             }
 
-            inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+            // Resolve deltas: transfer-in input, and transfer-out output
+            if (data.settleWithPermit2) {
+                console2.log("YA");
+                // TODO: optimize and offset callbackData with slicing to avoid decoding base data twice?
+                (, PermitPayload memory permitPayload) =
+                    abi.decode(callbackData, (BaseData, PermitPayload));
+                console2.log(address(permit2));
+                console2.log(permitPayload.permit.permitted.token);
+                console2.log(permitPayload.permit.permitted.amount);
+                console2.logBytes(permitPayload.signature);
+                inputCurrency.settleWithPermit2(
+                    poolManager,
+                    permit2,
+                    data.payer,
+                    inputAmount,
+                    permitPayload.permit,
+                    permitPayload.signature
+                );
+            } else {
+                inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+            }
             outputCurrency.take(poolManager, data.to, outputAmount, false);
 
             // trigger refund of ETH if any left over after swap
@@ -119,8 +154,8 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         unchecked {
             if (isSingleSwap) {
-                (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
-                    abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
+                (,, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
+                    abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
 
                 (inputCurrency, outputCurrency) =
                     zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
@@ -133,7 +168,8 @@ abstract contract BaseSwapRouter is SafeCallback {
                 );
             } else {
                 PathKey[] memory path;
-                (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+                (,, inputCurrency, path) =
+                    abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
 
                 if (path.length == 0) revert EmptyPath();
 

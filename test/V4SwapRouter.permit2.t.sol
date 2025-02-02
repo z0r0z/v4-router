@@ -23,7 +23,7 @@ import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {PermitSignature} from "permit2/test/utils/PermitSignature.sol";
-import {BaseData} from "../src/base/BaseSwapRouter.sol";
+import {BaseData, PermitPayload} from "../src/base/BaseSwapRouter.sol";
 import "permit2/src/interfaces/IPermit2.sol";
 
 contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSignature {
@@ -31,6 +31,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
 
     V4SwapRouter router;
     ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
+
     Counter hook;
 
     address alice;
@@ -48,7 +49,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
         DeployPermit2.deployPermit2();
-        router = new V4SwapRouter(manager);
+        router = new V4SwapRouter(manager, permit2);
 
         // Create currencies
         (currencyA, currencyB, currencyC, currencyD) = _createSortedCurrencies();
@@ -137,19 +138,21 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
 
         bytes memory swapCalldata = abi.encode(
             BaseData({
-                payer: address(router),
+                payer: alice,
                 to: recipient,
                 isSingleSwap: true,
                 isExactOutput: false,
                 amount: amountIn,
-                amountLimit: amountOutMin
+                amountLimit: amountOutMin,
+                settleWithPermit2: true
             }),
+            PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
             poolKey,
             ZERO_BYTES
         );
         vm.prank(alice);
-        router.swapWithPermit2(swapCalldata, uint256(block.timestamp), permit, signature);
+        router.swapWithPermit2(swapCalldata, uint256(block.timestamp));
 
         InputOutputBalances memory thisAfter =
             inputOutputBalances(alice, inputCurrency, outputCurrency);
@@ -169,11 +172,15 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
             recipientAfter.outputCurrency - recipientBefore.outputCurrency, amountIn, 0.01e18
         ); // allow 1% error
 
-        // verify slippage: recieved > amountOutMin
+        // verify slippage: received > amountOutMin
         assertGt((recipientAfter.outputCurrency - recipientBefore.outputCurrency), amountOutMin);
     }
 
-    function test_encoded_single_permit2_exactOutput(address recipient, bool zeroForOne, uint256 seed) public {
+    function test_encoded_single_permit2_exactOutput(
+        address recipient,
+        bool zeroForOne,
+        uint256 seed
+    ) public {
         vm.assume(recipient != address(manager) && recipient != address(this));
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
@@ -200,19 +207,21 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
 
         bytes memory swapCalldata = abi.encode(
             BaseData({
-                payer: address(router),
+                payer: alice,
                 to: recipient,
                 isSingleSwap: true,
                 isExactOutput: true,
                 amount: amountOut,
-                amountLimit: amountInMax
+                amountLimit: amountInMax,
+                settleWithPermit2: true
             }),
+            PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
             poolKey,
             ZERO_BYTES
         );
         vm.prank(alice);
-        router.swapWithPermit2(swapCalldata, uint256(block.timestamp), permit, signature);
+        router.swapWithPermit2(swapCalldata, uint256(block.timestamp));
 
         InputOutputBalances memory thisAfter =
             inputOutputBalances(alice, inputCurrency, outputCurrency);

@@ -84,8 +84,13 @@ abstract contract BaseSwapRouter is SafeCallback {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
 
-            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
-                _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
+            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) = _parseAndSwap(
+                data.isSingleSwap,
+                data.isExactOutput,
+                data.amount,
+                data.settleWithPermit2,
+                callbackData
+            );
 
             // get the actual currency delta from pool manager
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
@@ -142,6 +147,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool isSingleSwap,
         bool isExactOutput,
         uint256 amount,
+        bool settleWithPermit2,
         bytes calldata callbackData
     )
         internal
@@ -149,39 +155,31 @@ abstract contract BaseSwapRouter is SafeCallback {
         returns (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta)
     {
         unchecked {
-            BaseData memory data = abi.decode(callbackData, (BaseData));
-
             if (isSingleSwap) {
-                if (data.settleWithPermit2) {
-                    (,, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
+                bool zeroForOne;
+                PoolKey memory key;
+                bytes memory hookData;
+
+                if (settleWithPermit2) {
+                    (,, zeroForOne, key, hookData) =
                         abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
-
-                    (inputCurrency, outputCurrency) =
-                        zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
-
-                    delta = _swap(
-                        key,
-                        zeroForOne,
-                        isExactOutput ? amount.toInt256() : -(amount.toInt256()),
-                        hookData
-                    );
                 } else {
-                    (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
+                    (, zeroForOne, key, hookData) =
                         abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
-
-                    (inputCurrency, outputCurrency) =
-                        zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
-
-                    delta = _swap(
-                        key,
-                        zeroForOne,
-                        isExactOutput ? amount.toInt256() : -(amount.toInt256()),
-                        hookData
-                    );
                 }
+
+                (inputCurrency, outputCurrency) =
+                    zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
+
+                delta = _swap(
+                    key,
+                    zeroForOne,
+                    isExactOutput ? amount.toInt256() : -(amount.toInt256()),
+                    hookData
+                );
             } else {
                 PathKey[] memory path;
-                if (data.settleWithPermit2) {
+                if (settleWithPermit2) {
                     (,, inputCurrency, path) =
                         abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
                 } else {

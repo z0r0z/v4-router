@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-/*import {Hooks} from "@v4/src/libraries/Hooks.sol";
+import {Hooks} from "@v4/src/libraries/Hooks.sol";
 import {IHooks} from "@v4/src/interfaces/IHooks.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
@@ -704,4 +704,4 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         // verify slippage: amountIn < amountInMax
         assertLt((thisBefore.currencyA - thisAfter.currencyA), amountInMax);
     }
-}*/
+}

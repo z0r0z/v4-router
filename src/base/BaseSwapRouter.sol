@@ -125,6 +125,9 @@ abstract contract BaseSwapRouter is SafeCallback {
             }
             outputCurrency.take(poolManager, data.to, outputAmount, false);
 
+            //inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+            //outputCurrency.take(poolManager, data.to, outputAmount, false);
+
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
                 if ((outputAmount = address(this).balance) != 0) {
@@ -147,23 +150,50 @@ abstract contract BaseSwapRouter is SafeCallback {
         returns (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta)
     {
         unchecked {
+            BaseData memory data = abi.decode(callbackData, (BaseData));
+
             if (isSingleSwap) {
-                (,, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
-                    abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
+                if (data.settleWithPermit2) {
+                    (
+                        ,
+                        PermitPayload memory permitPayload,
+                        bool zeroForOne,
+                        PoolKey memory key,
+                        bytes memory hookData
+                    ) = abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
 
-                (inputCurrency, outputCurrency) =
-                    zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
+                    (inputCurrency, outputCurrency) =
+                        zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
-                delta = _swap(
-                    key,
-                    zeroForOne,
-                    isExactOutput ? amount.toInt256() : -(amount.toInt256()),
-                    hookData
-                );
+                    delta = _swap(
+                        key,
+                        zeroForOne,
+                        isExactOutput ? amount.toInt256() : -(amount.toInt256()),
+                        hookData
+                    );
+                } else {
+                    (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
+                        abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
+
+                    (inputCurrency, outputCurrency) =
+                        zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
+
+                    delta = _swap(
+                        key,
+                        zeroForOne,
+                        isExactOutput ? amount.toInt256() : -(amount.toInt256()),
+                        hookData
+                    );
+                }
             } else {
                 PathKey[] memory path;
-                (,, inputCurrency, path) =
-                    abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
+                if (data.settleWithPermit2) {
+                    (,, inputCurrency, path) =
+                        abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
+                } else {
+                    (, inputCurrency, path) =
+                        abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+                }
 
                 if (path.length == 0) revert EmptyPath();
 

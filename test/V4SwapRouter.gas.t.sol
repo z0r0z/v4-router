@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
-/*
+
 import {Hooks} from "@v4/src/libraries/Hooks.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
@@ -421,4 +421,4 @@ contract RouterGasTest is SwapRouterFixtures, DeployPermit2 {
             0.15 ether, 0.2 ether, true, csmmPoolKeys[0], "", address(this), block.timestamp + 1
         );
     }
-}*/
+}

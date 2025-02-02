@@ -5,15 +5,15 @@ import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {IPoolManager, SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
+import {CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
 import {
-    Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
-} from "../libraries/PathKey.sol";
-import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
-import {SettleWithPermit2} from "../libraries/SettleWithPermit2.sol";
-
-import "forge-std/console2.sol";
+    ISignatureTransfer,
+    Currency,
+    IPoolManager,
+    SettleWithPermit2
+} from "../libraries/SettleWithPermit2.sol";
 
 struct BaseData {
     uint256 amount;
@@ -110,14 +110,8 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             // Resolve deltas: transfer-in input, and transfer-out output
             if (data.settleWithPermit2) {
-                console2.log("YA");
-                // TODO: optimize and offset callbackData with slicing to avoid decoding base data twice?
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
-                console2.log(address(permit2));
-                console2.log(permitPayload.permit.permitted.token);
-                console2.log(permitPayload.permit.permitted.amount);
-                console2.logBytes(permitPayload.signature);
                 inputCurrency.settleWithPermit2(
                     poolManager,
                     permit2,

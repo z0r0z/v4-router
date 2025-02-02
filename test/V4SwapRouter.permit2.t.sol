@@ -31,6 +31,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
 
     V4SwapRouter router;
     ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
+
     Counter hook;
 
     address alice;
@@ -137,7 +138,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
 
         bytes memory swapCalldata = abi.encode(
             BaseData({
-                payer: address(router),
+                payer: alice,
                 to: recipient,
                 isSingleSwap: true,
                 isExactOutput: false,
@@ -171,7 +172,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
             recipientAfter.outputCurrency - recipientBefore.outputCurrency, amountIn, 0.01e18
         ); // allow 1% error
 
-        // verify slippage: recieved > amountOutMin
+        // verify slippage: received > amountOutMin
         assertGt((recipientAfter.outputCurrency - recipientBefore.outputCurrency), amountOutMin);
     }
 
@@ -202,11 +203,11 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
             nonce: 0,
             deadline: block.timestamp + 100
         });
-        bytes memory signature = getPermitTransferToSignature(permit, alicePK, address(manager));
+        bytes memory signature = getPermitTransferToSignature(permit, alicePK, address(router));
 
         bytes memory swapCalldata = abi.encode(
             BaseData({
-                payer: address(router),
+                payer: alice,
                 to: recipient,
                 isSingleSwap: true,
                 isExactOutput: true,

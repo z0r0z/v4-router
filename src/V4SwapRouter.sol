@@ -246,7 +246,6 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
 
     /// -----------------------
 
-    /// TODO: document that `data = abi.encode(BaseData, PermitParams, ...)
     /// @inheritdoc IV4SwapRouter
     function swapWithPermit2(bytes calldata data, uint256 deadline)
         public

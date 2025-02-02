@@ -125,13 +125,12 @@ abstract contract BaseSwapRouter is SafeCallback {
             }
             outputCurrency.take(poolManager, data.to, outputAmount, false);
 
-            //inputCurrency.settle(poolManager, data.payer, inputAmount, false);
-            //outputCurrency.take(poolManager, data.to, outputAmount, false);
-
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-                if ((outputAmount = address(this).balance) != 0) {
-                    _refundETH(data.payer, outputAmount);
+                if (data.isExactOutput) {
+                    if ((outputAmount = address(this).balance) != 0) {
+                        _refundETH(data.payer, outputAmount);
+                    }
                 }
             }
 
@@ -154,13 +153,8 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             if (isSingleSwap) {
                 if (data.settleWithPermit2) {
-                    (
-                        ,
-                        PermitPayload memory permitPayload,
-                        bool zeroForOne,
-                        PoolKey memory key,
-                        bytes memory hookData
-                    ) = abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
+                    (,, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
+                        abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
 
                     (inputCurrency, outputCurrency) =
                         zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);

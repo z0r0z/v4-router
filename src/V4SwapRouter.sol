@@ -10,7 +10,7 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 
 /// @title Uniswap V4 Swap Router
 /// @custom:dislaimer
-/// This community router code provided herein is offered on an “as-is” basis and has not been audited for security, reliability, or compliance with any specific standards or regulations.
+/// This community router code provided herein is offered on an "as-is" basis and has not been audited for security, reliability, or compliance with any specific standards or regulations.
 /// It may contain bugs, errors, or vulnerabilities that could lead to unintended consequences.
 /// By utilizing this community router, you acknowledge and agree that:
 ///
@@ -45,12 +45,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: false,
-                    isExactOutput: false,
                     amount: amountIn,
                     amountLimit: amountOutMin,
+                    payer: msg.sender,
+                    isSingleSwap: false,
+                    to: to,
+                    isExactOutput: false,
                     settleWithPermit2: false,
                     is6909: false
                 }),
@@ -79,12 +79,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: false,
-                    isExactOutput: true,
                     amount: amountOut,
                     amountLimit: amountInMax,
+                    payer: msg.sender,
+                    isSingleSwap: false,
+                    to: to,
+                    isExactOutput: true,
                     settleWithPermit2: false,
                     is6909: false
                 }),
@@ -113,12 +113,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: false,
-                    isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
+                    payer: msg.sender,
+                    isSingleSwap: false,
+                    to: to,
+                    isExactOutput: amountSpecified > 0,
                     settleWithPermit2: false,
                     is6909: false
                 }),
@@ -162,12 +162,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: true,
-                    isExactOutput: false,
                     amount: amountIn,
                     amountLimit: amountOutMin,
+                    payer: msg.sender,
+                    isSingleSwap: true,
+                    to: to,
+                    isExactOutput: false,
                     settleWithPermit2: false,
                     is6909: false
                 }),
@@ -198,12 +198,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: true,
-                    isExactOutput: true,
                     amount: amountOut,
                     amountLimit: amountInMax,
+                    payer: msg.sender,
+                    isSingleSwap: true,
+                    to: to,
+                    isExactOutput: true,
                     settleWithPermit2: false,
                     is6909: false
                 }),
@@ -234,12 +234,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: true,
-                    isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
+                    payer: msg.sender,
+                    isSingleSwap: true,
+                    to: to,
+                    isExactOutput: amountSpecified > 0,
                     settleWithPermit2: false,
                     is6909: false
                 }),

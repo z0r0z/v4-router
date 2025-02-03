@@ -6,6 +6,7 @@
   "exactInput_multi_ERC20_to_ETH_nativeOutput": "178664",
   "exactInput_multi_ETH_to_ERC20_nativeInput": "177859",
   "exactInput_single_ERC20_to_ERC20_customCurve": "120376",
+  "exactInput_single_ERC20_to_ERC20_encoded": "126837",
   "exactInput_single_ERC20_to_ERC20_hookData": "141726",
   "exactInput_single_ERC20_to_ERC20_vanilla": "133113",
   "exactInput_single_ERC20_to_ETH_nativeOutput": "118323",

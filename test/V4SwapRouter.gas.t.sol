@@ -15,6 +15,7 @@ import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapR
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
+import {BaseData, PermitPayload} from "../src/base/BaseSwapRouter.sol";
 
 // Enum for snapshot string
 enum TokenType {
@@ -628,6 +629,34 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         );
         vm.snapshotGasLastCall(
             _snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "customCurve")
+        );
+    }
+
+    function test_gas_single_exactInput_encoded() public {
+        bool zeroForOne;
+        PoolKey memory poolKey = vanillaPoolKeys[0];
+
+        // -- SWAP --
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        bytes memory swapCalldata = abi.encode(
+            BaseData({
+                payer: address(this),
+                to: address(this),
+                isSingleSwap: true,
+                isExactOutput: false,
+                amount: amountIn,
+                amountLimit: amountOutMin,
+                settleWithPermit2: false
+            }),
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES
+        );
+        uint256 deadline = block.timestamp;
+        router.swap(swapCalldata, deadline);
+        vm.snapshotGasLastCall(
+            _snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "encoded")
         );
     }
 

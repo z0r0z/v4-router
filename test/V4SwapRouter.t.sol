@@ -18,11 +18,10 @@ import {ISignatureTransfer, V4SwapRouter} from "../src/V4SwapRouter.sol";
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 
-contract RouterTest is SwapRouterFixtures, DeployPermit2 {
+contract RouterTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
     V4SwapRouter router;
-    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     Counter hook;
     CustomCurveHook hookCsmm;

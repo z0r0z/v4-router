@@ -16,11 +16,10 @@ import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
 
-contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
+contract MultihopTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
     V4SwapRouter router;
-    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     Counter hook;
 

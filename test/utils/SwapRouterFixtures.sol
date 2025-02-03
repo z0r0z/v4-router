@@ -16,7 +16,9 @@ import {MockCurrencyLibrary} from "./mocks/MockCurrencyLibrary.sol";
 import {CSMM} from "./hooks/CSMM.sol";
 import {HookData} from "./hooks/HookData.sol";
 
-import "@forge/console2.sol";
+import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
+import {PermitSignature} from "permit2/test/utils/PermitSignature.sol";
+import "permit2/src/interfaces/IPermit2.sol";
 
 struct TestCurrencyBalances {
     uint256 currencyA;
@@ -31,7 +33,7 @@ struct InputOutputBalances {
     uint256 outputCurrency;
 }
 
-contract SwapRouterFixtures is Deployers {
+contract SwapRouterFixtures is Deployers, DeployPermit2, PermitSignature {
     using SafeCast for uint256;
 
     Currency currencyA;
@@ -41,6 +43,7 @@ contract SwapRouterFixtures is Deployers {
 
     CSMM csmm;
     HookData hookWithData;
+    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     uint24 constant FEE = 3000;
     int24 constant TICK_SPACING = 60;
@@ -202,6 +205,33 @@ contract SwapRouterFixtures is Deployers {
     }
 
     /// Utility Functions ///
+
+    function getPermitTransferToSignature(
+        ISignatureTransfer.PermitTransferFrom memory permit,
+        uint256 privateKey,
+        address to
+    ) internal view returns (bytes memory sig) {
+        bytes32 tokenPermissions =
+            keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, permit.permitted));
+        bytes32 msgHash = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                permit2.DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        _PERMIT_TRANSFER_FROM_TYPEHASH,
+                        tokenPermissions,
+                        to,
+                        permit.nonce,
+                        permit.deadline
+                    )
+                )
+            )
+        );
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
+        return bytes.concat(r, s, bytes1(v));
+    }
 
     function _concatPools(
         PoolKey[] memory a,

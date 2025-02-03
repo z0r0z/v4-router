@@ -24,11 +24,13 @@ enum TokenType {
     ERC6909
 }
 
-contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
+contract GasTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
+    address alice;
+    uint256 alicePK;
+
     V4SwapRouter router;
-    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     Counter hook;
 
@@ -40,6 +42,8 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
     // Test contract inherits `receive` function through SwapRouterFixtures' Deployers contract
 
     function setUp() public payable {
+        (alice, alicePK) = makeAddrAndKey("ALICE");
+
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
         DeployPermit2.deployPermit2();
@@ -52,6 +56,10 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         currencyB.mint(address(this), 10_000e18);
         currencyC.mint(address(this), 10_000e18);
         currencyD.mint(address(this), 10_000e18);
+        currencyA.mint(alice, 10_000e18);
+        currencyB.mint(alice, 10_000e18);
+        currencyC.mint(alice, 10_000e18);
+        currencyD.mint(alice, 10_000e18);
 
         currencyA.maxApprove(address(modifyLiquidityRouter));
         currencyB.maxApprove(address(modifyLiquidityRouter));
@@ -62,6 +70,13 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         currencyB.maxApprove(address(router));
         currencyC.maxApprove(address(router));
         currencyD.maxApprove(address(router));
+
+        vm.startPrank(alice);
+        currencyA.maxApprove(address(permit2));
+        currencyB.maxApprove(address(permit2));
+        currencyC.maxApprove(address(permit2));
+        currencyD.maxApprove(address(permit2));
+        vm.stopPrank();
 
         // Deploy the hook to an address with the correct flags
         _deployCSMM();
@@ -657,6 +672,48 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swap(swapCalldata, deadline);
         vm.snapshotGasLastCall(
             _snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "encoded")
+        );
+    }
+
+    function test_gas_encoded_single_permit2_exactInput() public {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = vanillaPoolKeys[0];
+
+        Currency inputCurrency = zeroForOne ? poolKey.currency0 : poolKey.currency1;
+
+        // -- SWAP --
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        ISignatureTransfer.PermitTransferFrom memory permit = ISignatureTransfer.PermitTransferFrom({
+            permitted: ISignatureTransfer.TokenPermissions({
+                token: Currency.unwrap(inputCurrency),
+                amount: amountIn
+            }),
+            nonce: 0,
+            deadline: block.timestamp + 100
+        });
+        bytes memory signature = getPermitTransferToSignature(permit, alicePK, address(router));
+
+        bytes memory swapCalldata = abi.encode(
+            BaseData({
+                payer: alice,
+                to: alice,
+                isSingleSwap: true,
+                isExactOutput: false,
+                amount: amountIn,
+                amountLimit: amountOutMin,
+                settleWithPermit2: true
+            }),
+            PermitPayload({permit: permit, signature: signature}),
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES
+        );
+        uint256 deadline = block.timestamp;
+        vm.prank(alice);
+        router.swapWithPermit2(swapCalldata, deadline);
+        vm.snapshotGasLastCall(
+            _snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "encoded_permit2")
         );
     }
 

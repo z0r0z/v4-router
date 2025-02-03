@@ -23,6 +23,7 @@ struct BaseData {
     address to;
     bool isExactOutput;
     bool settleWithPermit2;
+    bool is6909;
 }
 
 struct PermitPayload {
@@ -113,8 +114,11 @@ abstract contract BaseSwapRouter is SafeCallback {
                 revert SlippageExceeded();
             }
 
-            // Resolve deltas: transfer-in input, and transfer-out output
-            if (data.settleWithPermit2) {
+            // Resolve deltas based on settlement type
+            if (data.is6909) {
+                poolManager.burn(data.payer, inputCurrency.toId(), inputAmount);
+                poolManager.mint(data.to, outputCurrency.toId(), outputAmount);
+            } else if (data.settleWithPermit2) {
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
                 inputCurrency.settleWithPermit2(
@@ -125,10 +129,11 @@ abstract contract BaseSwapRouter is SafeCallback {
                     permitPayload.permit,
                     permitPayload.signature
                 );
+                outputCurrency.take(poolManager, data.to, outputAmount, false);
             } else {
                 inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+                outputCurrency.take(poolManager, data.to, outputAmount, false);
             }
-            outputCurrency.take(poolManager, data.to, outputAmount, false);
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {

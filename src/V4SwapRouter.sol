@@ -51,7 +51,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isExactOutput: false,
                     amount: amountIn,
                     amountLimit: amountOutMin,
-                    settleWithPermit2: false
+                    settleWithPermit2: false,
+                    is6909: false
                 }),
                 startCurrency,
                 path
@@ -84,7 +85,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isExactOutput: true,
                     amount: amountOut,
                     amountLimit: amountInMax,
-                    settleWithPermit2: false
+                    settleWithPermit2: false,
+                    is6909: false
                 }),
                 startCurrency,
                 path
@@ -117,7 +119,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
-                    settleWithPermit2: false
+                    settleWithPermit2: false,
+                    is6909: false
                 }),
                 startCurrency,
                 path
@@ -165,7 +168,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isExactOutput: false,
                     amount: amountIn,
                     amountLimit: amountOutMin,
-                    settleWithPermit2: false
+                    settleWithPermit2: false,
+                    is6909: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -200,7 +204,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isExactOutput: true,
                     amount: amountOut,
                     amountLimit: amountInMax,
-                    settleWithPermit2: false
+                    settleWithPermit2: false,
+                    is6909: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -235,7 +240,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
-                    settleWithPermit2: false
+                    settleWithPermit2: false,
+                    is6909: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -248,6 +254,19 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
 
     /// @inheritdoc IV4SwapRouter
     function swapWithPermit2(bytes calldata data, uint256 deadline)
+        public
+        payable
+        virtual
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
+        return _unlockAndDecode(data);
+    }
+
+    /// -----------------------
+
+    /// @inheritdoc IV4SwapRouter
+    function swapClaim(bytes calldata data, uint256 deadline)
         public
         payable
         virtual

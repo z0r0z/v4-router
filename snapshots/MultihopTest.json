@@ -1,0 +1,5 @@
+{
+  "exactInput_single_ERC20_to_ERC20_vanilla": "193451",
+  "exactInput_single_ETH_to_ERC20_vanilla": "177859",
+  "exactOutput_multi_ERC20_to_ERC20_customCurve": "179568"
+}

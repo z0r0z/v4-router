@@ -114,7 +114,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapExactTokensForTokens(
             amountIn, amountOutMin, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, false, TokenType.ERC20, TokenType.ERC20, "vanilla"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, false, TokenType.ERC20, TokenType.ERC20, "vanilla")
+        );
     }
 
     function test_gas_multi_exactInput_nativeInput() public {
@@ -143,7 +145,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapExactTokensForTokens{value: amountIn}(
             amountIn, amountOutMin, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, false, TokenType.NATIVE, TokenType.ERC20, "nativeInput"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, false, TokenType.NATIVE, TokenType.ERC20, "nativeInput")
+        );
     }
 
     function test_gas_multi_exactInput_nativeOutput() public {
@@ -172,7 +176,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapExactTokensForTokens(
             amountIn, amountOutMin, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, false, TokenType.ERC20, TokenType.NATIVE, "nativeOutput"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, false, TokenType.ERC20, TokenType.NATIVE, "nativeOutput")
+        );
     }
 
     function test_gas_multi_exactInput_nativeIntermediate() public {
@@ -201,7 +207,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapExactTokensForTokens(
             amountIn, amountOutMin, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, false, TokenType.ERC20, TokenType.ERC20, "nativeIntermediate"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, false, TokenType.ERC20, TokenType.ERC20, "nativeIntermediate")
+        );
     }
 
     function test_gas_multi_exactInput_hookData() public {
@@ -234,7 +242,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapExactTokensForTokens(
             amountIn, amountOutMin, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, false, TokenType.ERC20, TokenType.ERC20, "hookData"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, false, TokenType.ERC20, TokenType.ERC20, "hookData")
+        );
     }
 
     function test_gas_multi_exactInput_customCurve() public {
@@ -263,7 +273,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapExactTokensForTokens(
             amountIn, amountOutMin, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, false, TokenType.ERC20, TokenType.ERC20, "customCurve"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, false, TokenType.ERC20, TokenType.ERC20, "customCurve")
+        );
     }
 
     function test_gas_multi_exactOutput() public {
@@ -292,7 +304,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapTokensForExactTokens(
             amountOut, amountInMax, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "vanilla"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "vanilla")
+        );
     }
 
     function test_gas_multi_exactOutput_nativeInput() public {
@@ -321,7 +335,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapTokensForExactTokens{value: amountInMax}(
             amountOut, amountInMax, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, false, TokenType.NATIVE, TokenType.ERC20, "nativeInput"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, false, TokenType.NATIVE, TokenType.ERC20, "nativeInput")
+        );
     }
 
     function test_gas_multi_exactOutput_nativeIntermediate() public {
@@ -350,7 +366,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapTokensForExactTokens(
             amountOut, amountInMax, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "nativeIntermediate"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "nativeIntermediate")
+        );
     }
 
     function test_gas_multi_exactOutput_nativeOutput() public {
@@ -379,7 +397,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapTokensForExactTokens(
             amountOut, amountInMax, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, false, TokenType.ERC20, TokenType.NATIVE, "nativeOutput"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, false, TokenType.ERC20, TokenType.NATIVE, "nativeOutput")
+        );
     }
 
     function test_gas_multi_exactOutput_hookData() public {
@@ -412,7 +432,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapTokensForExactTokens(
             amountOut, amountInMax, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "hookData"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "hookData")
+        );
     }
 
     function test_gas_multi_exactOutput_customCurve() public {
@@ -441,7 +463,9 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         router.swapTokensForExactTokens(
             amountOut, amountInMax, startCurrency, path, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "customCurve"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "customCurve")
+        );
     }
 
     function test_gas_single_exactInput() public {
@@ -453,15 +477,11 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            zeroForOne,
-            poolKey,
-            ZERO_BYTES,
-            recipient,
-            deadline
+            amountIn, amountOutMin, zeroForOne, poolKey, ZERO_BYTES, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "vanilla"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "vanilla")
+        );
     }
 
     function test_gas_single_exactInput_nativeInput() public {
@@ -473,15 +493,11 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapExactTokensForTokens{value: amountIn}(
-            amountIn,
-            amountOutMin,
-            zeroForOne,
-            poolKey,
-            ZERO_BYTES,
-            recipient,
-            deadline
+            amountIn, amountOutMin, zeroForOne, poolKey, ZERO_BYTES, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.NATIVE, TokenType.ERC20, "nativeInput"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, true, TokenType.NATIVE, TokenType.ERC20, "nativeInput")
+        );
     }
 
     function test_gas_single_exactInput_nativeOutput() public {
@@ -493,15 +509,11 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            zeroForOne,
-            poolKey,
-            ZERO_BYTES,
-            recipient,
-            deadline
+            amountIn, amountOutMin, zeroForOne, poolKey, ZERO_BYTES, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.ERC20, TokenType.NATIVE, "nativeOutput"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, true, TokenType.ERC20, TokenType.NATIVE, "nativeOutput")
+        );
     }
 
     function test_gas_single_exactInput_hookData() public {
@@ -514,15 +526,11 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            zeroForOne,
-            poolKey,
-            abi.encode(num0),
-            recipient,
-            deadline
+            amountIn, amountOutMin, zeroForOne, poolKey, abi.encode(num0), recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "hookData"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "hookData")
+        );
     }
 
     function test_gas_single_exactInput_customCurve() public {
@@ -534,15 +542,11 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            zeroForOne,
-            poolKey,
-            ZERO_BYTES,
-            recipient,
-            deadline
+            amountIn, amountOutMin, zeroForOne, poolKey, ZERO_BYTES, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "customCurve"));
+        vm.snapshotGasLastCall(
+            _snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "customCurve")
+        );
     }
 
     function test_gas_single_exactOutput() public {
@@ -554,15 +558,11 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapTokensForExactTokens(
-            amountOut,
-            amountInMax,
-            zeroForOne,
-            poolKey,
-            ZERO_BYTES,
-            recipient,
-            deadline
+            amountOut, amountInMax, zeroForOne, poolKey, ZERO_BYTES, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "vanilla"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "vanilla")
+        );
     }
 
     function test_gas_single_exactOutput_nativeInput() public {
@@ -574,15 +574,11 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapTokensForExactTokens{value: amountInMax}(
-            amountOut,
-            amountInMax,
-            zeroForOne,
-            poolKey,
-            ZERO_BYTES,
-            recipient,
-            deadline
+            amountOut, amountInMax, zeroForOne, poolKey, ZERO_BYTES, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.NATIVE, TokenType.ERC20, "nativeInput"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, true, TokenType.NATIVE, TokenType.ERC20, "nativeInput")
+        );
     }
 
     function test_gas_single_exactOutput_nativeOutput() public {
@@ -594,20 +590,14 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapTokensForExactTokens(
-            amountOut,
-            amountInMax,
-            zeroForOne,
-            poolKey,
-            ZERO_BYTES,
-            recipient,
-            deadline
+            amountOut, amountInMax, zeroForOne, poolKey, ZERO_BYTES, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.ERC20, TokenType.NATIVE, "nativeOutput"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, true, TokenType.ERC20, TokenType.NATIVE, "nativeOutput")
+        );
     }
 
-    function test_gas_single_exactOutput_hookData()
-        public
-    {
+    function test_gas_single_exactOutput_hookData() public {
         bool zeroForOne = true;
         PoolKey memory poolKey = hookedPoolKeys[0];
         // data to be passed to the hook
@@ -618,20 +608,14 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapTokensForExactTokens(
-            amountOut,
-            amountInMax,
-            zeroForOne,
-            poolKey,
-            abi.encode(num0),
-            recipient,
-            deadline
+            amountOut, amountInMax, zeroForOne, poolKey, abi.encode(num0), recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "hookData"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "hookData")
+        );
     }
 
-    function test_gas_single_exactOutput_customCurve()
-        public
-    {
+    function test_gas_single_exactOutput_customCurve() public {
         bool zeroForOne = true;
         PoolKey memory poolKey = csmmPoolKeys[0];
 
@@ -640,18 +624,20 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         address recipient = address(this);
         uint256 deadline = block.timestamp;
         router.swapTokensForExactTokens(
-            amountOut,
-            amountInMax,
-            zeroForOne,
-            poolKey,
-            ZERO_BYTES,
-            recipient,
-            deadline
+            amountOut, amountInMax, zeroForOne, poolKey, ZERO_BYTES, recipient, deadline
         );
-        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "customCurve"));
+        vm.snapshotGasLastCall(
+            _snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "customCurve")
+        );
     }
 
-    function _snapshotString(bool exactInput, bool singleSwap, TokenType inputType, TokenType outputType, string memory hookInfo) internal pure returns (string memory) {
+    function _snapshotString(
+        bool exactInput,
+        bool singleSwap,
+        TokenType inputType,
+        TokenType outputType,
+        string memory hookInfo
+    ) internal pure returns (string memory) {
         string memory inputToken;
         string memory outputToken;
         string memory swapType; // exact input or exact output
@@ -676,6 +662,8 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         swapType = exactInput ? "exactInput" : "exactOutput";
         singleOrMulti = singleSwap ? "single" : "multi";
 
-        return string.concat(swapType, "_", singleOrMulti, "_", inputToken, "_to_", outputToken, "_", hookInfo);
+        return string.concat(
+            swapType, "_", singleOrMulti, "_", inputToken, "_to_", outputToken, "_", hookInfo
+        );
     }
 }

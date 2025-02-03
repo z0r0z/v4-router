@@ -4,7 +4,9 @@ pragma solidity ^0.8.26;
 import {
     PathKey, PoolKey, Currency, BalanceDelta, IV4SwapRouter
 } from "./interfaces/IV4SwapRouter.sol";
+import {LibZip} from "@solady/src/utils/LibZip.sol";
 import {IPoolManager, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 /// @title Uniswap V4 Swap Router
 /// @custom:dislaimer
@@ -19,7 +21,10 @@ import {IPoolManager, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol"
 ///
 /// By proceeding to utilize this community router, you indicate your understanding and acceptance of this disclaimer.
 contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
-    constructor(IPoolManager manager) payable BaseSwapRouter(manager) {}
+    constructor(IPoolManager manager, ISignatureTransfer _permit2)
+        payable
+        BaseSwapRouter(manager, _permit2)
+    {}
 
     /// @inheritdoc IV4SwapRouter
     function swapExactTokensForTokens(
@@ -45,7 +50,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isSingleSwap: false,
                     isExactOutput: false,
                     amount: amountIn,
-                    amountLimit: amountOutMin
+                    amountLimit: amountOutMin,
+                    settleWithPermit2: false
                 }),
                 startCurrency,
                 path
@@ -77,7 +83,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isSingleSwap: false,
                     isExactOutput: true,
                     amount: amountOut,
-                    amountLimit: amountInMax
+                    amountLimit: amountInMax,
+                    settleWithPermit2: false
                 }),
                 startCurrency,
                 path
@@ -109,7 +116,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isSingleSwap: false,
                     isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
-                    amountLimit: amountLimit
+                    amountLimit: amountLimit,
+                    settleWithPermit2: false
                 }),
                 startCurrency,
                 path
@@ -156,7 +164,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isSingleSwap: true,
                     isExactOutput: false,
                     amount: amountIn,
-                    amountLimit: amountOutMin
+                    amountLimit: amountOutMin,
+                    settleWithPermit2: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -190,7 +199,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isSingleSwap: true,
                     isExactOutput: true,
                     amount: amountOut,
-                    amountLimit: amountInMax
+                    amountLimit: amountInMax,
+                    settleWithPermit2: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -224,12 +234,33 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     isSingleSwap: true,
                     isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
-                    amountLimit: amountLimit
+                    amountLimit: amountLimit,
+                    settleWithPermit2: false
                 }),
                 zeroForOne,
                 poolKey,
                 hookData
             )
         );
+    }
+
+    /// -----------------------
+
+    /// @inheritdoc IV4SwapRouter
+    function swapWithPermit2(bytes calldata data, uint256 deadline)
+        public
+        payable
+        virtual
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
+        return _unlockAndDecode(data);
+    }
+
+    /// -----------------------
+
+    /// @inheritdoc IV4SwapRouter
+    fallback() external payable virtual {
+        LibZip.cdFallback();
     }
 }

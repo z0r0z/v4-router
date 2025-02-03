@@ -5,11 +5,15 @@ import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {IPoolManager, SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
+import {CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
 import {
-    Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
-} from "../libraries/PathKey.sol";
+    ISignatureTransfer,
+    Currency,
+    IPoolManager,
+    SettleWithPermit2
+} from "../libraries/SettleWithPermit2.sol";
 
 struct BaseData {
     uint256 amount;
@@ -18,6 +22,12 @@ struct BaseData {
     bool isSingleSwap;
     address to;
     bool isExactOutput;
+    bool settleWithPermit2;
+}
+
+struct PermitPayload {
+    ISignatureTransfer.PermitTransferFrom permit;
+    bytes signature;
 }
 
 /// @title Base Swap Router
@@ -25,9 +35,12 @@ struct BaseData {
 abstract contract BaseSwapRouter is SafeCallback {
     using TransientStateLibrary for IPoolManager;
     using CurrencySettler for Currency;
+    using SettleWithPermit2 for Currency;
     using PathKeyLibrary for PathKey;
     using SafeCast for uint256;
     using SafeCast for int256;
+
+    ISignatureTransfer public immutable permit2;
 
     /// ======================= CUSTOM ERRORS ======================= ///
 
@@ -56,7 +69,9 @@ abstract contract BaseSwapRouter is SafeCallback {
 
     /// ======================== CONSTRUCTOR ======================== ///
 
-    constructor(IPoolManager manager) SafeCallback(manager) {}
+    constructor(IPoolManager manager, ISignatureTransfer _permit2) SafeCallback(manager) {
+        permit2 = _permit2;
+    }
 
     /// ===================== SWAP EXECUTION ===================== ///
 
@@ -69,8 +84,13 @@ abstract contract BaseSwapRouter is SafeCallback {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
 
-            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
-                _parseAndSwap(data.isSingleSwap, data.isExactOutput, data.amount, callbackData);
+            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) = _parseAndSwap(
+                data.isSingleSwap,
+                data.isExactOutput,
+                data.amount,
+                data.settleWithPermit2,
+                callbackData
+            );
 
             // get the actual currency delta from pool manager
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
@@ -93,13 +113,29 @@ abstract contract BaseSwapRouter is SafeCallback {
                 revert SlippageExceeded();
             }
 
-            inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+            // Resolve deltas: transfer-in input, and transfer-out output
+            if (data.settleWithPermit2) {
+                (, PermitPayload memory permitPayload) =
+                    abi.decode(callbackData, (BaseData, PermitPayload));
+                inputCurrency.settleWithPermit2(
+                    poolManager,
+                    permit2,
+                    data.payer,
+                    inputAmount,
+                    permitPayload.permit,
+                    permitPayload.signature
+                );
+            } else {
+                inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+            }
             outputCurrency.take(poolManager, data.to, outputAmount, false);
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-                if ((outputAmount = address(this).balance) != 0) {
-                    _refundETH(data.payer, outputAmount);
+                if (data.isExactOutput) {
+                    if ((outputAmount = address(this).balance) != 0) {
+                        _refundETH(data.payer, outputAmount);
+                    }
                 }
             }
 
@@ -111,6 +147,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool isSingleSwap,
         bool isExactOutput,
         uint256 amount,
+        bool settleWithPermit2,
         bytes calldata callbackData
     )
         internal
@@ -119,8 +156,17 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         unchecked {
             if (isSingleSwap) {
-                (, bool zeroForOne, PoolKey memory key, bytes memory hookData) =
-                    abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
+                bool zeroForOne;
+                PoolKey memory key;
+                bytes memory hookData;
+
+                if (settleWithPermit2) {
+                    (,, zeroForOne, key, hookData) =
+                        abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
+                } else {
+                    (, zeroForOne, key, hookData) =
+                        abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
+                }
 
                 (inputCurrency, outputCurrency) =
                     zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
@@ -133,7 +179,13 @@ abstract contract BaseSwapRouter is SafeCallback {
                 );
             } else {
                 PathKey[] memory path;
-                (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+                if (settleWithPermit2) {
+                    (,, inputCurrency, path) =
+                        abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
+                } else {
+                    (, inputCurrency, path) =
+                        abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+                }
 
                 if (path.length == 0) revert EmptyPath();
 

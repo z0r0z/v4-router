@@ -11,15 +11,19 @@ import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
-import {V4SwapRouter} from "../src/V4SwapRouter.sol";
+import {ISignatureTransfer, V4SwapRouter} from "../src/V4SwapRouter.sol";
 
+import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
+import {PermitSignature} from "permit2/test/utils/PermitSignature.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
 
-contract RouterGasTest is SwapRouterFixtures {
+contract RouterGasTest is SwapRouterFixtures, DeployPermit2 {
     using MockCurrencyLibrary for Currency;
 
     V4SwapRouter router;
+    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
+
     Counter hook;
     CustomCurveHook hookCsmm;
 
@@ -31,7 +35,8 @@ contract RouterGasTest is SwapRouterFixtures {
     function setUp() public payable {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
-        router = new V4SwapRouter(manager);
+        DeployPermit2.deployPermit2();
+        router = new V4SwapRouter(manager, permit2);
 
         // Create currencies
         (currencyA, currencyB, currencyC, currencyD) = _createSortedCurrencies();

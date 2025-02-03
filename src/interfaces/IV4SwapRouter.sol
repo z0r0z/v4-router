@@ -5,6 +5,7 @@ import {PathKey} from "../libraries/PathKey.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
+import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 
 /// @title Uniswap V4 Swap Router
 /// @notice A simple, stateless router for execution of swaps against Uniswap v4 Pools
@@ -19,6 +20,7 @@ interface IV4SwapRouter {
     /// @param path the path of v4 Pools to swap through
     /// @param to the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -35,6 +37,7 @@ interface IV4SwapRouter {
     /// @param path the path of v4 Pools to swap through
     /// @param to the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
@@ -51,6 +54,7 @@ interface IV4SwapRouter {
     /// @param path the path of v4 Pools to swap through
     /// @param to the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
     function swap(
         int256 amountSpecified,
         uint256 amountLimit,
@@ -70,6 +74,7 @@ interface IV4SwapRouter {
     /// @param hookData the data to be passed to the hook
     /// @param to the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -88,6 +93,7 @@ interface IV4SwapRouter {
     /// @param hookData the data to be passed to the hook
     /// @param to the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
@@ -106,6 +112,7 @@ interface IV4SwapRouter {
     /// @param hookData the data to be passed to the hook
     /// @param to the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
     function swap(
         int256 amountSpecified,
         uint256 amountLimit,
@@ -140,5 +147,34 @@ interface IV4SwapRouter {
     ///         uint256 amount                 // amount to swap
     ///         uint256 amountLimit            // slippage limit
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
     function swap(bytes calldata data, uint256 deadline) external payable returns (BalanceDelta);
+
+    /// @notice Performs a generic swap with Permit2 approval
+    /// @param data Pre-encoded swap data structured as:
+    ///        For single pool swaps: abi.encode(
+    ///            BaseData,
+    ///            PermitPayload,
+    ///            bool zeroForOne,
+    ///            PoolKey poolKey,
+    ///            bytes hookData
+    ///        )
+    ///        For multi-pool swaps: abi.encode(
+    ///            BaseData,
+    ///            PermitPayload,
+    ///            Currency startCurrency,
+    ///            PathKey[] path
+    ///        )
+    ///        Where BaseData.settleWithPermit2 must be true, and PermitPayload contains:
+    ///        - permit: ISignatureTransfer.PermitTransferFrom
+    ///        - signature: bytes
+    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
+    function swapWithPermit2(bytes calldata data, uint256 deadline)
+        external
+        payable
+        returns (BalanceDelta);
+
+    /// @notice Provides calldata compression fallback
+    fallback() external payable;
 }

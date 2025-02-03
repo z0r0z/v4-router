@@ -1,5 +1,14 @@
 {
-  "exactInput_single_ERC20_to_ERC20_vanilla": "193451",
-  "exactInput_single_ETH_to_ERC20_vanilla": "177859",
-  "exactOutput_multi_ERC20_to_ERC20_customCurve": "179568"
+  "exactInput_multi_ERC20_to_ERC20_customCurve": "180726",
+  "exactInput_multi_ERC20_to_ERC20_hookData": "202072",
+  "exactInput_multi_ERC20_to_ERC20_nativeIntermediate": "187280",
+  "exactInput_multi_ERC20_to_ERC20_vanilla": "193451",
+  "exactInput_multi_ERC20_to_ETH_nativeOutput": "178664",
+  "exactInput_multi_ETH_to_ERC20_nativeInput": "177859",
+  "exactOutput_multi_ERC20_to_ERC20_customCurve": "179568",
+  "exactOutput_multi_ERC20_to_ERC20_hookData": "206053",
+  "exactOutput_multi_ERC20_to_ERC20_nativeIntermediate": "186936",
+  "exactOutput_multi_ERC20_to_ERC20_vanilla": "186972",
+  "exactOutput_multi_ERC20_to_ETH_nativeOutput": "178313",
+  "exactOutput_multi_ETH_to_ERC20_nativeInput": "182737"
 }

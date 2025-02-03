@@ -444,6 +444,213 @@ contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
         vm.snapshotGasLastCall(_snapshotString(false, false, TokenType.ERC20, TokenType.ERC20, "customCurve"));
     }
 
+    function test_gas_single_exactInput() public {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = vanillaPoolKeys[0];
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapExactTokensForTokens(
+            amountIn,
+            amountOutMin,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "vanilla"));
+    }
+
+    function test_gas_single_exactInput_nativeInput() public {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = nativePoolKeys[0];
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapExactTokensForTokens{value: amountIn}(
+            amountIn,
+            amountOutMin,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.NATIVE, TokenType.ERC20, "nativeInput"));
+    }
+
+    function test_gas_single_exactInput_nativeOutput() public {
+        bool zeroForOne = false; // native ether is the output
+        PoolKey memory poolKey = nativePoolKeys[0];
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapExactTokensForTokens(
+            amountIn,
+            amountOutMin,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.ERC20, TokenType.NATIVE, "nativeOutput"));
+    }
+
+    function test_gas_single_exactInput_hookData() public {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = hookedPoolKeys[0];
+        uint256 num0 = 111;
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapExactTokensForTokens(
+            amountIn,
+            amountOutMin,
+            zeroForOne,
+            poolKey,
+            abi.encode(num0),
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "hookData"));
+    }
+
+    function test_gas_single_exactInput_customCurve() public {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = csmmPoolKeys[0];
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapExactTokensForTokens(
+            amountIn,
+            amountOutMin,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "customCurve"));
+    }
+
+    function test_gas_single_exactOutput() public {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = vanillaPoolKeys[0];
+
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 1.01e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapTokensForExactTokens(
+            amountOut,
+            amountInMax,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "vanilla"));
+    }
+
+    function test_gas_single_exactOutput_nativeInput() public {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = nativePoolKeys[0];
+
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 1.01e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapTokensForExactTokens{value: amountInMax}(
+            amountOut,
+            amountInMax,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.NATIVE, TokenType.ERC20, "nativeInput"));
+    }
+
+    function test_gas_single_exactOutput_nativeOutput() public {
+        bool zeroForOne = false; // native ether is the output
+        PoolKey memory poolKey = nativePoolKeys[0];
+
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 1.01e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapTokensForExactTokens(
+            amountOut,
+            amountInMax,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.ERC20, TokenType.NATIVE, "nativeOutput"));
+    }
+
+    function test_gas_single_exactOutput_hookData()
+        public
+    {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = hookedPoolKeys[0];
+        // data to be passed to the hook
+        uint256 num0 = 333;
+
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 1.01e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapTokensForExactTokens(
+            amountOut,
+            amountInMax,
+            zeroForOne,
+            poolKey,
+            abi.encode(num0),
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "hookData"));
+    }
+
+    function test_gas_single_exactOutput_customCurve()
+        public
+    {
+        bool zeroForOne = true;
+        PoolKey memory poolKey = csmmPoolKeys[0];
+
+        uint256 amountOut = 1e18;
+        uint256 amountInMax = 1.01e18;
+        address recipient = address(this);
+        uint256 deadline = block.timestamp;
+        router.swapTokensForExactTokens(
+            amountOut,
+            amountInMax,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            deadline
+        );
+        vm.snapshotGasLastCall(_snapshotString(false, true, TokenType.ERC20, TokenType.ERC20, "customCurve"));
+    }
+
     function _snapshotString(bool exactInput, bool singleSwap, TokenType inputType, TokenType outputType, string memory hookInfo) internal pure returns (string memory) {
         string memory inputToken;
         string memory outputToken;

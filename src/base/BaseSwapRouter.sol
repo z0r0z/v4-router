@@ -238,30 +238,28 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         unchecked {
             PoolKey memory poolKey;
-            PathKey memory pathKey;
             bool zeroForOne;
             int256 amountSpecified = amount.toInt256();
-            BalanceDelta delta;
+            uint256 len = path.length;
 
-            // iterate backwards through the path
-            // for "startCurrency -> B -> C -> D", `path` intermediate currencies are [B, C, D]
-            // swap exact output:
-            // 1. swap C for D
-            // 2. swap B for C
-            // 3  swap startCurrency for B
-            for (uint256 i = path.length - 1; i != 0; --i) {
-                pathKey = path[i];
+            // Cache last path key for first iteration
+            PathKey memory pathKey = path[len - 1];
+
+            // Handle all but the final swap
+            for (uint256 i = len - 1; i > 0;) {
                 (poolKey, zeroForOne) =
-                    pathKey.getPoolAndSwapDirection(path[i - 1].intermediateCurrency);
-                delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+                    pathKey.getPoolAndSwapDirection(path[--i].intermediateCurrency);
 
-                // if swapped token0 -> token1, then token0 is negative delta (signalling the "owed" currency)
-                // delta.amount0() value should be used as the exactOutput value for the next swap
-                // invert the negative delta to a positive value to signal an exactOutput swap
+                BalanceDelta delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+
+                // Update amount for next iteration
                 amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
+
+                // Load next pathKey for next iteration
+                pathKey = path[i];
             }
 
-            // execute final swap and return its delta
+            // Final swap
             (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
             finalDelta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
         }

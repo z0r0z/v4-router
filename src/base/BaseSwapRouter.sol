@@ -19,8 +19,8 @@ struct BaseData {
     uint256 amount;
     uint256 amountLimit;
     address payer;
-    bool isSingleSwap;
     address to;
+    bool isSingleSwap;
     bool isExactOutput;
     bool settleWithPermit2;
     bool inputIs6909;

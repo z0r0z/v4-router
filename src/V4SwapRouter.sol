@@ -52,7 +52,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     to: to,
                     isExactOutput: false,
                     settleWithPermit2: false,
-                    is6909: false
+                    inputIs6909: false,
+                    outputIs6909: false
                 }),
                 startCurrency,
                 path
@@ -86,7 +87,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     to: to,
                     isExactOutput: true,
                     settleWithPermit2: false,
-                    is6909: false
+                    inputIs6909: false,
+                    outputIs6909: false
                 }),
                 startCurrency,
                 path
@@ -120,7 +122,38 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     to: to,
                     isExactOutput: amountSpecified > 0,
                     settleWithPermit2: false,
-                    is6909: false
+                    inputIs6909: false,
+                    outputIs6909: false
+                }),
+                startCurrency,
+                path
+            )
+        );
+    }
+
+    /// Add new overloaded swap function with ERC6909 support
+    function swap(
+        int256 amountSpecified,
+        uint256 amountLimit,
+        Currency startCurrency,
+        PathKey[] calldata path,
+        address to,
+        uint256 deadline,
+        bool inputIs6909,
+        bool outputIs6909
+    ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(
+            abi.encode(
+                BaseData({
+                    amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
+                    amountLimit: amountLimit,
+                    payer: msg.sender,
+                    isSingleSwap: false,
+                    to: to,
+                    isExactOutput: amountSpecified > 0,
+                    settleWithPermit2: false,
+                    inputIs6909: inputIs6909,
+                    outputIs6909: outputIs6909
                 }),
                 startCurrency,
                 path
@@ -169,7 +202,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     to: to,
                     isExactOutput: false,
                     settleWithPermit2: false,
-                    is6909: false
+                    inputIs6909: false,
+                    outputIs6909: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -205,7 +239,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     to: to,
                     isExactOutput: true,
                     settleWithPermit2: false,
-                    is6909: false
+                    inputIs6909: false,
+                    outputIs6909: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -241,7 +276,41 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     to: to,
                     isExactOutput: amountSpecified > 0,
                     settleWithPermit2: false,
-                    is6909: false
+                    inputIs6909: false,
+                    outputIs6909: false
+                }),
+                zeroForOne,
+                poolKey,
+                hookData
+            )
+        );
+    }
+
+    /// -----------------------
+
+    function swap(
+        int256 amountSpecified,
+        uint256 amountLimit,
+        bool zeroForOne,
+        PoolKey calldata poolKey,
+        bytes calldata hookData,
+        address to,
+        uint256 deadline,
+        bool inputIs6909,
+        bool outputIs6909
+    ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(
+            abi.encode(
+                BaseData({
+                    amount: uint256(amountSpecified < 0 ? -amountSpecified : amountSpecified),
+                    amountLimit: amountLimit,
+                    payer: msg.sender,
+                    isSingleSwap: true,
+                    to: to,
+                    isExactOutput: amountSpecified > 0, // positive = exactOutput, negative = exactInput
+                    settleWithPermit2: false,
+                    inputIs6909: inputIs6909,
+                    outputIs6909: outputIs6909
                 }),
                 zeroForOne,
                 poolKey,

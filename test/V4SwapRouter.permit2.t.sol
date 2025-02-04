@@ -145,7 +145,8 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
                 amount: amountIn,
                 amountLimit: amountOutMin,
                 settleWithPermit2: true,
-                is6909: false
+                inputIs6909: false,
+                outputIs6909: false
             }),
             PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
@@ -215,7 +216,8 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
                 amount: amountOut,
                 amountLimit: amountInMax,
                 settleWithPermit2: true,
-                is6909: false
+                inputIs6909: false,
+                outputIs6909: false
             }),
             PermitPayload({permit: permit, signature: signature}),
             zeroForOne,

@@ -23,7 +23,8 @@ struct BaseData {
     address to;
     bool isExactOutput;
     bool settleWithPermit2;
-    bool is6909;
+    bool inputIs6909;
+    bool outputIs6909;
 }
 
 struct PermitPayload {
@@ -85,7 +86,8 @@ abstract contract BaseSwapRouter is SafeCallback {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
 
-            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) = _parseAndSwap(
+            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta, bool zeroForOne) =
+            _parseAndSwap(
                 data.isSingleSwap,
                 data.isExactOutput,
                 data.amount,
@@ -93,10 +95,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 callbackData
             );
 
-            // get the actual currency delta from pool manager
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
-
-            // for output, use the actual delta from the swap
             uint256 outputAmount = data.isExactOutput
                 ? data.amount
                 : (
@@ -105,7 +104,6 @@ abstract contract BaseSwapRouter is SafeCallback {
                         : uint256(uint128(delta.amount0()))
                 );
 
-            // apply slippage checks based on output format
             if (
                 data.isExactOutput
                     ? inputAmount >= data.amountLimit
@@ -114,11 +112,12 @@ abstract contract BaseSwapRouter is SafeCallback {
                 revert SlippageExceeded();
             }
 
-            // Resolve deltas based on settlement type
-            if (data.is6909) {
+            // For ERC6909 input, burn directly from payer
+            if (data.inputIs6909) {
+                // The PoolManager burns directly from the payer's balance
                 poolManager.burn(data.payer, inputCurrency.toId(), inputAmount);
-                poolManager.mint(data.to, outputCurrency.toId(), outputAmount);
             } else if (data.settleWithPermit2) {
+                // Handle ERC20 with permit2...
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
                 inputCurrency.settleWithPermit2(
@@ -129,9 +128,15 @@ abstract contract BaseSwapRouter is SafeCallback {
                     permitPayload.permit,
                     permitPayload.signature
                 );
-                outputCurrency.take(poolManager, data.to, outputAmount, false);
             } else {
+                // Handle regular ERC20...
                 inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+            }
+
+            // For ERC6909 output, mint directly to recipient
+            if (data.outputIs6909) {
+                poolManager.mint(data.to, outputCurrency.toId(), outputAmount);
+            } else {
                 outputCurrency.take(poolManager, data.to, outputAmount, false);
             }
 
@@ -157,11 +162,15 @@ abstract contract BaseSwapRouter is SafeCallback {
     )
         internal
         virtual
-        returns (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta)
+        returns (
+            Currency inputCurrency,
+            Currency outputCurrency,
+            BalanceDelta delta,
+            bool zeroForOne
+        )
     {
         unchecked {
             if (isSingleSwap) {
-                bool zeroForOne;
                 PoolKey memory key;
                 bytes memory hookData;
 
@@ -195,6 +204,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 if (path.length == 0) revert EmptyPath();
 
                 outputCurrency = path[path.length - 1].intermediateCurrency;
+                zeroForOne = inputCurrency < outputCurrency;
 
                 delta = isExactOutput
                     ? _exactOutputMultiSwap(inputCurrency, path, amount)

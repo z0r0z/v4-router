@@ -13,10 +13,12 @@ import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 
-import {ISignatureTransfer, V4SwapRouter} from "../src/V4SwapRouter.sol";
+import {IPoolManager, ISignatureTransfer, BaseData, V4SwapRouter} from "../src/V4SwapRouter.sol";
 
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
+
+import {console} from "forge-std/console.sol";
 
 contract RouterTest is SwapRouterFixtures, DeployPermit2 {
     using MockCurrencyLibrary for Currency;
@@ -215,4 +217,148 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
             block.timestamp + 1
         );
     }
+
+    function test_singleSwap20To6909() public {
+        // Setup initial ERC20 balance and approval
+        Currency currency0 = vanillaPoolKeys[0].currency0;
+        Currency currency1 = vanillaPoolKeys[0].currency1;
+
+        currency0.mint(address(this), 1 ether);
+        currency0.maxApprove(address(router));
+
+        // Initial ERC6909 balance check
+        uint256 balanceBefore = manager.balanceOf(address(this), currency1.toId());
+
+        router.swap(
+            -0.1 ether, // negative amountSpecified for exact input
+            0.095 ether, // minimum amount out
+            true, // zeroForOne
+            vanillaPoolKeys[0], // poolKey
+            "", // hookData
+            address(this), // recipient
+            block.timestamp + 1, // deadline
+            false, // inputIs6909 (ERC20 input)
+            true // outputIs6909 (ERC6909 output)
+        );
+
+        uint256 balanceAfter = manager.balanceOf(address(this), currency1.toId());
+        assertGt(balanceAfter, balanceBefore, "Balance should increase");
+        assertGe(balanceAfter - balanceBefore, 0.095 ether, "Insufficient output amount");
+    }
+
+    function test_chainedSwaps6909() public {
+        Currency currency0 = vanillaPoolKeys[0].currency0;
+        Currency currency1 = vanillaPoolKeys[0].currency1;
+
+        console.log("Currency0 ID:", currency0.toId());
+        console.log("Currency1 ID:", currency1.toId());
+
+        // Initial setup - mint ERC20 and approve
+        currency0.mint(address(this), 1 ether);
+        currency0.maxApprove(address(router));
+
+        // First swap: ERC20 -> ERC6909
+        router.swap(
+            -0.1 ether,
+            0.095 ether,
+            true,
+            vanillaPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1,
+            false,
+            true
+        );
+
+        uint256 currency1Balance = manager.balanceOf(address(this), currency1.toId());
+        console.log("Received ERC6909 balance of currency1:", currency1Balance);
+
+        // Approve router for ERC6909 operations
+        IERC6909(address(manager)).setOperator(address(router), true);
+
+        uint256 swapAmount = 0.001 ether;
+        require(swapAmount <= currency1Balance, "Insufficient balance");
+
+        console.log("Pre-swap balances:");
+        console.log("Currency0 (ERC6909):", manager.balanceOf(address(this), currency0.toId()));
+        console.log("Currency1 (ERC6909):", manager.balanceOf(address(this), currency1.toId()));
+        console.log("Attempting to swap amount:", swapAmount);
+
+        // Swap back: currency1 -> currency0
+        router.swap(
+            -int256(swapAmount),
+            (swapAmount * 95) / 100,
+            false,
+            vanillaPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1,
+            true,
+            true
+        );
+
+        console.log("Final balances:");
+        console.log("Currency0 (ERC6909):", manager.balanceOf(address(this), currency0.toId()));
+        console.log("Currency1 (ERC6909):", manager.balanceOf(address(this), currency1.toId()));
+    }
+
+    function test_chainedSwaps6909ToERC20() public {
+        Currency currency0 = vanillaPoolKeys[0].currency0;
+        Currency currency1 = vanillaPoolKeys[0].currency1;
+
+        console.log("Currency0 ID:", currency0.toId());
+        console.log("Currency1 ID:", currency1.toId());
+
+        // Initial setup - mint ERC20 and approve
+        currency0.mint(address(this), 1 ether);
+        currency0.maxApprove(address(router));
+
+        // First swap: ERC20 -> ERC6909
+        router.swap(
+            -0.1 ether,
+            0.095 ether,
+            true,
+            vanillaPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1,
+            false, // input is ERC20
+            true // output as ERC6909
+        );
+
+        uint256 currency1Balance = manager.balanceOf(address(this), currency1.toId());
+        console.log("Received ERC6909 balance of currency1:", currency1Balance);
+
+        // Approve router for ERC6909 operations
+        IERC6909(address(manager)).setOperator(address(router), true);
+
+        uint256 swapAmount = 0.001 ether;
+        require(swapAmount <= currency1Balance, "Insufficient balance");
+
+        console.log("Pre-swap balances:");
+        console.log("Currency0 (ERC20):", currency0.balanceOf(address(this)));
+        console.log("Currency1 (ERC6909):", manager.balanceOf(address(this), currency1.toId()));
+        console.log("Attempting to swap amount:", swapAmount);
+
+        // Swap back: currency1 (ERC6909) -> currency0 (ERC20)
+        router.swap(
+            -int256(swapAmount),
+            (swapAmount * 95) / 100,
+            false,
+            vanillaPoolKeys[0],
+            "",
+            address(this),
+            block.timestamp + 1,
+            true, // input is ERC6909
+            false // output as ERC20
+        );
+
+        console.log("Final balances:");
+        console.log("Currency0 (ERC20):", currency0.balanceOf(address(this)));
+        console.log("Currency1 (ERC6909):", manager.balanceOf(address(this), currency1.toId()));
+    }
+}
+
+interface IERC6909 {
+    function setOperator(address, bool) external;
 }

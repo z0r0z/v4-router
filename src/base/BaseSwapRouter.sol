@@ -9,10 +9,10 @@ import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
 import {
-    ISignatureTransfer,
     Currency,
     IPoolManager,
-    SettleWithPermit2
+    SettleWithPermit2,
+    ISignatureTransfer
 } from "../libraries/SettleWithPermit2.sol";
 
 struct BaseData {
@@ -148,7 +148,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool singleSwap,
         bool exactOutput,
         uint256 amount,
-        bool permit2,
+        bool _permit2,
         bytes calldata callbackData
     )
         internal
@@ -165,7 +165,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 PoolKey memory key;
                 bytes memory hookData;
 
-                if (permit2) {
+                if (_permit2) {
                     (,, zeroForOne, key, hookData) =
                         abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
                 } else {
@@ -184,7 +184,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 );
             } else {
                 PathKey[] memory path;
-                if (permit2) {
+                if (_permit2) {
                     (,, inputCurrency, path) =
                         abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
                 } else {
@@ -211,17 +211,22 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         unchecked {
             PoolKey memory poolKey;
-            PathKey memory pathKey;
             bool zeroForOne;
             int256 amountSpecified = -(amount.toInt256());
+            uint256 len = path.length;
 
-            for (uint256 i; i != path.length; ++i) {
-                pathKey = path[i];
+            // Cache first path key
+            PathKey memory pathKey = path[0];
+
+            for (uint256 i; i < len;) {
                 (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
                 finalDelta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
                 inputCurrency = pathKey.intermediateCurrency;
                 amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
+
+                // Load next path key
+                if (++i < len) pathKey = path[i];
             }
         }
     }

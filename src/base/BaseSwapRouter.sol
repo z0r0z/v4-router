@@ -246,7 +246,7 @@ abstract contract BaseSwapRouter is SafeCallback {
             PathKey memory pathKey = path[len - 1];
 
             // Handle all but the final swap
-            for (uint256 i = len - 1; i > 0;) {
+            for (uint256 i = len - 1; i != 0;) {
                 (poolKey, zeroForOne) =
                     pathKey.getPoolAndSwapDirection(path[--i].intermediateCurrency);
 

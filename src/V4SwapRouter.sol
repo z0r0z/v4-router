@@ -48,12 +48,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountIn,
                     amountLimit: amountOutMin,
                     payer: msg.sender,
-                    isSingleSwap: false,
                     to: to,
-                    isExactOutput: false,
-                    settleWithPermit2: false,
-                    inputIs6909: false,
-                    outputIs6909: false
+                    singleSwap: false,
+                    exactOutput: false,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 startCurrency,
                 path
@@ -83,12 +83,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountOut,
                     amountLimit: amountInMax,
                     payer: msg.sender,
-                    isSingleSwap: false,
                     to: to,
-                    isExactOutput: true,
-                    settleWithPermit2: false,
-                    inputIs6909: false,
-                    outputIs6909: false
+                    singleSwap: false,
+                    exactOutput: true,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 startCurrency,
                 path
@@ -118,12 +118,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
-                    isSingleSwap: false,
                     to: to,
-                    isExactOutput: amountSpecified > 0,
-                    settleWithPermit2: false,
-                    inputIs6909: false,
-                    outputIs6909: false
+                    singleSwap: false,
+                    exactOutput: amountSpecified > 0,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 startCurrency,
                 path
@@ -139,8 +139,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         PathKey[] calldata path,
         address to,
         uint256 deadline,
-        bool inputIs6909,
-        bool outputIs6909
+        bool input6909,
+        bool output6909
     ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
         return _unlockAndDecode(
             abi.encode(
@@ -148,12 +148,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
-                    isSingleSwap: false,
                     to: to,
-                    isExactOutput: amountSpecified > 0,
-                    settleWithPermit2: false,
-                    inputIs6909: inputIs6909,
-                    outputIs6909: outputIs6909
+                    singleSwap: false,
+                    exactOutput: amountSpecified > 0,
+                    input6909: input6909,
+                    output6909: output6909,
+                    permit2: false
                 }),
                 startCurrency,
                 path
@@ -198,12 +198,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountIn,
                     amountLimit: amountOutMin,
                     payer: msg.sender,
-                    isSingleSwap: true,
                     to: to,
-                    isExactOutput: false,
-                    settleWithPermit2: false,
-                    inputIs6909: false,
-                    outputIs6909: false
+                    singleSwap: true,
+                    exactOutput: false,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -235,12 +235,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountOut,
                     amountLimit: amountInMax,
                     payer: msg.sender,
-                    isSingleSwap: true,
                     to: to,
-                    isExactOutput: true,
-                    settleWithPermit2: false,
-                    inputIs6909: false,
-                    outputIs6909: false
+                    singleSwap: true,
+                    exactOutput: true,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -272,12 +272,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
-                    isSingleSwap: true,
                     to: to,
-                    isExactOutput: amountSpecified > 0,
-                    settleWithPermit2: false,
-                    inputIs6909: false,
-                    outputIs6909: false
+                    singleSwap: true,
+                    exactOutput: amountSpecified > 0,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -296,8 +296,8 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         bytes calldata hookData,
         address to,
         uint256 deadline,
-        bool inputIs6909,
-        bool outputIs6909
+        bool input6909,
+        bool output6909
     ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
         return _unlockAndDecode(
             abi.encode(
@@ -305,12 +305,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: uint256(amountSpecified < 0 ? -amountSpecified : amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
-                    isSingleSwap: true,
                     to: to,
-                    isExactOutput: amountSpecified > 0, // positive = exactOutput, negative = exactInput
-                    settleWithPermit2: false,
-                    inputIs6909: inputIs6909,
-                    outputIs6909: outputIs6909
+                    singleSwap: true,
+                    exactOutput: amountSpecified > 0,
+                    input6909: input6909,
+                    output6909: output6909,
+                    permit2: false
                 }),
                 zeroForOne,
                 poolKey,

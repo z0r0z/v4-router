@@ -20,11 +20,11 @@ struct BaseData {
     uint256 amountLimit;
     address payer;
     address to;
-    bool isSingleSwap;
-    bool isExactOutput;
-    bool settleWithPermit2;
-    bool inputIs6909;
-    bool outputIs6909;
+    bool singleSwap;
+    bool exactOutput;
+    bool input6909;
+    bool output6909;
+    bool permit2;
 }
 
 struct PermitPayload {
@@ -88,15 +88,11 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta, bool zeroForOne) =
             _parseAndSwap(
-                data.isSingleSwap,
-                data.isExactOutput,
-                data.amount,
-                data.settleWithPermit2,
-                callbackData
+                data.singleSwap, data.exactOutput, data.amount, data.permit2, callbackData
             );
 
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
-            uint256 outputAmount = data.isExactOutput
+            uint256 outputAmount = data.exactOutput
                 ? data.amount
                 : (
                     inputCurrency < outputCurrency
@@ -105,7 +101,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 );
 
             if (
-                data.isExactOutput
+                data.exactOutput
                     ? inputAmount >= data.amountLimit
                     : outputAmount <= data.amountLimit
             ) {
@@ -113,10 +109,10 @@ abstract contract BaseSwapRouter is SafeCallback {
             }
 
             // For ERC6909 input, burn directly from payer
-            if (data.inputIs6909) {
+            if (data.input6909) {
                 // The PoolManager burns directly from the payer's balance
                 poolManager.burn(data.payer, inputCurrency.toId(), inputAmount);
-            } else if (data.settleWithPermit2) {
+            } else if (data.permit2) {
                 // Handle ERC20 with permit2...
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
@@ -134,7 +130,7 @@ abstract contract BaseSwapRouter is SafeCallback {
             }
 
             // For ERC6909 output, mint directly to recipient
-            if (data.outputIs6909) {
+            if (data.output6909) {
                 poolManager.mint(data.to, outputCurrency.toId(), outputAmount);
             } else {
                 outputCurrency.take(poolManager, data.to, outputAmount, false);
@@ -142,7 +138,7 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-                if (data.isExactOutput) {
+                if (data.exactOutput) {
                     if ((outputAmount = address(this).balance) != 0) {
                         _refundETH(data.payer, outputAmount);
                     }
@@ -154,10 +150,10 @@ abstract contract BaseSwapRouter is SafeCallback {
     }
 
     function _parseAndSwap(
-        bool isSingleSwap,
-        bool isExactOutput,
+        bool singleSwap,
+        bool exactOutput,
         uint256 amount,
-        bool settleWithPermit2,
+        bool permit2,
         bytes calldata callbackData
     )
         internal
@@ -170,11 +166,11 @@ abstract contract BaseSwapRouter is SafeCallback {
         )
     {
         unchecked {
-            if (isSingleSwap) {
+            if (singleSwap) {
                 PoolKey memory key;
                 bytes memory hookData;
 
-                if (settleWithPermit2) {
+                if (permit2) {
                     (,, zeroForOne, key, hookData) =
                         abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
                 } else {
@@ -188,12 +184,12 @@ abstract contract BaseSwapRouter is SafeCallback {
                 delta = _swap(
                     key,
                     zeroForOne,
-                    isExactOutput ? amount.toInt256() : -(amount.toInt256()),
+                    exactOutput ? amount.toInt256() : -(amount.toInt256()),
                     hookData
                 );
             } else {
                 PathKey[] memory path;
-                if (settleWithPermit2) {
+                if (permit2) {
                     (,, inputCurrency, path) =
                         abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
                 } else {
@@ -206,7 +202,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 outputCurrency = path[path.length - 1].intermediateCurrency;
                 zeroForOne = inputCurrency < outputCurrency;
 
-                delta = isExactOutput
+                delta = exactOutput
                     ? _exactOutputMultiSwap(inputCurrency, path, amount)
                     : _exactInputMultiSwap(inputCurrency, path, amount);
             }

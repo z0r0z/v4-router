@@ -36,8 +36,8 @@ struct PermitPayload {
 /// @notice Template for data parsing and callback swap handling in Uniswap V4
 abstract contract BaseSwapRouter is SafeCallback {
     using TransientStateLibrary for IPoolManager;
-    using CurrencySettler for Currency;
     using SettleWithPermit2 for Currency;
+    using CurrencySettler for Currency;
     using PathKeyLibrary for PathKey;
     using SafeCast for uint256;
     using SafeCast for int256;
@@ -94,11 +94,7 @@ abstract contract BaseSwapRouter is SafeCallback {
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
             uint256 outputAmount = data.exactOutput
                 ? data.amount
-                : (
-                    inputCurrency < outputCurrency
-                        ? uint256(uint128(delta.amount1()))
-                        : uint256(uint128(delta.amount0()))
-                );
+                : (zeroForOne ? uint256(uint128(delta.amount1())) : uint256(uint128(delta.amount0())));
 
             if (
                 data.exactOutput
@@ -108,9 +104,8 @@ abstract contract BaseSwapRouter is SafeCallback {
                 revert SlippageExceeded();
             }
 
-            // For ERC6909 input, burn directly from payer
+            // For ERC6909 input, burn directly from payer...
             if (data.input6909) {
-                // The PoolManager burns directly from the payer's balance
                 poolManager.burn(data.payer, inputCurrency.toId(), inputAmount);
             } else if (data.permit2) {
                 // Handle ERC20 with permit2...

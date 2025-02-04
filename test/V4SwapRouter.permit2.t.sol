@@ -22,15 +22,13 @@ import {
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
-import {PermitSignature} from "permit2/test/utils/PermitSignature.sol";
 import {BaseData, PermitPayload} from "../src/base/BaseSwapRouter.sol";
 import "permit2/src/interfaces/IPermit2.sol";
 
-contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSignature {
+contract V4SwapRouterPermit2Test is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
     V4SwapRouter router;
-    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     Counter hook;
 
@@ -241,32 +239,5 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures, DeployPermit2, PermitSig
 
         // verify slippage: amountIn < amountInMax
         assertLt((thisBefore.inputCurrency - thisAfter.inputCurrency), amountInMax);
-    }
-
-    function getPermitTransferToSignature(
-        ISignatureTransfer.PermitTransferFrom memory permit,
-        uint256 privateKey,
-        address to
-    ) internal view returns (bytes memory sig) {
-        bytes32 tokenPermissions =
-            keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, permit.permitted));
-        bytes32 msgHash = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                permit2.DOMAIN_SEPARATOR(),
-                keccak256(
-                    abi.encode(
-                        _PERMIT_TRANSFER_FROM_TYPEHASH,
-                        tokenPermissions,
-                        to,
-                        permit.nonce,
-                        permit.deadline
-                    )
-                )
-            )
-        );
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
-        return bytes.concat(r, s, bytes1(v));
     }
 }

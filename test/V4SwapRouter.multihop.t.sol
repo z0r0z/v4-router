@@ -6,10 +6,8 @@ import {IHooks} from "@v4/src/interfaces/IHooks.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {PathKey} from "../src/libraries/PathKey.sol";
-import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
-import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
 import {ISignatureTransfer, V4SwapRouter} from "../src/V4SwapRouter.sol";
 
@@ -18,11 +16,10 @@ import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
 
-contract MultihopTest is SwapRouterFixtures, DeployPermit2 {
+contract MultihopTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
     V4SwapRouter router;
-    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     Counter hook;
 

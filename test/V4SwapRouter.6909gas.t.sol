@@ -101,7 +101,34 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         _initializePools(allPoolKeys);
         _addLiquidity(allPoolKeys, 10_000e18);
 
-        // Initial swaps to get ERC6909 balances for both tokens
+        // Initial swaps to get ERC6909 balances for both tokens / warm up pools
+
+        // First ETH>6909 swap to get 6909 balance
+        router.swap{value: INITIAL_SWAP_AMOUNT}(
+            -int256(INITIAL_SWAP_AMOUNT),
+            INITIAL_SWAP_AMOUNT * 95 / 100,
+            true, // zeroForOne
+            vanillaPoolKeys[1],
+            "",
+            address(this),
+            block.timestamp + 1,
+            false, // inputIs6909
+            true // outputIs6909
+        );
+
+        // Now we can do 6909>ETH swap in opposite direction
+        router.swap(
+            -int256(INITIAL_SWAP_AMOUNT / 2), // Use smaller amount since we only got 95% out from first swap
+            (INITIAL_SWAP_AMOUNT / 2) * 95 / 100,
+            false, // !zeroForOne - opposite direction
+            vanillaPoolKeys[1],
+            "",
+            address(this),
+            block.timestamp + 1,
+            true, // inputIs6909
+            false // outputIs6909 (getting ETH back)
+        );
+
         router.swap(
             -int256(INITIAL_SWAP_AMOUNT),
             INITIAL_SWAP_AMOUNT * 95 / 100,
@@ -136,6 +163,20 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
             "",
             address(this),
             block.timestamp + 1
+        );
+    }
+
+    function test_swapETHToERC6909() public {
+        router.swap{value: SWAP_AMOUNT}(
+            -int256(SWAP_AMOUNT),
+            MIN_OUTPUT,
+            true,
+            vanillaPoolKeys[1],
+            "",
+            address(this),
+            block.timestamp + 1,
+            false, // inputIs6909
+            true // outputIs6909
         );
     }
 

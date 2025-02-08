@@ -104,12 +104,10 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
         _addLiquidityCSMM(csmmPoolKeys, 1_000e18);
     }
 
-    function test_encoded_single_permit2_exactInput(
-        address recipient,
-        bool zeroForOne,
-        uint256 seed
-    ) public {
-        vm.assume(recipient != address(manager) && recipient != address(this));
+    function test_encoded_single_permit2_exactInput(address receiver, bool zeroForOne, uint256 seed)
+        public
+    {
+        vm.assume(receiver != address(manager) && receiver != address(this));
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
 
@@ -118,8 +116,8 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
 
         InputOutputBalances memory thisBefore =
             inputOutputBalances(alice, inputCurrency, outputCurrency);
-        InputOutputBalances memory recipientBefore =
-            inputOutputBalances(recipient, inputCurrency, outputCurrency);
+        InputOutputBalances memory receiverBefore =
+            inputOutputBalances(receiver, inputCurrency, outputCurrency);
 
         // -- SWAP --
         uint256 amountIn = 1e18;
@@ -139,7 +137,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
                 amount: amountIn,
                 amountLimit: amountOutMin,
                 payer: alice,
-                to: recipient,
+                receiver: receiver,
                 singleSwap: true,
                 exactOutput: false,
                 input6909: false,
@@ -156,32 +154,32 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
 
         InputOutputBalances memory thisAfter =
             inputOutputBalances(alice, inputCurrency, outputCurrency);
-        InputOutputBalances memory recipientAfter =
-            inputOutputBalances(recipient, inputCurrency, outputCurrency);
+        InputOutputBalances memory receiverAfter =
+            inputOutputBalances(receiver, inputCurrency, outputCurrency);
 
         // Check balances
         // test contract paid input currency
-        // recipient did not spend input currency
+        // receiver did not spend input currency
         assertEq(thisBefore.inputCurrency - thisAfter.inputCurrency, amountIn);
-        assertEq(recipientBefore.inputCurrency, recipientAfter.inputCurrency);
+        assertEq(receiverBefore.inputCurrency, receiverAfter.inputCurrency);
 
         // test contract did not receive outputCurrency
-        // recipient received outputCurrency
+        // receiver received outputCurrency
         assertEq(thisBefore.outputCurrency, thisAfter.outputCurrency);
         assertApproxEqRel(
-            recipientAfter.outputCurrency - recipientBefore.outputCurrency, amountIn, 0.01e18
+            receiverAfter.outputCurrency - receiverBefore.outputCurrency, amountIn, 0.01e18
         ); // allow 1% error
 
         // verify slippage: received > amountOutMin
-        assertGt((recipientAfter.outputCurrency - recipientBefore.outputCurrency), amountOutMin);
+        assertGt((receiverAfter.outputCurrency - receiverBefore.outputCurrency), amountOutMin);
     }
 
     function test_encoded_single_permit2_exactOutput(
-        address recipient,
+        address receiver,
         bool zeroForOne,
         uint256 seed
     ) public {
-        vm.assume(recipient != address(manager) && recipient != address(this));
+        vm.assume(receiver != address(manager) && receiver != address(this));
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
 
@@ -190,8 +188,8 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
 
         InputOutputBalances memory thisBefore =
             inputOutputBalances(alice, inputCurrency, outputCurrency);
-        InputOutputBalances memory recipientBefore =
-            inputOutputBalances(recipient, inputCurrency, outputCurrency);
+        InputOutputBalances memory receiverBefore =
+            inputOutputBalances(receiver, inputCurrency, outputCurrency);
 
         uint256 amountOut = 1e18;
         uint256 amountInMax = 1.01e18;
@@ -210,7 +208,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
                 amount: amountOut,
                 amountLimit: amountInMax,
                 payer: alice,
-                to: recipient,
+                receiver: receiver,
                 singleSwap: true,
                 exactOutput: true,
                 input6909: false,
@@ -227,19 +225,19 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
 
         InputOutputBalances memory thisAfter =
             inputOutputBalances(alice, inputCurrency, outputCurrency);
-        InputOutputBalances memory recipientAfter =
-            inputOutputBalances(recipient, inputCurrency, outputCurrency);
+        InputOutputBalances memory receiverAfter =
+            inputOutputBalances(receiver, inputCurrency, outputCurrency);
 
         // Check balances
         // test contract did not receive outputCurrency
-        // recipient received outputCurrency
+        // receiver received outputCurrency
         assertEq(thisBefore.outputCurrency, thisAfter.outputCurrency);
-        assertEq(recipientAfter.outputCurrency - recipientBefore.outputCurrency, amountOut);
+        assertEq(receiverAfter.outputCurrency - receiverBefore.outputCurrency, amountOut);
 
         // test contract paid inputCurrency
-        // recipient did not spend inputCurrency
+        // receiver did not spend inputCurrency
         assertApproxEqRel(thisBefore.inputCurrency - thisAfter.inputCurrency, amountOut, 0.01e18); // allow 1% error
-        assertEq(recipientBefore.inputCurrency, recipientAfter.inputCurrency);
+        assertEq(receiverBefore.inputCurrency, receiverAfter.inputCurrency);
 
         // verify slippage: amountIn < amountInMax
         assertLt((thisBefore.inputCurrency - thisAfter.inputCurrency), amountInMax);

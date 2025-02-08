@@ -32,7 +32,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         uint256 amountOutMin,
         Currency startCurrency,
         PathKey[] calldata path,
-        address to,
+        address receiver,
         uint256 deadline
     )
         public
@@ -48,7 +48,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountIn,
                     amountLimit: amountOutMin,
                     payer: msg.sender,
-                    to: to,
+                    receiver: receiver,
                     singleSwap: false,
                     exactOutput: false,
                     input6909: false,
@@ -67,7 +67,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         uint256 amountInMax,
         Currency startCurrency,
         PathKey[] calldata path,
-        address to,
+        address receiver,
         uint256 deadline
     )
         public
@@ -83,7 +83,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountOut,
                     amountLimit: amountInMax,
                     payer: msg.sender,
-                    to: to,
+                    receiver: receiver,
                     singleSwap: false,
                     exactOutput: true,
                     input6909: false,
@@ -102,7 +102,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         uint256 amountLimit,
         Currency startCurrency,
         PathKey[] calldata path,
-        address to,
+        address receiver,
         uint256 deadline
     )
         public
@@ -118,7 +118,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
-                    to: to,
+                    receiver: receiver,
                     singleSwap: false,
                     exactOutput: amountSpecified > 0,
                     input6909: false,
@@ -136,7 +136,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         uint256 amountLimit,
         Currency startCurrency,
         PathKey[] calldata path,
-        address to,
+        address receiver,
         uint256 deadline,
         bool input6909,
         bool output6909
@@ -147,7 +147,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
-                    to: to,
+                    receiver: receiver,
                     singleSwap: false,
                     exactOutput: amountSpecified > 0,
                     input6909: input6909,
@@ -181,7 +181,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         bool zeroForOne,
         PoolKey calldata poolKey,
         bytes calldata hookData,
-        address to,
+        address receiver,
         uint256 deadline
     )
         public
@@ -197,7 +197,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountIn,
                     amountLimit: amountOutMin,
                     payer: msg.sender,
-                    to: to,
+                    receiver: receiver,
                     singleSwap: true,
                     exactOutput: false,
                     input6909: false,
@@ -218,7 +218,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         bool zeroForOne,
         PoolKey calldata poolKey,
         bytes calldata hookData,
-        address to,
+        address receiver,
         uint256 deadline
     )
         public
@@ -234,7 +234,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountOut,
                     amountLimit: amountInMax,
                     payer: msg.sender,
-                    to: to,
+                    receiver: receiver,
                     singleSwap: true,
                     exactOutput: true,
                     input6909: false,
@@ -255,7 +255,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         bool zeroForOne,
         PoolKey calldata poolKey,
         bytes calldata hookData,
-        address to,
+        address receiver,
         uint256 deadline
     )
         public
@@ -271,7 +271,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
-                    to: to,
+                    receiver: receiver,
                     singleSwap: true,
                     exactOutput: amountSpecified > 0,
                     input6909: false,
@@ -293,7 +293,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         bool zeroForOne,
         PoolKey calldata poolKey,
         bytes calldata hookData,
-        address to,
+        address receiver,
         uint256 deadline,
         bool input6909,
         bool output6909
@@ -304,7 +304,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amount: uint256(amountSpecified < 0 ? -amountSpecified : amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
-                    to: to,
+                    receiver: receiver,
                     singleSwap: true,
                     exactOutput: amountSpecified > 0,
                     input6909: input6909,

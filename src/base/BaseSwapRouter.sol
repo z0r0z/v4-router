@@ -19,7 +19,7 @@ struct BaseData {
     uint256 amount;
     uint256 amountLimit;
     address payer;
-    address to;
+    address receiver;
     bool singleSwap;
     bool exactOutput;
     bool input6909;
@@ -107,8 +107,8 @@ abstract contract BaseSwapRouter is SafeCallback {
                 revert SlippageExceeded();
             }
 
+            // handle ERC20 with permit2...
             if (data.permit2) {
-                // handle ERC20 with permit2...
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
                 inputCurrency.settleWithPermit2(
@@ -123,7 +123,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 inputCurrency.settle(poolManager, data.payer, inputAmount, data.input6909);
             }
 
-            outputCurrency.take(poolManager, data.to, outputAmount, data.output6909);
+            outputCurrency.take(poolManager, data.receiver, outputAmount, data.output6909);
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
@@ -204,7 +204,7 @@ abstract contract BaseSwapRouter is SafeCallback {
             int256 amountSpecified = -(amount.toInt256());
             uint256 len = path.length;
 
-            // Cache first path key
+            // cache first path key
             PathKey memory pathKey = path[0];
 
             for (uint256 i; i < len;) {
@@ -214,7 +214,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 inputCurrency = pathKey.intermediateCurrency;
                 amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
 
-                // Load next path key
+                // load next path key
                 if (++i < len) pathKey = path[i];
             }
         }
@@ -231,24 +231,24 @@ abstract contract BaseSwapRouter is SafeCallback {
             int256 amountSpecified = amount.toInt256();
             uint256 len = path.length;
 
-            // Cache last path key for first iteration
+            // cache last path key for first iteration
             PathKey memory pathKey = path[len - 1];
 
-            // Handle all but the final swap
+            // handle all but the final swap
             for (uint256 i = len - 1; i != 0;) {
                 (poolKey, zeroForOne) =
                     pathKey.getPoolAndSwapDirection(path[--i].intermediateCurrency);
 
                 BalanceDelta delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
-                // Update amount for next iteration
+                // update amount for next iteration
                 amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
 
-                // Load next pathKey for next iteration
+                // load next pathKey for next iteration
                 pathKey = path[i];
             }
 
-            // Final swap
+            // final swap
             (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
             finalDelta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
         }
@@ -290,9 +290,9 @@ abstract contract BaseSwapRouter is SafeCallback {
         }
     }
 
-    function _refundETH(address to, uint256 amount) internal virtual {
+    function _refundETH(address receiver, uint256 amount) internal virtual {
         assembly ("memory-safe") {
-            if iszero(call(gas(), to, amount, codesize(), 0x00, codesize(), 0x00)) {
+            if iszero(call(gas(), receiver, amount, codesize(), 0x00, codesize(), 0x00)) {
                 mstore(0x00, 0xb12d13eb) // `ETHTransferFailed()`
                 revert(0x1c, 0x04)
             }

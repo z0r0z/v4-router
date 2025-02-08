@@ -52,7 +52,7 @@ router.swapExactTokensForTokens(
     zeroForOne,
     poolKey,
     hookData,
-    recipient,
+    receiver,
     deadline
 );
 ```
@@ -86,10 +86,9 @@ uint256 amountIn = 1e18;                 // amount of input tokens
 uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
 uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
 router.swapExactTokensForTokens(
-    amountIn, amountOutMin, startCurrency, path, recipient, deadline
+    amountIn, amountOutMin, startCurrency, path, receiver, deadline
 );
 ```
-
 
 ---
 
@@ -118,7 +117,7 @@ router.swapTokensForExactTokens(
     zeroForOne,
     poolKey,
     ZERO_BYTES,
-    recipient,
+    receiver,
     deadline
 );
 ```
@@ -152,12 +151,11 @@ uint256 amountOut = 1e18;                // amount of output tokens expected
 uint256 amountInMax = 1.01e18;           // maximum amount of input tokens, otherwise revert
 uint256 deadline = block.timestamp + 60; // deadline for the transaction to be mined
 router.swapTokensForExactTokens(
-    amountOut, amountInMax, startCurrency, path, recipient, deadline
+    amountOut, amountInMax, startCurrency, path, receiver, deadline
 );
 ```
 
 For additional usage examples, please see [test/V4SwapRouter.multihop.t.sol](/test/V4SwapRouter.multihop.t.sol)
-
 
 ## Architecture
 
@@ -196,6 +194,7 @@ The router provides three categories of swap functions:
 ## Path Construction
 
 Multi-hop swaps are defined using the `PathKey` struct:
+
 ```solidity
 struct PathKey {
     Currency intermediateCurrency;

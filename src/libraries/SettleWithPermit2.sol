@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.26;
 
 import {Currency} from "@v4/src/types/Currency.sol";
 import {IPoolManager} from "@v4/src/interfaces/IPoolManager.sol";
@@ -25,20 +25,16 @@ library SettleWithPermit2 {
         ISignatureTransfer.PermitTransferFrom memory permit,
         bytes memory signature
     ) internal {
-        if (currency.isAddressZero()) {
-            manager.settle{value: amount}();
-        } else {
-            manager.sync(currency);
-            permit2.permitTransferFrom(
-                permit,
-                ISignatureTransfer.SignatureTransferDetails({
-                    to: address(manager),
-                    requestedAmount: amount
-                }),
-                payer,
-                signature
-            );
-            manager.settle();
-        }
+        manager.sync(currency);
+        permit2.permitTransferFrom(
+            permit,
+            ISignatureTransfer.SignatureTransferDetails({
+                to: address(manager),
+                requestedAmount: amount
+            }),
+            payer,
+            signature
+        );
+        manager.settle();
     }
 }

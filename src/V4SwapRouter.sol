@@ -10,7 +10,7 @@ import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol"
 
 /// @title Uniswap V4 Swap Router
 /// @custom:dislaimer
-/// This community router code provided herein is offered on an “as-is” basis and has not been audited for security, reliability, or compliance with any specific standards or regulations.
+/// This community router code provided herein is offered on an "as-is" basis and has not been audited for security, reliability, or compliance with any specific standards or regulations.
 /// It may contain bugs, errors, or vulnerabilities that could lead to unintended consequences.
 /// By utilizing this community router, you acknowledge and agree that:
 ///
@@ -45,13 +45,15 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: false,
-                    isExactOutput: false,
                     amount: amountIn,
                     amountLimit: amountOutMin,
-                    settleWithPermit2: false
+                    payer: msg.sender,
+                    to: to,
+                    singleSwap: false,
+                    exactOutput: false,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 startCurrency,
                 path
@@ -78,13 +80,15 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: false,
-                    isExactOutput: true,
                     amount: amountOut,
                     amountLimit: amountInMax,
-                    settleWithPermit2: false
+                    payer: msg.sender,
+                    to: to,
+                    singleSwap: false,
+                    exactOutput: true,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 startCurrency,
                 path
@@ -111,13 +115,44 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: false,
-                    isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
-                    settleWithPermit2: false
+                    payer: msg.sender,
+                    to: to,
+                    singleSwap: false,
+                    exactOutput: amountSpecified > 0,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
+                }),
+                startCurrency,
+                path
+            )
+        );
+    }
+
+    function swap(
+        int256 amountSpecified,
+        uint256 amountLimit,
+        Currency startCurrency,
+        PathKey[] calldata path,
+        address to,
+        uint256 deadline,
+        bool input6909,
+        bool output6909
+    ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(
+            abi.encode(
+                BaseData({
+                    amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
+                    amountLimit: amountLimit,
+                    payer: msg.sender,
+                    to: to,
+                    singleSwap: false,
+                    exactOutput: amountSpecified > 0,
+                    input6909: input6909,
+                    output6909: output6909,
+                    permit2: false
                 }),
                 startCurrency,
                 path
@@ -159,13 +194,15 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: true,
-                    isExactOutput: false,
                     amount: amountIn,
                     amountLimit: amountOutMin,
-                    settleWithPermit2: false
+                    payer: msg.sender,
+                    to: to,
+                    singleSwap: true,
+                    exactOutput: false,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -194,13 +231,15 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: true,
-                    isExactOutput: true,
                     amount: amountOut,
                     amountLimit: amountInMax,
-                    settleWithPermit2: false
+                    payer: msg.sender,
+                    to: to,
+                    singleSwap: true,
+                    exactOutput: true,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -229,13 +268,48 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    payer: msg.sender,
-                    to: to,
-                    isSingleSwap: true,
-                    isExactOutput: amountSpecified > 0,
                     amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
                     amountLimit: amountLimit,
-                    settleWithPermit2: false
+                    payer: msg.sender,
+                    to: to,
+                    singleSwap: true,
+                    exactOutput: amountSpecified > 0,
+                    input6909: false,
+                    output6909: false,
+                    permit2: false
+                }),
+                zeroForOne,
+                poolKey,
+                hookData
+            )
+        );
+    }
+
+    /// -----------------------
+
+    function swap(
+        int256 amountSpecified,
+        uint256 amountLimit,
+        bool zeroForOne,
+        PoolKey calldata poolKey,
+        bytes calldata hookData,
+        address to,
+        uint256 deadline,
+        bool input6909,
+        bool output6909
+    ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
+        return _unlockAndDecode(
+            abi.encode(
+                BaseData({
+                    amount: uint256(amountSpecified < 0 ? -amountSpecified : amountSpecified),
+                    amountLimit: amountLimit,
+                    payer: msg.sender,
+                    to: to,
+                    singleSwap: true,
+                    exactOutput: amountSpecified > 0,
+                    input6909: input6909,
+                    output6909: output6909,
+                    permit2: false
                 }),
                 zeroForOne,
                 poolKey,
@@ -248,6 +322,19 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
 
     /// @inheritdoc IV4SwapRouter
     function swapWithPermit2(bytes calldata data, uint256 deadline)
+        public
+        payable
+        virtual
+        checkDeadline(deadline)
+        returns (BalanceDelta)
+    {
+        return _unlockAndDecode(data);
+    }
+
+    /// -----------------------
+
+    /// @inheritdoc IV4SwapRouter
+    function swapClaim(bytes calldata data, uint256 deadline)
         public
         payable
         virtual

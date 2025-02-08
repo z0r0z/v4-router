@@ -175,6 +175,29 @@ interface IV4SwapRouter {
         payable
         returns (BalanceDelta);
 
+    /// @notice Performs a generic swap using ERC6909 claim tokens
+    /// @param data Pre-encoded swap data structured as:
+    ///        For single pool swaps: abi.encode(
+    ///            BaseData,
+    ///            bool zeroForOne,
+    ///            PoolKey poolKey,
+    ///            bytes hookData
+    ///        )
+    ///        For multi-pool swaps: abi.encode(
+    ///            BaseData,
+    ///            Currency startCurrency,
+    ///            PathKey[] path
+    ///        )
+    ///        Where BaseData.is6909 must be true, and uses mint/burn instead of transfers:
+    ///        - burn from payer for input token
+    ///        - mint to recipient for output token
+    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @return Delta from the swap
+    function swapClaim(bytes calldata data, uint256 deadline)
+        external
+        payable
+        returns (BalanceDelta);
+
     /// @notice Provides calldata compression fallback
     fallback() external payable;
 }

@@ -656,13 +656,15 @@ contract GasTest is SwapRouterFixtures {
         uint256 amountOutMin = 0.99e18;
         bytes memory swapCalldata = abi.encode(
             BaseData({
-                payer: address(this),
-                to: address(this),
-                isSingleSwap: true,
-                isExactOutput: false,
                 amount: amountIn,
                 amountLimit: amountOutMin,
-                settleWithPermit2: false
+                payer: address(this),
+                to: address(this),
+                singleSwap: true,
+                exactOutput: false,
+                input6909: false,
+                output6909: false,
+                permit2: false
             }),
             zeroForOne,
             poolKey,
@@ -696,13 +698,15 @@ contract GasTest is SwapRouterFixtures {
 
         bytes memory swapCalldata = abi.encode(
             BaseData({
-                payer: alice,
-                to: alice,
-                isSingleSwap: true,
-                isExactOutput: false,
                 amount: amountIn,
                 amountLimit: amountOutMin,
-                settleWithPermit2: true
+                payer: alice,
+                to: alice,
+                singleSwap: true,
+                exactOutput: false,
+                input6909: false,
+                output6909: false,
+                permit2: true
             }),
             PermitPayload({permit: permit, signature: signature}),
             zeroForOne,

@@ -136,13 +136,15 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
 
         bytes memory swapCalldata = abi.encode(
             BaseData({
-                payer: alice,
-                to: recipient,
-                isSingleSwap: true,
-                isExactOutput: false,
                 amount: amountIn,
                 amountLimit: amountOutMin,
-                settleWithPermit2: true
+                payer: alice,
+                to: recipient,
+                singleSwap: true,
+                exactOutput: false,
+                input6909: false,
+                output6909: false,
+                permit2: true
             }),
             PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
@@ -205,13 +207,15 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
 
         bytes memory swapCalldata = abi.encode(
             BaseData({
-                payer: alice,
-                to: recipient,
-                isSingleSwap: true,
-                isExactOutput: true,
                 amount: amountOut,
                 amountLimit: amountInMax,
-                settleWithPermit2: true
+                payer: alice,
+                to: recipient,
+                singleSwap: true,
+                exactOutput: true,
+                input6909: false,
+                output6909: false,
+                permit2: true
             }),
             PermitPayload({permit: permit, signature: signature}),
             zeroForOne,

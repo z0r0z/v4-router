@@ -131,6 +131,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
     }
 
+    /// @inheritdoc IV4SwapRouter
     function swap(
         int256 amountSpecified,
         uint256 amountLimit,
@@ -158,18 +159,6 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                 path
             )
         );
-    }
-
-    /// @inheritdoc IV4SwapRouter
-    function swap(bytes calldata data, uint256 deadline)
-        public
-        payable
-        virtual
-        override(IV4SwapRouter)
-        checkDeadline(deadline)
-        returns (BalanceDelta)
-    {
-        return _unlockAndDecode(data);
     }
 
     /// -----------------------
@@ -285,8 +274,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
     }
 
-    /// -----------------------
-
+    /// @inheritdoc IV4SwapRouter
     function swap(
         int256 amountSpecified,
         uint256 amountLimit,
@@ -321,23 +309,11 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
     /// -----------------------
 
     /// @inheritdoc IV4SwapRouter
-    function swapWithPermit2(bytes calldata data, uint256 deadline)
+    function swap(bytes calldata data, uint256 deadline)
         public
         payable
         virtual
-        checkDeadline(deadline)
-        returns (BalanceDelta)
-    {
-        return _unlockAndDecode(data);
-    }
-
-    /// -----------------------
-
-    /// @inheritdoc IV4SwapRouter
-    function swapClaim(bytes calldata data, uint256 deadline)
-        public
-        payable
-        virtual
+        override(IV4SwapRouter)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {

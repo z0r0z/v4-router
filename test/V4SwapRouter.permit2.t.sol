@@ -150,7 +150,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
             ZERO_BYTES
         );
         vm.prank(alice);
-        router.swapWithPermit2(swapCalldata, uint256(block.timestamp));
+        router.swap(swapCalldata, uint256(block.timestamp));
 
         InputOutputBalances memory thisAfter =
             inputOutputBalances(alice, inputCurrency, outputCurrency);
@@ -221,7 +221,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
             ZERO_BYTES
         );
         vm.prank(alice);
-        router.swapWithPermit2(swapCalldata, uint256(block.timestamp));
+        router.swap(swapCalldata, uint256(block.timestamp));
 
         InputOutputBalances memory thisAfter =
             inputOutputBalances(alice, inputCurrency, outputCurrency);

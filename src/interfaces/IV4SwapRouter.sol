@@ -18,15 +18,15 @@ interface IV4SwapRouter {
     /// @param amountOutMin the minimum amount of output tokens that must be received for the transaction not to revert. reverts on equals to
     /// @param startCurrency the currency to start the swap from
     /// @param path the path of v4 Pools to swap through
-    /// @param to the address to send the output tokens to
+    /// @param receiver the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
+    /// @return Delta the balance changes from the swap
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
         Currency startCurrency,
         PathKey[] calldata path,
-        address to,
+        address receiver,
         uint256 deadline
     ) external payable returns (BalanceDelta);
 
@@ -35,15 +35,15 @@ interface IV4SwapRouter {
     /// @param amountInMax the maximum amount of input tokens that can be spent for the transaction not to revert. reverts on equal to
     /// @param startCurrency the currency to start the swap from
     /// @param path the path of v4 Pools to swap through
-    /// @param to the address to send the output tokens to
+    /// @param receiver the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
+    /// @return Delta the balance changes from the swap
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
         Currency startCurrency,
         PathKey[] calldata path,
-        address to,
+        address receiver,
         uint256 deadline
     ) external payable returns (BalanceDelta);
 
@@ -52,15 +52,15 @@ interface IV4SwapRouter {
     /// @param amountLimit the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps
     /// @param startCurrency the currency to start the swap from
     /// @param path the path of v4 Pools to swap through
-    /// @param to the address to send the output tokens to
+    /// @param receiver the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
+    /// @return Delta the balance changes from the swap
     function swap(
         int256 amountSpecified,
         uint256 amountLimit,
         Currency startCurrency,
         PathKey[] calldata path,
-        address to,
+        address receiver,
         uint256 deadline
     ) external payable returns (BalanceDelta);
 
@@ -72,16 +72,16 @@ interface IV4SwapRouter {
     /// @param zeroForOne the direction of the swap, true if currency0 is being swapped for currency1
     /// @param poolKey the pool to swap through
     /// @param hookData the data to be passed to the hook
-    /// @param to the address to send the output tokens to
+    /// @param receiver the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
+    /// @return Delta the balance changes from the swap
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
         bool zeroForOne,
         PoolKey memory poolKey,
         bytes calldata hookData,
-        address to,
+        address receiver,
         uint256 deadline
     ) external payable returns (BalanceDelta);
 
@@ -91,16 +91,16 @@ interface IV4SwapRouter {
     /// @param zeroForOne the direction of the swap, true if currency0 is being swapped for currency1
     /// @param poolKey the pool to swap through
     /// @param hookData the data to be passed to the hook
-    /// @param to the address to send the output tokens to
+    /// @param receiver the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
+    /// @return Delta the balance changes from the swap
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
         bool zeroForOne,
         PoolKey memory poolKey,
         bytes memory hookData,
-        address to,
+        address receiver,
         uint256 deadline
     ) external payable returns (BalanceDelta);
 
@@ -110,24 +110,70 @@ interface IV4SwapRouter {
     /// @param zeroForOne the direction of the swap, true if currency0 is being swapped for currency1
     /// @param poolKey the pool to swap through
     /// @param hookData the data to be passed to the hook
-    /// @param to the address to send the output tokens to
+    /// @param receiver the address to send the output tokens to
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
+    /// @return Delta the balance changes from the swap
     function swap(
         int256 amountSpecified,
         uint256 amountLimit,
         bool zeroForOne,
         PoolKey memory poolKey,
         bytes memory hookData,
-        address to,
+        address receiver,
         uint256 deadline
+    ) external payable returns (BalanceDelta);
+
+    /// ================ ERC6909 CLAIM SWAPS ================ ///
+
+    /// @notice Multi-pool swap function that supports ERC6909 input/output tokens
+    /// @param amountSpecified the amount of tokens to be swapped, negative for exact input swaps and positive for exact output swaps
+    /// @param amountLimit the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps
+    /// @param startCurrency the currency to start the swap from
+    /// @param path the path of v4 Pools to swap through
+    /// @param receiver the address to receive the output tokens
+    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @param input6909 true if the input token should use ERC6909 transfer mechanics
+    /// @param output6909 true if the output token should use ERC6909 transfer mechanics
+    /// @return Delta the balance changes from the swap
+    function swap(
+        int256 amountSpecified,
+        uint256 amountLimit,
+        Currency startCurrency,
+        PathKey[] calldata path,
+        address receiver,
+        uint256 deadline,
+        bool input6909,
+        bool output6909
+    ) external payable returns (BalanceDelta);
+
+    /// @notice Single-pool swap function that supports ERC6909 input/output tokens
+    /// @param amountSpecified the amount of tokens to be swapped, negative for exact input swaps and positive for exact output swaps
+    /// @param amountLimit the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps
+    /// @param zeroForOne the direction of the swap, true if currency0 is being swapped for currency1
+    /// @param poolKey the key of the pool to swap through
+    /// @param hookData the data to be passed to the pool's hooks
+    /// @param receiver the address to receive the output tokens
+    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
+    /// @param input6909 true if the input token should use ERC6909 transfer mechanics
+    /// @param output6909 true if the output token should use ERC6909 transfer mechanics
+    /// @return Delta the balance changes from the swap
+    function swap(
+        int256 amountSpecified,
+        uint256 amountLimit,
+        bool zeroForOne,
+        PoolKey calldata poolKey,
+        bytes calldata hookData,
+        address receiver,
+        uint256 deadline,
+        bool input6909,
+        bool output6909
     ) external payable returns (BalanceDelta);
 
     /// ================ OPTIMIZED ================ ///
 
     /// @notice Generic multi-pool swap function that accepts pre-encoded calldata
     /// @dev Minor optimization to reduce the number of onchain abi.encode calls
-    /// @param data Pre-encoded swap data in one of two formats:
+    /// @param data Pre-encoded swap data in one of the following formats:
     ///     1. For single-pool swaps: abi.encode(
     ///         BaseData baseData,             // struct containing swap parameters
     ///         bool zeroForOne,               // direction of swap
@@ -139,64 +185,27 @@ interface IV4SwapRouter {
     ///         Currency startCurrency,        // initial currency in the swap
     ///         PathKey[] path                 // array of path keys defining the route
     ///     )
-    ///     where BaseData contains:
-    ///         address payer                  // who pays for the swap
-    ///         address to                     // recipient of output tokens
-    ///         bool isSingleSwap              // whether this is a single or multi-pool swap
-    ///         bool isExactOutput             // whether this is an exact output swap
-    ///         uint256 amount                 // amount to swap
-    ///         uint256 amountLimit            // slippage limit
+    ///
+    ///     PERMIT 2 EXTENSION:
+    ///     1. For single pool swaps: abi.encode(
+    ///            BaseData,
+    ///            PermitPayload,
+    ///            bool zeroForOne,
+    ///            PoolKey poolKey,
+    ///            bytes hookData
+    ///        )
+    ///     2. For multi-pool swaps: abi.encode(
+    ///            BaseData,
+    ///            PermitPayload,
+    ///            Currency startCurrency,
+    ///            PathKey[] path
+    ///        )
+    ///     Where BaseData.permit2 must be true, and PermitPayload contains:
+    ///         - permit: ISignatureTransfer.PermitTransferFrom
+    ///         - signature: bytes
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
+    /// @return Delta the balance changes from the swap
     function swap(bytes calldata data, uint256 deadline) external payable returns (BalanceDelta);
-
-    /// @notice Performs a generic swap with Permit2 approval
-    /// @param data Pre-encoded swap data structured as:
-    ///        For single pool swaps: abi.encode(
-    ///            BaseData,
-    ///            PermitPayload,
-    ///            bool zeroForOne,
-    ///            PoolKey poolKey,
-    ///            bytes hookData
-    ///        )
-    ///        For multi-pool swaps: abi.encode(
-    ///            BaseData,
-    ///            PermitPayload,
-    ///            Currency startCurrency,
-    ///            PathKey[] path
-    ///        )
-    ///        Where BaseData.settleWithPermit2 must be true, and PermitPayload contains:
-    ///        - permit: ISignatureTransfer.PermitTransferFrom
-    ///        - signature: bytes
-    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
-    function swapWithPermit2(bytes calldata data, uint256 deadline)
-        external
-        payable
-        returns (BalanceDelta);
-
-    /// @notice Performs a generic swap using ERC6909 claim tokens
-    /// @param data Pre-encoded swap data structured as:
-    ///        For single pool swaps: abi.encode(
-    ///            BaseData,
-    ///            bool zeroForOne,
-    ///            PoolKey poolKey,
-    ///            bytes hookData
-    ///        )
-    ///        For multi-pool swaps: abi.encode(
-    ///            BaseData,
-    ///            Currency startCurrency,
-    ///            PathKey[] path
-    ///        )
-    ///        Where BaseData.is6909 must be true, and uses mint/burn instead of transfers:
-    ///        - burn from payer for input token
-    ///        - mint to recipient for output token
-    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta from the swap
-    function swapClaim(bytes calldata data, uint256 deadline)
-        external
-        payable
-        returns (BalanceDelta);
 
     /// @notice Provides calldata compression fallback
     fallback() external payable;

@@ -715,7 +715,7 @@ contract GasTest is SwapRouterFixtures {
         );
         uint256 deadline = block.timestamp;
         vm.prank(alice);
-        router.swapWithPermit2(swapCalldata, deadline);
+        router.swap(swapCalldata, deadline);
         vm.snapshotGasLastCall(
             _snapshotString(true, true, TokenType.ERC20, TokenType.ERC20, "encoded_permit2")
         );

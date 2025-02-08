@@ -107,10 +107,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 revert SlippageExceeded();
             }
 
-            // for ERC6909 input, burn directly from payer...
-            if (data.input6909) {
-                poolManager.burn(data.payer, inputCurrency.toId(), inputAmount);
-            } else if (data.permit2) {
+            if (data.permit2) {
                 // handle ERC20 with permit2...
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
@@ -123,16 +120,10 @@ abstract contract BaseSwapRouter is SafeCallback {
                     permitPayload.signature
                 );
             } else {
-                // handle regular ERC20...
-                inputCurrency.settle(poolManager, data.payer, inputAmount, false);
+                inputCurrency.settle(poolManager, data.payer, inputAmount, data.input6909);
             }
 
-            // for ERC6909 output, mint directly to recipient
-            if (data.output6909) {
-                poolManager.mint(data.to, outputCurrency.toId(), outputAmount);
-            } else {
-                outputCurrency.take(poolManager, data.to, outputAmount, false);
-            }
+            outputCurrency.take(poolManager, data.to, outputAmount, data.output6909);
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {

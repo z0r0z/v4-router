@@ -155,7 +155,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         );
     }
 
-    function test_swapERC20ToERC20() public {
+    function test_swap_erc20_to_erc20() public {
         router.swapExactTokensForTokens(
             SWAP_AMOUNT,
             MIN_OUTPUT,
@@ -167,7 +167,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         );
     }
 
-    function test_swapETHToERC6909() public {
+    function test_swap_eth_to_erc6909() public {
         router.swap{value: SWAP_AMOUNT}(
             -int256(SWAP_AMOUNT),
             MIN_OUTPUT,
@@ -181,7 +181,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         );
     }
 
-    function test_swapERC20ToERC6909() public {
+    function test_swap_erc20_to_erc6909() public {
         router.swap(
             -int256(SWAP_AMOUNT),
             MIN_OUTPUT,
@@ -195,7 +195,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         );
     }
 
-    function test_swapERC6909ToERC6909() public {
+    function test_swap_erc6909_to_erc6909() public {
         router.swap(
             -int256(SWAP_AMOUNT),
             MIN_OUTPUT,

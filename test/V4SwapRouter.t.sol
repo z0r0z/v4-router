@@ -92,7 +92,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         _addLiquidity(allPoolKeys, 10_000e18);
     }
 
-    function test_revertDeadlinePassed() public {
+    function test_revert_deadline_passed() public {
         vm.warp(100); // Set current timestamp
 
         vm.expectRevert(abi.encodeWithSignature("DeadlinePassed(uint256)", 99));
@@ -107,14 +107,14 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         );
     }
 
-    function test_revertZeroAmount() public {
+    function test_revert_zero_amount() public {
         vm.expectRevert(); // Should revert due to zero amount
         router.swapExactTokensForTokens(
             0, 0, true, vanillaPoolKeys[0], "", address(this), block.timestamp + 1
         );
     }
 
-    function test_revertInsufficientBalance() public {
+    function test_revert_insufficient_balance() public {
         uint256 hugeAmount = 1000 ether;
 
         vm.expectRevert(); // Should revert due to insufficient balance
@@ -123,11 +123,11 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         );
     }
 
-    function test_routerDeployGas() public {
+    function test_router_deploy_gas() public {
         router = new V4SwapRouter(manager, permit2);
     }
 
-    function test_zeroForOne() public {
+    function test_zero_for_one() public {
         // For zeroForOne, we need to approve and have balance of currency0 (AA)
         Currency currency0 = vanillaPoolKeys[0].currency0;
         currency0.mint(address(this), 1 ether);
@@ -152,7 +152,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         assertGe(balanceAfter - balanceBefore, 0.09 ether, "Insufficient output amount");
     }
 
-    function test_oneForZero() public {
+    function test_one_for_zero() public {
         // For oneForZero, we need to approve and have balance of currency1 (BB)
         Currency currency1 = vanillaPoolKeys[0].currency1;
         currency1.mint(address(this), 1 ether);
@@ -177,7 +177,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         assertGe(balanceAfter - balanceBefore, 0.09 ether, "Insufficient output amount");
     }
 
-    function test_revertSlippageExceededExactInput() public {
+    function test_revert_slippage_exceeded_exact_input() public {
         // Setup: Mint and approve tokens
         Currency currency0 = vanillaPoolKeys[0].currency0;
         currency0.mint(address(this), 1 ether);
@@ -198,7 +198,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         );
     }
 
-    function test_revertSlippageExceededExactOutput() public {
+    function test_revert_slippage_exceeded_exact_output() public {
         // Setup: Mint and approve tokens
         Currency currency0 = vanillaPoolKeys[0].currency0;
         currency0.mint(address(this), 1 ether);
@@ -219,7 +219,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         );
     }
 
-    function test_singleSwap20To6909() public {
+    function test_single_swap_erc20_to_erc6909() public {
         Currency currency0 = vanillaPoolKeys[0].currency0;
         Currency currency1 = vanillaPoolKeys[0].currency1;
 
@@ -265,7 +265,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         assertGe(finalERC6909Balance, 0.095 ether, "Minimum output amount not met");
     }
 
-    function test_chainedSwaps6909() public {
+    function test_chained_swaps_erc6909() public {
         Currency currency0 = vanillaPoolKeys[0].currency0;
         Currency currency1 = vanillaPoolKeys[0].currency1;
 
@@ -322,7 +322,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         assertLt(finalERC6909Balance1, midERC6909Balance1, "Currency1 balance should decrease");
     }
 
-    function test_chainedSwaps6909ToERC20() public {
+    function test_chained_swaps_erc6909_to_erc20() public {
         Currency currency0 = vanillaPoolKeys[0].currency0;
         Currency currency1 = vanillaPoolKeys[0].currency1;
 

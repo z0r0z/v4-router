@@ -12,8 +12,6 @@ import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
-import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
-
 import {IPoolManager, ISignatureTransfer, BaseData, V4SwapRouter} from "../src/V4SwapRouter.sol";
 
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
@@ -35,7 +33,6 @@ contract RouterTest is SwapRouterFixtures {
     function setUp() public payable {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
-        DeployPermit2.deployPermit2();
         router = new V4SwapRouter(manager, permit2);
 
         // Create currencies
@@ -174,7 +171,7 @@ contract RouterTest is SwapRouterFixtures {
         assertGe(balanceAfter - balanceBefore, 0.09 ether, "Insufficient output amount");
     }
 
-    function test_revert_slippage_exceeded_exact_input() public {
+    function test_revert_slippage_exceeded_exactInput() public {
         // Setup: Mint and approve tokens
         Currency currency0 = vanillaPoolKeys[0].currency0;
         currency0.mint(address(this), 1 ether);
@@ -195,7 +192,7 @@ contract RouterTest is SwapRouterFixtures {
         );
     }
 
-    function test_revert_slippage_exceeded_exact_output() public {
+    function test_revert_slippage_exceeded_exactOutput() public {
         // Setup: Mint and approve tokens
         Currency currency0 = vanillaPoolKeys[0].currency0;
         currency0.mint(address(this), 1 ether);

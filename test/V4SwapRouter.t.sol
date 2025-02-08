@@ -19,13 +19,10 @@ import {IPoolManager, ISignatureTransfer, BaseData, V4SwapRouter} from "../src/V
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 
-import {console} from "forge-std/console.sol";
-
-contract RouterTest is SwapRouterFixtures, DeployPermit2 {
+contract RouterTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
     V4SwapRouter router;
-    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     Counter hook;
     CustomCurveHook hookCsmm;

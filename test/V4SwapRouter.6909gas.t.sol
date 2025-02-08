@@ -5,6 +5,7 @@ import {Hooks} from "@v4/src/libraries/Hooks.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
+import {IERC6909Claims} from "@v4/src/interfaces/external/IERC6909Claims.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
 import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
@@ -63,7 +64,7 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
         // Additional approvals for router
         currencyA.maxApprove(address(router));
         currencyB.maxApprove(address(router));
-        IERC6909(address(manager)).setOperator(address(router), true);
+        IERC6909Claims(address(manager)).setOperator(address(router), true);
 
         // Deploy hooks [hook deployment code remains the same]
         address flags = address(
@@ -207,8 +208,4 @@ contract RouterTest is SwapRouterFixtures, DeployPermit2 {
             true // outputIs6909
         );
     }
-}
-
-interface IERC6909 {
-    function setOperator(address, bool) external;
 }

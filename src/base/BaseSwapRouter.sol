@@ -20,11 +20,27 @@ struct BaseData {
     uint256 amountLimit;
     address payer;
     address receiver;
-    bool singleSwap;
-    bool exactOutput;
-    bool input6909;
-    bool output6909;
-    bool permit2;
+    uint8 flags; // Packed booleans
+}
+
+library SwapFlags {
+    uint8 constant SINGLE_SWAP = 1 << 0; // 0b00001
+    uint8 constant EXACT_OUTPUT = 1 << 1; // 0b00010
+    uint8 constant INPUT_6909 = 1 << 2; // 0b00100
+    uint8 constant OUTPUT_6909 = 1 << 3; // 0b01000
+    uint8 constant PERMIT2 = 1 << 4; // 0b10000
+
+    function unpackFlags(uint8 flags)
+        internal
+        pure
+        returns (bool singleSwap, bool exactOutput, bool input6909, bool output6909, bool permit2)
+    {
+        singleSwap = flags & SINGLE_SWAP != 0;
+        exactOutput = flags & EXACT_OUTPUT != 0;
+        input6909 = flags & INPUT_6909 != 0;
+        output6909 = flags & OUTPUT_6909 != 0;
+        permit2 = flags & PERMIT2 != 0;
+    }
 }
 
 struct PermitPayload {
@@ -86,12 +102,15 @@ abstract contract BaseSwapRouter is SafeCallback {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
 
-            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) = _parseAndSwap(
-                data.singleSwap, data.exactOutput, data.amount, data.permit2, callbackData
-            );
+            // Unpack flags
+            (bool singleSwap, bool exactOutput, bool input6909, bool output6909, bool _permit2) =
+                SwapFlags.unpackFlags(data.flags);
+
+            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
+                _parseAndSwap(singleSwap, exactOutput, data.amount, _permit2, callbackData);
 
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
-            uint256 outputAmount = data.exactOutput
+            uint256 outputAmount = exactOutput
                 ? data.amount
                 : (
                     inputCurrency < outputCurrency
@@ -99,16 +118,12 @@ abstract contract BaseSwapRouter is SafeCallback {
                         : uint256(uint128(delta.amount0()))
                 );
 
-            if (
-                data.exactOutput
-                    ? inputAmount >= data.amountLimit
-                    : outputAmount <= data.amountLimit
-            ) {
+            if (exactOutput ? inputAmount >= data.amountLimit : outputAmount <= data.amountLimit) {
                 revert SlippageExceeded();
             }
 
             // handle ERC20 with permit2...
-            if (data.permit2) {
+            if (_permit2) {
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
                 inputCurrency.settleWithPermit2(
@@ -120,14 +135,14 @@ abstract contract BaseSwapRouter is SafeCallback {
                     permitPayload.signature
                 );
             } else {
-                inputCurrency.settle(poolManager, data.payer, inputAmount, data.input6909);
+                inputCurrency.settle(poolManager, data.payer, inputAmount, input6909);
             }
 
-            outputCurrency.take(poolManager, data.receiver, outputAmount, data.output6909);
+            outputCurrency.take(poolManager, data.receiver, outputAmount, output6909);
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-                if (data.exactOutput) {
+                if (exactOutput) {
                     if ((outputAmount = address(this).balance) != 0) {
                         _refundETH(data.payer, outputAmount);
                     }

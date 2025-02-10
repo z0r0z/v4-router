@@ -5,8 +5,8 @@ import {
     PathKey, PoolKey, Currency, BalanceDelta, IV4SwapRouter
 } from "./interfaces/IV4SwapRouter.sol";
 import {LibZip} from "@solady/src/utils/LibZip.sol";
-import {IPoolManager, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
 import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPoolManager, BaseData, BaseSwapRouter, SwapFlags} from "./base/BaseSwapRouter.sol";
 
 /// @title Uniswap V4 Swap Router
 /// @custom:dislaimer
@@ -49,11 +49,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amountLimit: amountOutMin,
                     payer: msg.sender,
                     receiver: receiver,
-                    singleSwap: false,
-                    exactOutput: false,
-                    input6909: false,
-                    output6909: false,
-                    permit2: false
+                    flags: 0 // all flags false
                 }),
                 startCurrency,
                 path
@@ -84,11 +80,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amountLimit: amountInMax,
                     payer: msg.sender,
                     receiver: receiver,
-                    singleSwap: false,
-                    exactOutput: true,
-                    input6909: false,
-                    output6909: false,
-                    permit2: false
+                    flags: SwapFlags.EXACT_OUTPUT // only exactOutput is true
                 }),
                 startCurrency,
                 path
@@ -119,19 +111,13 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amountLimit: amountLimit,
                     payer: msg.sender,
                     receiver: receiver,
-                    singleSwap: false,
-                    exactOutput: amountSpecified > 0,
-                    input6909: false,
-                    output6909: false,
-                    permit2: false
+                    flags: amountSpecified > 0 ? SwapFlags.EXACT_OUTPUT : 0
                 }),
                 startCurrency,
                 path
             )
         );
     }
-
-    /// -----------------------
 
     /// @inheritdoc IV4SwapRouter
     function swapExactTokensForTokens(
@@ -157,11 +143,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amountLimit: amountOutMin,
                     payer: msg.sender,
                     receiver: receiver,
-                    singleSwap: true,
-                    exactOutput: false,
-                    input6909: false,
-                    output6909: false,
-                    permit2: false
+                    flags: SwapFlags.SINGLE_SWAP // only singleSwap is true
                 }),
                 zeroForOne,
                 poolKey,
@@ -194,11 +176,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amountLimit: amountInMax,
                     payer: msg.sender,
                     receiver: receiver,
-                    singleSwap: true,
-                    exactOutput: true,
-                    input6909: false,
-                    output6909: false,
-                    permit2: false
+                    flags: SwapFlags.SINGLE_SWAP | SwapFlags.EXACT_OUTPUT // both singleSwap and exactOutput are true
                 }),
                 zeroForOne,
                 poolKey,
@@ -231,11 +209,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     amountLimit: amountLimit,
                     payer: msg.sender,
                     receiver: receiver,
-                    singleSwap: true,
-                    exactOutput: amountSpecified > 0,
-                    input6909: false,
-                    output6909: false,
-                    permit2: false
+                    flags: SwapFlags.SINGLE_SWAP | (amountSpecified > 0 ? SwapFlags.EXACT_OUTPUT : 0)
                 }),
                 zeroForOne,
                 poolKey,

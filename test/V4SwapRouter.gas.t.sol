@@ -11,11 +11,12 @@ import {Counter} from "@v4-template/src/Counter.sol";
 
 import {ISignatureTransfer, V4SwapRouter} from "../src/V4SwapRouter.sol";
 
-import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
-import {BaseData, PermitPayload} from "../src/base/BaseSwapRouter.sol";
+
+import {BaseData, PermitPayload, SwapFlags} from "../src/base/BaseSwapRouter.sol";
+import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapRouterFixtures.sol";
 
 // Enum for snapshot string
 enum TokenType {
@@ -660,11 +661,7 @@ contract GasTest is SwapRouterFixtures {
                 amountLimit: amountOutMin,
                 payer: address(this),
                 receiver: address(this),
-                singleSwap: true,
-                exactOutput: false,
-                input6909: false,
-                output6909: false,
-                permit2: false
+                flags: SwapFlags.SINGLE_SWAP // Only singleSwap is true, rest are false
             }),
             zeroForOne,
             poolKey,
@@ -702,11 +699,7 @@ contract GasTest is SwapRouterFixtures {
                 amountLimit: amountOutMin,
                 payer: alice,
                 receiver: alice,
-                singleSwap: true,
-                exactOutput: false,
-                input6909: false,
-                output6909: false,
-                permit2: true
+                flags: SwapFlags.SINGLE_SWAP | SwapFlags.PERMIT2 // Both singleSwap and permit2 are true
             }),
             PermitPayload({permit: permit, signature: signature}),
             zeroForOne,

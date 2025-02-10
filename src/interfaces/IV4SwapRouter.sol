@@ -140,7 +140,12 @@ interface IV4SwapRouter {
     ///         PathKey[] path                 // array of path keys defining the route
     ///     )
     ///
-    ///     PERMIT 2 EXTENSION:
+    ///     ERC6909 EXTENSION:
+    ///     For both single and multi-pool swaps, BaseData flags can specify:
+    ///         - input6909: true if input token follows ERC6909 standard
+    ///         - output6909: true if output token follows ERC6909 standard
+    ///
+    ///     PERMIT2 EXTENSION:
     ///     1. For single pool swaps: abi.encode(
     ///            BaseData,
     ///            PermitPayload,

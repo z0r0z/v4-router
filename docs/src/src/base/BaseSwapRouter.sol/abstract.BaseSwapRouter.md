@@ -1,5 +1,5 @@
 # BaseSwapRouter
-[Git Source](https://github.com/z0r0z/v4-router/blob/9825503402f4ebdeecdea34d1747e68d7f05f281/src/base/BaseSwapRouter.sol)
+[Git Source](https://github.com/z0r0z/v4-router/blob/3ca8e002a9f3fc72b979853144fa3c49aa37eb54/src/base/BaseSwapRouter.sol)
 
 **Inherits:**
 SafeCallback
@@ -8,6 +8,13 @@ Template for data parsing and callback swap handling in Uniswap V4
 
 
 ## State Variables
+### permit2
+
+```solidity
+ISignatureTransfer public immutable permit2;
+```
+
+
 ### MIN
 ========================= CONSTANTS ========================= ///
 
@@ -35,7 +42,7 @@ uint160 internal constant MAX = TickMath.MAX_SQRT_PRICE - 1;
 
 
 ```solidity
-constructor(IPoolManager manager) SafeCallback(manager);
+constructor(IPoolManager manager, ISignatureTransfer _permit2) SafeCallback(manager);
 ```
 
 ### _unlockCallback
@@ -59,6 +66,7 @@ function _parseAndSwap(
     bool isSingleSwap,
     bool isExactOutput,
     uint256 amount,
+    bool settleWithPermit2,
     bytes calldata callbackData
 ) internal virtual returns (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta);
 ```
@@ -120,7 +128,7 @@ receive() external payable virtual;
 
 
 ```solidity
-function _refundETH(address to, uint256 amount) internal virtual;
+function _refundETH(address receiver, uint256 amount) internal virtual;
 ```
 
 ## Errors

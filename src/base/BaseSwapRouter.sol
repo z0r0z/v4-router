@@ -1,46 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {SwapFlags} from "../libraries/SwapFlags.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
-import {CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
+import {IPoolManager, SafeCallback} from "@v4-periphery/src/base/SafeCallback.sol";
 import {
-    Currency,
-    IPoolManager,
-    SettleWithPermit2,
-    ISignatureTransfer
-} from "../libraries/SettleWithPermit2.sol";
+    Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
+} from "../libraries/PathKey.sol";
 
 struct BaseData {
     uint256 amount;
     uint256 amountLimit;
     address payer;
     address receiver;
-    uint8 flags; // Packed booleans
-}
-
-library SwapFlags {
-    uint8 constant SINGLE_SWAP = 1 << 0; // 0b00001
-    uint8 constant EXACT_OUTPUT = 1 << 1; // 0b00010
-    uint8 constant INPUT_6909 = 1 << 2; // 0b00100
-    uint8 constant OUTPUT_6909 = 1 << 3; // 0b01000
-    uint8 constant PERMIT2 = 1 << 4; // 0b10000
-
-    function unpackFlags(uint8 flags)
-        internal
-        pure
-        returns (bool singleSwap, bool exactOutput, bool input6909, bool output6909, bool permit2)
-    {
-        singleSwap = flags & SINGLE_SWAP != 0;
-        exactOutput = flags & EXACT_OUTPUT != 0;
-        input6909 = flags & INPUT_6909 != 0;
-        output6909 = flags & OUTPUT_6909 != 0;
-        permit2 = flags & PERMIT2 != 0;
-    }
+    uint8 flags;
 }
 
 struct PermitPayload {
@@ -52,7 +30,6 @@ struct PermitPayload {
 /// @notice Template for data parsing and callback swap handling in Uniswap V4
 abstract contract BaseSwapRouter is SafeCallback {
     using TransientStateLibrary for IPoolManager;
-    using SettleWithPermit2 for Currency;
     using CurrencySettler for Currency;
     using PathKeyLibrary for PathKey;
     using SafeCast for uint256;
@@ -102,7 +79,6 @@ abstract contract BaseSwapRouter is SafeCallback {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
 
-            // Unpack flags
             (bool singleSwap, bool exactOutput, bool input6909, bool output6909, bool _permit2) =
                 SwapFlags.unpackFlags(data.flags);
 
@@ -126,14 +102,17 @@ abstract contract BaseSwapRouter is SafeCallback {
             if (_permit2) {
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
-                inputCurrency.settleWithPermit2(
-                    poolManager,
-                    permit2,
-                    data.payer,
-                    inputAmount,
+                poolManager.sync(inputCurrency);
+                permit2.permitTransferFrom(
                     permitPayload.permit,
+                    ISignatureTransfer.SignatureTransferDetails({
+                        to: address(poolManager),
+                        requestedAmount: inputAmount
+                    }),
+                    data.payer,
                     permitPayload.signature
                 );
+                poolManager.settle();
             } else {
                 inputCurrency.settle(poolManager, data.payer, inputAmount, input6909);
             }

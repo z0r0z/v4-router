@@ -1,5 +1,5 @@
 # IV4SwapRouter
-[Git Source](https://github.com/z0r0z/v4-router/blob/9825503402f4ebdeecdea34d1747e68d7f05f281/src/interfaces/IV4SwapRouter.sol)
+[Git Source](https://github.com/z0r0z/v4-router/blob/3ca8e002a9f3fc72b979853144fa3c49aa37eb54/src/interfaces/IV4SwapRouter.sol)
 
 A simple, stateless router for execution of swaps against Uniswap v4 Pools
 
@@ -20,7 +20,7 @@ function swapExactTokensForTokens(
     uint256 amountOutMin,
     Currency startCurrency,
     PathKey[] calldata path,
-    address to,
+    address receiver,
     uint256 deadline
 ) external payable returns (BalanceDelta);
 ```
@@ -32,8 +32,14 @@ function swapExactTokensForTokens(
 |`amountOutMin`|`uint256`|the minimum amount of output tokens that must be received for the transaction not to revert. reverts on equals to|
 |`startCurrency`|`Currency`|the currency to start the swap from|
 |`path`|`PathKey[]`|the path of v4 Pools to swap through|
-|`to`|`address`|the address to send the output tokens to|
+|`receiver`|`address`|the address to send the output tokens to|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`BalanceDelta`|Delta the balance changes from the swap|
 
 
 ### swapTokensForExactTokens
@@ -47,7 +53,7 @@ function swapTokensForExactTokens(
     uint256 amountInMax,
     Currency startCurrency,
     PathKey[] calldata path,
-    address to,
+    address receiver,
     uint256 deadline
 ) external payable returns (BalanceDelta);
 ```
@@ -59,8 +65,14 @@ function swapTokensForExactTokens(
 |`amountInMax`|`uint256`|the maximum amount of input tokens that can be spent for the transaction not to revert. reverts on equal to|
 |`startCurrency`|`Currency`|the currency to start the swap from|
 |`path`|`PathKey[]`|the path of v4 Pools to swap through|
-|`to`|`address`|the address to send the output tokens to|
+|`receiver`|`address`|the address to send the output tokens to|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`BalanceDelta`|Delta the balance changes from the swap|
 
 
 ### swap
@@ -74,7 +86,7 @@ function swap(
     uint256 amountLimit,
     Currency startCurrency,
     PathKey[] calldata path,
-    address to,
+    address receiver,
     uint256 deadline
 ) external payable returns (BalanceDelta);
 ```
@@ -86,8 +98,14 @@ function swap(
 |`amountLimit`|`uint256`|the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps|
 |`startCurrency`|`Currency`|the currency to start the swap from|
 |`path`|`PathKey[]`|the path of v4 Pools to swap through|
-|`to`|`address`|the address to send the output tokens to|
+|`receiver`|`address`|the address to send the output tokens to|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`BalanceDelta`|Delta the balance changes from the swap|
 
 
 ### swapExactTokensForTokens
@@ -104,7 +122,7 @@ function swapExactTokensForTokens(
     bool zeroForOne,
     PoolKey memory poolKey,
     bytes calldata hookData,
-    address to,
+    address receiver,
     uint256 deadline
 ) external payable returns (BalanceDelta);
 ```
@@ -117,8 +135,14 @@ function swapExactTokensForTokens(
 |`zeroForOne`|`bool`|the direction of the swap, true if currency0 is being swapped for currency1|
 |`poolKey`|`PoolKey`|the pool to swap through|
 |`hookData`|`bytes`|the data to be passed to the hook|
-|`to`|`address`|the address to send the output tokens to|
+|`receiver`|`address`|the address to send the output tokens to|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`BalanceDelta`|Delta the balance changes from the swap|
 
 
 ### swapTokensForExactTokens
@@ -133,7 +157,7 @@ function swapTokensForExactTokens(
     bool zeroForOne,
     PoolKey memory poolKey,
     bytes memory hookData,
-    address to,
+    address receiver,
     uint256 deadline
 ) external payable returns (BalanceDelta);
 ```
@@ -146,8 +170,14 @@ function swapTokensForExactTokens(
 |`zeroForOne`|`bool`|the direction of the swap, true if currency0 is being swapped for currency1|
 |`poolKey`|`PoolKey`|the pool to swap through|
 |`hookData`|`bytes`|the data to be passed to the hook|
-|`to`|`address`|the address to send the output tokens to|
+|`receiver`|`address`|the address to send the output tokens to|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`BalanceDelta`|Delta the balance changes from the swap|
 
 
 ### swap
@@ -162,7 +192,7 @@ function swap(
     bool zeroForOne,
     PoolKey memory poolKey,
     bytes memory hookData,
-    address to,
+    address receiver,
     uint256 deadline
 ) external payable returns (BalanceDelta);
 ```
@@ -175,8 +205,14 @@ function swap(
 |`zeroForOne`|`bool`|the direction of the swap, true if currency0 is being swapped for currency1|
 |`poolKey`|`PoolKey`|the pool to swap through|
 |`hookData`|`bytes`|the data to be passed to the hook|
-|`to`|`address`|the address to send the output tokens to|
+|`receiver`|`address`|the address to send the output tokens to|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
+
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`BalanceDelta`|Delta the balance changes from the swap|
 
 
 ### swap
@@ -195,7 +231,22 @@ function swap(bytes calldata data, uint256 deadline) external payable returns (B
 
 |Name|Type|Description|
 |----|----|-----------|
-|`data`|`bytes`|Pre-encoded swap data in one of two formats: 1. For single-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters bool zeroForOne,               // direction of swap PoolKey poolKey,               // key of the pool to swap through bytes hookData                 // data to pass to hooks ) 2. For multi-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters Currency startCurrency,        // initial currency in the swap PathKey[] path                 // array of path keys defining the route ) where BaseData contains: address payer                  // who pays for the swap address to                     // recipient of output tokens bool isSingleSwap              // whether this is a single or multi-pool swap bool isExactOutput             // whether this is an exact output swap uint256 amount                 // amount to swap uint256 amountLimit            // slippage limit|
+|`data`|`bytes`|Pre-encoded swap data in one of the following formats: 1. For single-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters bool zeroForOne,               // direction of swap PoolKey poolKey,               // key of the pool to swap through bytes hookData                 // data to pass to hooks ) 2. For multi-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters Currency startCurrency,        // initial currency in the swap PathKey[] path                 // array of path keys defining the route ) ERC6909 EXTENSION: For both single and multi-pool swaps, BaseData flags can specify: - input6909: true if input token follows ERC6909 standard - output6909: true if output token follows ERC6909 standard PERMIT2 EXTENSION: 1. For single pool swaps: abi.encode( BaseData, PermitPayload, bool zeroForOne, PoolKey poolKey, bytes hookData ) 2. For multi-pool swaps: abi.encode( BaseData, PermitPayload, Currency startCurrency, PathKey[] path ) Where BaseData.permit2 must be true, and PermitPayload contains: - permit: ISignatureTransfer.PermitTransferFrom - signature: bytes|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
 
+**Returns**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`<none>`|`BalanceDelta`|Delta the balance changes from the swap|
+
+
+### fallback
+
+Provides calldata compression fallback
+
+
+```solidity
+fallback() external payable;
+```
 

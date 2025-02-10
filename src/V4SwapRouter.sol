@@ -131,36 +131,6 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
     }
 
-    /// @inheritdoc IV4SwapRouter
-    function swap(
-        int256 amountSpecified,
-        uint256 amountLimit,
-        Currency startCurrency,
-        PathKey[] calldata path,
-        address receiver,
-        uint256 deadline,
-        bool input6909,
-        bool output6909
-    ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
-        return _unlockAndDecode(
-            abi.encode(
-                BaseData({
-                    amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
-                    amountLimit: amountLimit,
-                    payer: msg.sender,
-                    receiver: receiver,
-                    singleSwap: false,
-                    exactOutput: amountSpecified > 0,
-                    input6909: input6909,
-                    output6909: output6909,
-                    permit2: false
-                }),
-                startCurrency,
-                path
-            )
-        );
-    }
-
     /// -----------------------
 
     /// @inheritdoc IV4SwapRouter
@@ -265,38 +235,6 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
                     exactOutput: amountSpecified > 0,
                     input6909: false,
                     output6909: false,
-                    permit2: false
-                }),
-                zeroForOne,
-                poolKey,
-                hookData
-            )
-        );
-    }
-
-    /// @inheritdoc IV4SwapRouter
-    function swap(
-        int256 amountSpecified,
-        uint256 amountLimit,
-        bool zeroForOne,
-        PoolKey calldata poolKey,
-        bytes calldata hookData,
-        address receiver,
-        uint256 deadline,
-        bool input6909,
-        bool output6909
-    ) public payable virtual checkDeadline(deadline) returns (BalanceDelta) {
-        return _unlockAndDecode(
-            abi.encode(
-                BaseData({
-                    amount: uint256(amountSpecified < 0 ? -amountSpecified : amountSpecified),
-                    amountLimit: amountLimit,
-                    payer: msg.sender,
-                    receiver: receiver,
-                    singleSwap: true,
-                    exactOutput: amountSpecified > 0,
-                    input6909: input6909,
-                    output6909: output6909,
                     permit2: false
                 }),
                 zeroForOne,

@@ -1,30 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
+import {SwapFlags} from "../libraries/SwapFlags.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
+import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
-import {CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary} from "../libraries/PathKey.sol";
+import {IPoolManager, SafeCallback} from "@v4-periphery/src/base/SafeCallback.sol";
 import {
-    Currency,
-    IPoolManager,
-    SettleWithPermit2,
-    ISignatureTransfer
-} from "../libraries/SettleWithPermit2.sol";
+    Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
+} from "../libraries/PathKey.sol";
 
 struct BaseData {
     uint256 amount;
     uint256 amountLimit;
     address payer;
     address receiver;
-    bool singleSwap;
-    bool exactOutput;
-    bool input6909;
-    bool output6909;
-    bool permit2;
+    uint8 flags;
 }
 
 struct PermitPayload {
@@ -36,7 +30,6 @@ struct PermitPayload {
 /// @notice Template for data parsing and callback swap handling in Uniswap V4
 abstract contract BaseSwapRouter is SafeCallback {
     using TransientStateLibrary for IPoolManager;
-    using SettleWithPermit2 for Currency;
     using CurrencySettler for Currency;
     using PathKeyLibrary for PathKey;
     using SafeCast for uint256;
@@ -86,12 +79,14 @@ abstract contract BaseSwapRouter is SafeCallback {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
 
-            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) = _parseAndSwap(
-                data.singleSwap, data.exactOutput, data.amount, data.permit2, callbackData
-            );
+            (bool singleSwap, bool exactOutput, bool input6909, bool output6909, bool _permit2) =
+                SwapFlags.unpackFlags(data.flags);
+
+            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
+                _parseAndSwap(singleSwap, exactOutput, data.amount, _permit2, callbackData);
 
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
-            uint256 outputAmount = data.exactOutput
+            uint256 outputAmount = exactOutput
                 ? data.amount
                 : (
                     inputCurrency < outputCurrency
@@ -99,35 +94,34 @@ abstract contract BaseSwapRouter is SafeCallback {
                         : uint256(uint128(delta.amount0()))
                 );
 
-            if (
-                data.exactOutput
-                    ? inputAmount >= data.amountLimit
-                    : outputAmount <= data.amountLimit
-            ) {
+            if (exactOutput ? inputAmount >= data.amountLimit : outputAmount <= data.amountLimit) {
                 revert SlippageExceeded();
             }
 
             // handle ERC20 with permit2...
-            if (data.permit2) {
+            if (_permit2) {
                 (, PermitPayload memory permitPayload) =
                     abi.decode(callbackData, (BaseData, PermitPayload));
-                inputCurrency.settleWithPermit2(
-                    poolManager,
-                    permit2,
-                    data.payer,
-                    inputAmount,
+                poolManager.sync(inputCurrency);
+                permit2.permitTransferFrom(
                     permitPayload.permit,
+                    ISignatureTransfer.SignatureTransferDetails({
+                        to: address(poolManager),
+                        requestedAmount: inputAmount
+                    }),
+                    data.payer,
                     permitPayload.signature
                 );
+                poolManager.settle();
             } else {
-                inputCurrency.settle(poolManager, data.payer, inputAmount, data.input6909);
+                inputCurrency.settle(poolManager, data.payer, inputAmount, input6909);
             }
 
-            outputCurrency.take(poolManager, data.receiver, outputAmount, data.output6909);
+            outputCurrency.take(poolManager, data.receiver, outputAmount, output6909);
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-                if (data.exactOutput) {
+                if (exactOutput) {
                     if ((outputAmount = address(this).balance) != 0) {
                         _refundETH(data.payer, outputAmount);
                     }

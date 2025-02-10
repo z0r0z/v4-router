@@ -12,7 +12,13 @@ import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
-import {IPoolManager, ISignatureTransfer, BaseData, V4SwapRouter} from "../src/V4SwapRouter.sol";
+import {
+    IPoolManager,
+    ISignatureTransfer,
+    BaseData,
+    V4SwapRouter,
+    SwapFlags
+} from "../src/V4SwapRouter.sol";
 
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
@@ -62,7 +68,7 @@ contract Router6909Test is SwapRouterFixtures {
         currencyB.maxApprove(address(router));
         IERC6909Claims(address(manager)).setOperator(address(router), true);
 
-        // Deploy hooks [hook deployment code remains the same]
+        // Deploy hooks
         address flags = address(
             uint160(
                 Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG | Hooks.BEFORE_ADD_LIQUIDITY_FLAG
@@ -80,7 +86,7 @@ contract Router6909Test is SwapRouterFixtures {
         deployCodeTo("CustomCurveHook.sol:CustomCurveHook", csmmConstructorArgs, csmmFlags);
         hookCsmm = CustomCurveHook(csmmFlags);
 
-        // Pool setup [remains the same]
+        // Pool setup
         PoolKey[] memory _vanillaPoolKeys = _createPoolKeys(address(0));
         _copyArrayToStorage(_vanillaPoolKeys, vanillaPoolKeys);
 
@@ -99,56 +105,66 @@ contract Router6909Test is SwapRouterFixtures {
         _addLiquidity(allPoolKeys, 10_000e18);
 
         // Initial swaps to get ERC6909 balances for both tokens / warm up pools
-
-        // First ETH>6909 swap to get 6909 balance
-        router.swap{value: INITIAL_SWAP_AMOUNT}(
-            -int256(INITIAL_SWAP_AMOUNT),
-            INITIAL_SWAP_AMOUNT * 95 / 100,
+        uint8 flags1 = SwapFlags.SINGLE_SWAP | SwapFlags.OUTPUT_6909;
+        bytes memory swapData = abi.encode(
+            BaseData({
+                amount: INITIAL_SWAP_AMOUNT,
+                amountLimit: INITIAL_SWAP_AMOUNT * 95 / 100,
+                payer: address(this),
+                receiver: address(this),
+                flags: flags1
+            }),
             true, // zeroForOne
             vanillaPoolKeys[1],
-            "",
-            address(this),
-            block.timestamp + 1,
-            false, // inputIs6909
-            true // outputIs6909
+            "" // hookData
         );
+        router.swap{value: INITIAL_SWAP_AMOUNT}(swapData, block.timestamp + 1);
 
-        // Now we can do 6909>ETH swap in opposite direction
-        router.swap(
-            -int256(INITIAL_SWAP_AMOUNT / 2), // Use smaller amount since we only got 95% out from first swap
-            (INITIAL_SWAP_AMOUNT / 2) * 95 / 100,
-            false, // !zeroForOne - opposite direction
+        // Opposite direction swap
+        uint8 flags2 = SwapFlags.SINGLE_SWAP | SwapFlags.INPUT_6909;
+        swapData = abi.encode(
+            BaseData({
+                amount: INITIAL_SWAP_AMOUNT / 2,
+                amountLimit: (INITIAL_SWAP_AMOUNT / 2) * 95 / 100,
+                payer: address(this),
+                receiver: address(this),
+                flags: flags2
+            }),
+            false, // !zeroForOne
             vanillaPoolKeys[1],
-            "",
-            address(this),
-            block.timestamp + 1,
-            true, // inputIs6909
-            false // outputIs6909 (getting ETH back)
+            "" // hookData
         );
+        router.swap(swapData, block.timestamp + 1);
 
-        router.swap(
-            -int256(INITIAL_SWAP_AMOUNT),
-            INITIAL_SWAP_AMOUNT * 95 / 100,
+        // Additional warmup swaps
+        uint8 flags3 = SwapFlags.SINGLE_SWAP | SwapFlags.OUTPUT_6909;
+        swapData = abi.encode(
+            BaseData({
+                amount: INITIAL_SWAP_AMOUNT,
+                amountLimit: INITIAL_SWAP_AMOUNT * 95 / 100,
+                payer: address(this),
+                receiver: address(this),
+                flags: flags3
+            }),
             true, // zeroForOne
             vanillaPoolKeys[0],
-            "",
-            address(this),
-            block.timestamp + 1,
-            false, // inputIs6909
-            true // outputIs6909
+            "" // hookData
         );
+        router.swap(swapData, block.timestamp + 1);
 
-        router.swap(
-            -int256(INITIAL_SWAP_AMOUNT),
-            INITIAL_SWAP_AMOUNT * 95 / 100,
-            false, // !zeroForOne - opposite direction
+        swapData = abi.encode(
+            BaseData({
+                amount: INITIAL_SWAP_AMOUNT,
+                amountLimit: INITIAL_SWAP_AMOUNT * 95 / 100,
+                payer: address(this),
+                receiver: address(this),
+                flags: flags3
+            }),
+            false, // !zeroForOne
             vanillaPoolKeys[0],
-            "",
-            address(this),
-            block.timestamp + 1,
-            false, // inputIs6909
-            true // outputIs6909
+            "" // hookData
         );
+        router.swap(swapData, block.timestamp + 1);
     }
 
     function test_swap_erc20_to_erc20() public {
@@ -164,44 +180,53 @@ contract Router6909Test is SwapRouterFixtures {
     }
 
     function test_swap_eth_to_erc6909() public {
-        router.swap{value: SWAP_AMOUNT}(
-            -int256(SWAP_AMOUNT),
-            MIN_OUTPUT,
-            true,
+        uint8 flags = SwapFlags.SINGLE_SWAP | SwapFlags.OUTPUT_6909;
+        bytes memory swapData = abi.encode(
+            BaseData({
+                amount: SWAP_AMOUNT,
+                amountLimit: MIN_OUTPUT,
+                payer: address(this),
+                receiver: address(this),
+                flags: flags
+            }),
+            true, // zeroForOne
             vanillaPoolKeys[1],
-            "",
-            address(this),
-            block.timestamp + 1,
-            false, // inputIs6909
-            true // outputIs6909
+            "" // hookData
         );
+        router.swap{value: SWAP_AMOUNT}(swapData, block.timestamp + 1);
     }
 
     function test_swap_erc20_to_erc6909() public {
-        router.swap(
-            -int256(SWAP_AMOUNT),
-            MIN_OUTPUT,
-            true,
+        uint8 flags = SwapFlags.SINGLE_SWAP | SwapFlags.OUTPUT_6909;
+        bytes memory swapData = abi.encode(
+            BaseData({
+                amount: SWAP_AMOUNT,
+                amountLimit: MIN_OUTPUT,
+                payer: address(this),
+                receiver: address(this),
+                flags: flags
+            }),
+            true, // zeroForOne
             vanillaPoolKeys[0],
-            "",
-            address(this),
-            block.timestamp + 1,
-            false, // inputIs6909
-            true // outputIs6909
+            "" // hookData
         );
+        router.swap(swapData, block.timestamp + 1);
     }
 
     function test_swap_erc6909_to_erc6909() public {
-        router.swap(
-            -int256(SWAP_AMOUNT),
-            MIN_OUTPUT,
+        uint8 flags = SwapFlags.SINGLE_SWAP | SwapFlags.INPUT_6909 | SwapFlags.OUTPUT_6909;
+        bytes memory swapData = abi.encode(
+            BaseData({
+                amount: SWAP_AMOUNT,
+                amountLimit: MIN_OUTPUT,
+                payer: address(this),
+                receiver: address(this),
+                flags: flags
+            }),
             false, // opposite direction from setup swap
             vanillaPoolKeys[0],
-            "",
-            address(this),
-            block.timestamp + 1,
-            true, // inputIs6909
-            true // outputIs6909
+            "" // hookData
         );
+        router.swap(swapData, block.timestamp + 1);
     }
 }

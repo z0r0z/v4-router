@@ -4,6 +4,7 @@ evm_version = "cancun"
 ffi = true
 fs_permissions = [{ access = "read-write", path = ".forge-snapshots/"}]
 
+via_ir = true
 optimizer = true
 optimizer_runs = 9_999_999
 

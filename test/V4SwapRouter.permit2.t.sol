@@ -22,7 +22,7 @@ import {
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
-import {BaseData, PermitPayload} from "../src/base/BaseSwapRouter.sol";
+import {BaseData, PermitPayload, SwapFlags} from "../src/base/BaseSwapRouter.sol";
 import "permit2/src/interfaces/IPermit2.sol";
 
 contract V4SwapRouterPermit2Test is SwapRouterFixtures {
@@ -138,11 +138,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
                 amountLimit: amountOutMin,
                 payer: alice,
                 receiver: receiver,
-                singleSwap: true,
-                exactOutput: false,
-                input6909: false,
-                output6909: false,
-                permit2: true
+                flags: SwapFlags.SINGLE_SWAP | SwapFlags.PERMIT2
             }),
             PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
@@ -209,11 +205,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
                 amountLimit: amountInMax,
                 payer: alice,
                 receiver: receiver,
-                singleSwap: true,
-                exactOutput: true,
-                input6909: false,
-                output6909: false,
-                permit2: true
+                flags: SwapFlags.SINGLE_SWAP | SwapFlags.EXACT_OUTPUT | SwapFlags.PERMIT2
             }),
             PermitPayload({permit: permit, signature: signature}),
             zeroForOne,

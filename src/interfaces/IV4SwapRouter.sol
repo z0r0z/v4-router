@@ -123,52 +123,6 @@ interface IV4SwapRouter {
         uint256 deadline
     ) external payable returns (BalanceDelta);
 
-    /// ================ ERC6909 CLAIM SWAPS ================ ///
-
-    /// @notice Multi-pool swap function that supports ERC6909 input/output tokens
-    /// @param amountSpecified the amount of tokens to be swapped, negative for exact input swaps and positive for exact output swaps
-    /// @param amountLimit the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps
-    /// @param startCurrency the currency to start the swap from
-    /// @param path the path of v4 Pools to swap through
-    /// @param receiver the address to receive the output tokens
-    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @param input6909 true if the input token should use ERC6909 transfer mechanics
-    /// @param output6909 true if the output token should use ERC6909 transfer mechanics
-    /// @return Delta the balance changes from the swap
-    function swap(
-        int256 amountSpecified,
-        uint256 amountLimit,
-        Currency startCurrency,
-        PathKey[] calldata path,
-        address receiver,
-        uint256 deadline,
-        bool input6909,
-        bool output6909
-    ) external payable returns (BalanceDelta);
-
-    /// @notice Single-pool swap function that supports ERC6909 input/output tokens
-    /// @param amountSpecified the amount of tokens to be swapped, negative for exact input swaps and positive for exact output swaps
-    /// @param amountLimit the minimum amount of output tokens for exact input swaps, the maximum amount of input tokens for exact output swaps
-    /// @param zeroForOne the direction of the swap, true if currency0 is being swapped for currency1
-    /// @param poolKey the key of the pool to swap through
-    /// @param hookData the data to be passed to the pool's hooks
-    /// @param receiver the address to receive the output tokens
-    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @param input6909 true if the input token should use ERC6909 transfer mechanics
-    /// @param output6909 true if the output token should use ERC6909 transfer mechanics
-    /// @return Delta the balance changes from the swap
-    function swap(
-        int256 amountSpecified,
-        uint256 amountLimit,
-        bool zeroForOne,
-        PoolKey calldata poolKey,
-        bytes calldata hookData,
-        address receiver,
-        uint256 deadline,
-        bool input6909,
-        bool output6909
-    ) external payable returns (BalanceDelta);
-
     /// ================ OPTIMIZED ================ ///
 
     /// @notice Generic multi-pool swap function that accepts pre-encoded calldata
@@ -186,7 +140,12 @@ interface IV4SwapRouter {
     ///         PathKey[] path                 // array of path keys defining the route
     ///     )
     ///
-    ///     PERMIT 2 EXTENSION:
+    ///     ERC6909 EXTENSION:
+    ///     For both single and multi-pool swaps, BaseData flags can specify:
+    ///         - input6909: true if input token follows ERC6909 standard
+    ///         - output6909: true if output token follows ERC6909 standard
+    ///
+    ///     PERMIT2 EXTENSION:
     ///     1. For single pool swaps: abi.encode(
     ///            BaseData,
     ///            PermitPayload,

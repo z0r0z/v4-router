@@ -155,14 +155,14 @@ router.swapTokensForExactTokens(
 );
 ```
 
-For additional usage examples, please see [test/V4SwapRouter.multihop.t.sol](/test/V4SwapRouter.multihop.t.sol)
+For additional usage examples, please see [test/UniswapV4Router04.multihop.t.sol](/test/UniswapV4Router04.multihop.t.sol)
 
 ## Architecture
 
 The router is implemented in two main contracts:
 
 1. `BaseSwapRouter`: Contains core swap logic and handles callbacks from the Pool Manager
-2. `V4SwapRouter`: Inherits from BaseSwapRouter and implements the user-facing interface
+2. `UniswapV4Router04`: Inherits from BaseSwapRouter and implements the user-facing interface
 
 ## Optimizations
 

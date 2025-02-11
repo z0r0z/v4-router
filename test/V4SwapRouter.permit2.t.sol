@@ -25,7 +25,7 @@ import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {BaseData, PermitPayload, SwapFlags} from "../src/base/BaseSwapRouter.sol";
 import "permit2/src/interfaces/IPermit2.sol";
 
-contract V4SwapRouterPermit2Test is SwapRouterFixtures {
+contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
     UniswapV4Router04 router;

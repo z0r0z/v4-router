@@ -9,7 +9,7 @@ import {PathKey} from "../src/libraries/PathKey.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
 
-import {ISignatureTransfer, V4SwapRouter} from "../src/V4SwapRouter.sol";
+import {ISignatureTransfer, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
@@ -31,7 +31,7 @@ contract GasTest is SwapRouterFixtures {
     address alice;
     uint256 alicePK;
 
-    V4SwapRouter router;
+    UniswapV4Router04 router;
 
     Counter hook;
 
@@ -48,7 +48,7 @@ contract GasTest is SwapRouterFixtures {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
         DeployPermit2.deployPermit2();
-        router = new V4SwapRouter(manager, permit2);
+        router = new UniswapV4Router04(manager, permit2);
 
         // Create currencies
         (currencyA, currencyB, currencyC, currencyD) = _createSortedCurrencies();

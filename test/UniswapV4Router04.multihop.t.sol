@@ -9,7 +9,7 @@ import {PathKey} from "../src/libraries/PathKey.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
 
-import {ISignatureTransfer, V4SwapRouter} from "../src/V4SwapRouter.sol";
+import {ISignatureTransfer, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 
 import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
@@ -19,7 +19,7 @@ import {HookData} from "./utils/hooks/HookData.sol";
 contract MultihopTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
-    V4SwapRouter router;
+    UniswapV4Router04 router;
 
     Counter hook;
 
@@ -34,7 +34,7 @@ contract MultihopTest is SwapRouterFixtures {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
         DeployPermit2.deployPermit2();
-        router = new V4SwapRouter(manager, permit2);
+        router = new UniswapV4Router04(manager, permit2);
 
         // Create currencies
         (currencyA, currencyB, currencyC, currencyD) = _createSortedCurrencies();

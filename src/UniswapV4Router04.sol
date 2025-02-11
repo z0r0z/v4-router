@@ -2,14 +2,14 @@
 pragma solidity ^0.8.26;
 
 import {
-    PathKey, PoolKey, Currency, BalanceDelta, IV4SwapRouter
-} from "./interfaces/IV4SwapRouter.sol";
+    PathKey, PoolKey, Currency, BalanceDelta, IUniswapV4Router04
+} from "./interfaces/IUniswapV4Router04.sol";
 import {LibZip} from "@solady/src/utils/LibZip.sol";
 import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 import {IPoolManager, BaseData, BaseSwapRouter, SwapFlags} from "./base/BaseSwapRouter.sol";
 
 /// @title Uniswap V4 Swap Router
-contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
+contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter {
     constructor(IPoolManager manager, ISignatureTransfer _permit2)
         payable
         BaseSwapRouter(manager, _permit2)
@@ -17,7 +17,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
 
     /// -----------------------
 
-    /// @inheritdoc IV4SwapRouter
+    /// @inheritdoc IUniswapV4Router04
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -29,7 +29,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         public
         payable
         virtual
-        override(IV4SwapRouter)
+        override(IUniswapV4Router04)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
@@ -48,7 +48,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
     }
 
-    /// @inheritdoc IV4SwapRouter
+    /// @inheritdoc IUniswapV4Router04
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
@@ -60,7 +60,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         public
         payable
         virtual
-        override(IV4SwapRouter)
+        override(IUniswapV4Router04)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
@@ -79,7 +79,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
     }
 
-    /// @inheritdoc IV4SwapRouter
+    /// @inheritdoc IUniswapV4Router04
     function swap(
         int256 amountSpecified,
         uint256 amountLimit,
@@ -91,7 +91,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         public
         payable
         virtual
-        override(IV4SwapRouter)
+        override(IUniswapV4Router04)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
@@ -112,7 +112,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
 
     /// -----------------------
 
-    /// @inheritdoc IV4SwapRouter
+    /// @inheritdoc IUniswapV4Router04
     function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
@@ -125,7 +125,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         public
         payable
         virtual
-        override(IV4SwapRouter)
+        override(IUniswapV4Router04)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
@@ -145,7 +145,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
     }
 
-    /// @inheritdoc IV4SwapRouter
+    /// @inheritdoc IUniswapV4Router04
     function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
@@ -158,7 +158,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         public
         payable
         virtual
-        override(IV4SwapRouter)
+        override(IUniswapV4Router04)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
@@ -178,7 +178,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         );
     }
 
-    /// @inheritdoc IV4SwapRouter
+    /// @inheritdoc IUniswapV4Router04
     function swap(
         int256 amountSpecified,
         uint256 amountLimit,
@@ -191,7 +191,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
         public
         payable
         virtual
-        override(IV4SwapRouter)
+        override(IUniswapV4Router04)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
@@ -213,12 +213,12 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
 
     /// -----------------------
 
-    /// @inheritdoc IV4SwapRouter
+    /// @inheritdoc IUniswapV4Router04
     function swap(bytes calldata data, uint256 deadline)
         public
         payable
         virtual
-        override(IV4SwapRouter)
+        override(IUniswapV4Router04)
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
@@ -227,7 +227,7 @@ contract V4SwapRouter is IV4SwapRouter, BaseSwapRouter {
 
     /// -----------------------
 
-    /// @inheritdoc IV4SwapRouter
+    /// @inheritdoc IUniswapV4Router04
     fallback() external payable virtual {
         LibZip.cdFallback();
     }

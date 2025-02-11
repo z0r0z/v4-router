@@ -38,7 +38,7 @@ forge install z0r0z/v4-router
 For simple swaps on a singular pool
 
 ```solidity
-IV4SwapRouter router = IV4SwapRouter(...);
+IUniswapV4Router04 router = IUniswapV4Router04(...);
 
 uint256 amountIn = 1e18;                 // amount of input tokens
 uint256 amountOutMin = 0.99e18;          // minimum amount of output tokens, otherwise revert
@@ -62,7 +62,7 @@ router.swapExactTokensForTokens(
 For swaps trading through multiple pools
 
 ```solidity
-IV4SwapRouter router = IV4SwapRouter(...);
+IUniswapV4Router04 router = IUniswapV4Router04(...);
 
 // Example swapPath: A --> B --> C
 Currency startCurrency = currencyA;
@@ -103,7 +103,7 @@ router.swapExactTokensForTokens(
 For simple swaps on a singular pool
 
 ```solidity
-IV4SwapRouter router = IV4SwapRouter(...);
+IUniswapV4Router04 router = IUniswapV4Router04(...);
 
 uint256 amountOut = 1e18;                // amount of output tokens expected
 uint256 amountInMax = 1.01e18;           // maximum amount of input tokens, otherwise revert
@@ -127,7 +127,7 @@ router.swapTokensForExactTokens(
 For swaps trading through multiple pools
 
 ```solidity
-IV4SwapRouter router = IV4SwapRouter(...);
+IUniswapV4Router04 router = IUniswapV4Router04(...);
 
 // Example swapPath: A --> B --> C
 Currency startCurrency = currencyA;
@@ -155,14 +155,14 @@ router.swapTokensForExactTokens(
 );
 ```
 
-For additional usage examples, please see [test/V4SwapRouter.multihop.t.sol](/test/V4SwapRouter.multihop.t.sol)
+For additional usage examples, please see [test/UniswapV4Router04.multihop.t.sol](/test/UniswapV4Router04.multihop.t.sol)
 
 ## Architecture
 
 The router is implemented in two main contracts:
 
 1. `BaseSwapRouter`: Contains core swap logic and handles callbacks from the Pool Manager
-2. `V4SwapRouter`: Inherits from BaseSwapRouter and implements the user-facing interface
+2. `UniswapV4Router04`: Inherits from BaseSwapRouter and implements the user-facing interface
 
 ## Optimizations
 

@@ -11,7 +11,7 @@ import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
 import {Counter} from "@v4-template/src/Counter.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
-import {UniswapV4Router04} from "../src/V4SwapRouter.sol";
+import {UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 
 import {
     SwapRouterFixtures,
@@ -107,7 +107,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
     function test_encoded_single_permit2_exactInput(address receiver, bool zeroForOne, uint256 seed)
         public
     {
-        vm.assume(receiver != address(manager) && receiver != address(this));
+        vm.assume(receiver != address(manager) && receiver != address(this) && receiver != address(alice));
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
 
@@ -175,7 +175,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
         bool zeroForOne,
         uint256 seed
     ) public {
-        vm.assume(receiver != address(manager) && receiver != address(this));
+        vm.assume(receiver != address(manager) && receiver != address(this) && receiver != address(alice));
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
 

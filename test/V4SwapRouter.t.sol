@@ -13,7 +13,7 @@ import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
-import {IPoolManager, ISignatureTransfer, BaseData, UniswapV4Router04} from "../src/V4SwapRouter.sol";
+import {IPoolManager, ISignatureTransfer, BaseData, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";

@@ -13,7 +13,7 @@ import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 
-import {ISignatureTransfer, UniswapV4Router04} from "../src/V4SwapRouter.sol";
+import {ISignatureTransfer, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 
 import {
     SwapRouterFixtures,

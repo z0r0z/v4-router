@@ -9,7 +9,7 @@ import {PathKey} from "../src/libraries/PathKey.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
 
-import {ISignatureTransfer, UniswapV4Router04} from "../src/V4SwapRouter.sol";
+import {ISignatureTransfer, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 
 import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";

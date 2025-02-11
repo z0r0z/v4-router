@@ -11,7 +11,7 @@ import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
 import {Counter} from "@v4-template/src/Counter.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
-import {V4SwapRouter} from "../src/V4SwapRouter.sol";
+import {UniswapV4Router04} from "../src/V4SwapRouter.sol";
 
 import {
     SwapRouterFixtures,
@@ -28,7 +28,7 @@ import "permit2/src/interfaces/IPermit2.sol";
 contract V4SwapRouterPermit2Test is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
-    V4SwapRouter router;
+    UniswapV4Router04 router;
 
     Counter hook;
 
@@ -47,7 +47,7 @@ contract V4SwapRouterPermit2Test is SwapRouterFixtures {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
         DeployPermit2.deployPermit2();
-        router = new V4SwapRouter(manager, permit2);
+        router = new UniswapV4Router04(manager, permit2);
 
         // Create currencies
         (currencyA, currencyB, currencyC, currencyD) = _createSortedCurrencies();

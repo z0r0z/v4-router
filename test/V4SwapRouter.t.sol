@@ -13,7 +13,7 @@ import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 
-import {IPoolManager, ISignatureTransfer, BaseData, V4SwapRouter} from "../src/V4SwapRouter.sol";
+import {IPoolManager, ISignatureTransfer, BaseData, UniswapV4Router04} from "../src/V4SwapRouter.sol";
 
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
@@ -21,7 +21,7 @@ import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 contract RouterTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
-    V4SwapRouter router;
+    UniswapV4Router04 router;
 
     Counter hook;
     CustomCurveHook hookCsmm;
@@ -34,7 +34,7 @@ contract RouterTest is SwapRouterFixtures {
     function setUp() public payable {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
-        router = new V4SwapRouter(manager, permit2);
+        router = new UniswapV4Router04(manager, permit2);
 
         // Create currencies
         (currencyA, currencyB, currencyC, currencyD) = _createSortedCurrencies();
@@ -119,7 +119,7 @@ contract RouterTest is SwapRouterFixtures {
     }
 
     function test_router_deploy_gas() public {
-        router = new V4SwapRouter(manager, permit2);
+        router = new UniswapV4Router04(manager, permit2);
     }
 
     function test_zero_for_one() public {

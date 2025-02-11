@@ -10,7 +10,7 @@ import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 /// @title Uniswap V4 Swap Router
 /// @notice A simple, stateless router for execution of swaps against Uniswap v4 Pools
 /// @dev ABI inspired by UniswapV2Router02
-interface IV4SwapRouter {
+interface IUniswapV4Router04 {
     /// ================ MULTI POOL SWAPS ================= ///
 
     /// @notice Exact Input Swap; swap the specified amount of input tokens for as many output tokens as possible, along the path

@@ -13,10 +13,6 @@ The Uniswap V4 Swap Router supports the following features:
 - Hook interactions
 - Custom swap curves
 
-## Deployment
-
-Every chain at [0x00000000000044AcF0C243EECB34c8C0069B2E4B](https://contractscan.xyz/contract/0x00000000000044AcF0C243EECB34c8C0069B2E4B)
-
 # Usage
 
 ## Install

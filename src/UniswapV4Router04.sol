@@ -226,11 +226,12 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter {
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
-        address payer;
         assembly ("memory-safe") {
-            payer := calldataload(add(data.offset, 64))
+            if iszero(eq(calldataload(164), caller())) {
+                mstore(0x00, 0x82b42900) // `Unauthorized()`.
+                revert(0x1c, 0x04)
+            }
         }
-        if (payer != msg.sender) revert Unauthorized();
         return _unlockAndDecode(data);
     }
 

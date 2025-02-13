@@ -107,7 +107,9 @@ contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
     function test_encoded_single_permit2_exactInput(address receiver, bool zeroForOne, uint256 seed)
         public
     {
-        vm.assume(receiver != address(manager) && receiver != address(this) && receiver != address(alice));
+        vm.assume(
+            receiver != address(manager) && receiver != address(this) && receiver != address(alice)
+        );
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
 
@@ -175,7 +177,9 @@ contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
         bool zeroForOne,
         uint256 seed
     ) public {
-        vm.assume(receiver != address(manager) && receiver != address(this) && receiver != address(alice));
+        vm.assume(
+            receiver != address(manager) && receiver != address(this) && receiver != address(alice)
+        );
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
 

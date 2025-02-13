@@ -94,7 +94,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                         : uint256(uint128(delta.amount0()))
                 );
 
-            if (exactOutput ? inputAmount >= data.amountLimit : outputAmount <= data.amountLimit) {
+            if (exactOutput ? inputAmount > data.amountLimit : outputAmount < data.amountLimit) {
                 revert SlippageExceeded();
             }
 

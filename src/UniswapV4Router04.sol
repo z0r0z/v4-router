@@ -2,7 +2,11 @@
 pragma solidity ^0.8.26;
 
 import {
-    PathKey, PoolKey, Currency, BalanceDelta, IUniswapV4Router04
+    PathKey,
+    PoolKey,
+    Currency,
+    BalanceDelta,
+    IUniswapV4Router04
 } from "./interfaces/IUniswapV4Router04.sol";
 import {LibZip} from "@solady/src/utils/LibZip.sol";
 import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
@@ -222,6 +226,13 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter {
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
+        // equivalent to `require(abi.decode(data, (BaseData)).payer == msg.sender, "Unauthorized")`
+        assembly ("memory-safe") {
+            if iszero(eq(calldataload(164), caller())) {
+                mstore(0x00, 0x82b42900) // `Unauthorized()`.
+                revert(0x1c, 0x04)
+            }
+        }
         return _unlockAndDecode(data);
     }
 

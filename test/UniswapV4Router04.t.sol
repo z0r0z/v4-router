@@ -316,4 +316,28 @@ contract RouterTest is SwapRouterFixtures {
             amountOut, unreasonableMaxInput, startCurrency, path, address(this), block.timestamp + 1
         );
     }
+
+    function test_revert_unauthorized_payer_in_swap_bytes() public {
+        // Create malicious swap data with different payer
+        address victimAddress =
+            address(uint160(uint256(bytes32(keccak256(abi.encode("0xVICTIM"))))));
+        BaseData memory maliciousData = BaseData({
+            amount: 0.1 ether,
+            amountLimit: 0.09 ether,
+            payer: victimAddress, // Try to spend from victim's address
+            receiver: address(this),
+            flags: 0
+        });
+
+        bytes memory swapData = abi.encode(
+            maliciousData,
+            true, // zeroForOne
+            vanillaPoolKeys[0],
+            "" // hookData
+        );
+
+        // Attempt malicious swap should revert
+        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
+        router.swap(swapData, block.timestamp + 1);
+    }
 }

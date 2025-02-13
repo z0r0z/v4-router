@@ -226,6 +226,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter {
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
+        // equivalent to `require(abi.decode(data, (BaseData)).payer == msg.sender, "Unauthorized")`
         assembly ("memory-safe") {
             if iszero(eq(calldataload(164), caller())) {
                 mstore(0x00, 0x82b42900) // `Unauthorized()`.

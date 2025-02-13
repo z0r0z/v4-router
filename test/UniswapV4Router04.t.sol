@@ -12,6 +12,8 @@ import {Counter} from "@v4-template/src/Counter.sol";
 import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
+import {SwapFlags} from "../src/libraries/SwapFlags.sol";
+import {BaseSwapRouter} from "../src/base/BaseSwapRouter.sol";
 
 import {
     IPoolManager,
@@ -317,27 +319,39 @@ contract RouterTest is SwapRouterFixtures {
         );
     }
 
-    function test_revert_unauthorized_payer_in_swap_bytes() public {
+    function test_fuzz_revert_unauthorized_payer_in_swap_bytes(
+        address payer,
+        address receiver,
+        bool zeroForOne,
+        bool exactInput
+    ) public {
+        vm.assume(payer != address(this));
+        PoolKey memory poolKey = vanillaPoolKeys[0];
+        Currency input = zeroForOne ? poolKey.currency0 : poolKey.currency1;
+
+        // ensure payer has balance with approvals
+        input.mint(payer, 1 ether);
+        vm.prank(payer);
+        input.maxApprove(address(router));
+
+        uint256 amount = 0.1e18;
+        uint256 amountLimit = exactInput ? 0.09e18 : 0.11e18;
+        uint8 flags = SwapFlags.SINGLE_SWAP;
+        if (!exactInput) flags = flags | SwapFlags.EXACT_OUTPUT;
+
         // Create malicious swap data with different payer
-        address victimAddress =
-            address(uint160(uint256(bytes32(keccak256(abi.encode("0xVICTIM"))))));
         BaseData memory maliciousData = BaseData({
-            amount: 0.1 ether,
-            amountLimit: 0.09 ether,
-            payer: victimAddress, // Try to spend from victim's address
-            receiver: address(this),
-            flags: 0
+            amount: amount,
+            amountLimit: amountLimit,
+            payer: payer, // Try to spend from victim's address
+            receiver: receiver,
+            flags: flags
         });
 
-        bytes memory swapData = abi.encode(
-            maliciousData,
-            true, // zeroForOne
-            vanillaPoolKeys[0],
-            "" // hookData
-        );
+        bytes memory swapData = abi.encode(maliciousData, zeroForOne, poolKey, ZERO_BYTES);
 
         // Attempt malicious swap should revert
-        vm.expectRevert(abi.encodeWithSignature("Unauthorized()"));
+        vm.expectRevert(abi.encodeWithSelector(BaseSwapRouter.Unauthorized.selector));
         router.swap(swapData, block.timestamp + 1);
     }
 }

@@ -75,7 +75,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         internal
         virtual
         override(SafeCallback)
-        returns (bytes memory)
+        returns (bytes memory balanceDelta)
     {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
@@ -124,7 +124,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 }
             }
 
-            return abi.encode(delta);
+            return abi.encode(delta); // reserve for richer output
         }
     }
 

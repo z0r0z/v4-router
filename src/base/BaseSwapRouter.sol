@@ -4,8 +4,8 @@ pragma solidity ^0.8.26;
 import {SwapFlags} from "../libraries/SwapFlags.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
-import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
+import {BalanceDelta, toBalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {IPoolManager, SafeCallback} from "@v4-periphery/src/base/SafeCallback.sol";
@@ -28,6 +28,7 @@ struct PermitPayload {
 
 /// @title Base Swap Router
 /// @notice Template for data parsing and callback swap handling in Uniswap V4
+/// @dev Fee-on-transfer tokens are not supported. These swap types can revert.
 abstract contract BaseSwapRouter is SafeCallback {
     using TransientStateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -110,6 +111,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 );
                 poolManager.settle();
             } else {
+                if (inputCurrency.isAddressZero()) poolManager.sync(inputCurrency);
                 inputCurrency.settle(poolManager, data.payer, inputAmount, input6909);
             }
 
@@ -117,10 +119,8 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-                if (exactOutput) {
-                    if ((outputAmount = address(this).balance) != 0) {
-                        _refundETH(data.payer, outputAmount);
-                    }
+                if ((outputAmount = address(this).balance) != 0) {
+                    _refundETH(data.payer, outputAmount);
                 }
             }
 
@@ -129,10 +129,10 @@ abstract contract BaseSwapRouter is SafeCallback {
     }
 
     function _parseAndSwap(
-        bool isSingleSwap,
-        bool isExactOutput,
+        bool singleSwap,
+        bool exactOutput,
         uint256 amount,
-        bool settleWithPermit2,
+        bool _permit2,
         bytes calldata callbackData
     )
         internal
@@ -145,12 +145,12 @@ abstract contract BaseSwapRouter is SafeCallback {
         )
     {
         unchecked {
-            if (isSingleSwap) {
+            if (singleSwap) {
                 zeroForOne;
                 PoolKey memory key;
                 bytes memory hookData;
 
-                if (settleWithPermit2) {
+                if (_permit2) {
                     (,, zeroForOne, key, hookData) =
                         abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
                 } else {
@@ -164,12 +164,12 @@ abstract contract BaseSwapRouter is SafeCallback {
                 delta = _swap(
                     key,
                     zeroForOne,
-                    isExactOutput ? amount.toInt256() : -(amount.toInt256()),
+                    exactOutput ? amount.toInt256() : -(amount.toInt256()),
                     hookData
                 );
             } else {
                 PathKey[] memory path;
-                if (settleWithPermit2) {
+                if (_permit2) {
                     (,, inputCurrency, path) =
                         abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
                 } else {
@@ -181,7 +181,7 @@ abstract contract BaseSwapRouter is SafeCallback {
 
                 outputCurrency = path[path.length - 1].intermediateCurrency;
 
-                (delta, zeroForOne) = isExactOutput
+                (delta, zeroForOne) = exactOutput
                     ? _exactOutputMultiSwap(inputCurrency, path, amount)
                     : _exactInputMultiSwap(inputCurrency, path, amount);
             }
@@ -273,16 +273,6 @@ abstract contract BaseSwapRouter is SafeCallback {
     modifier checkDeadline(uint256 deadline) virtual {
         if (block.timestamp > deadline) revert DeadlinePassed(deadline);
         _;
-    }
-
-    receive() external payable virtual {
-        IPoolManager _poolManager = poolManager;
-        assembly ("memory-safe") {
-            if iszero(eq(caller(), _poolManager)) {
-                mstore(0x00, 0x82b42900) // `Unauthorized()`
-                revert(0x1c, 0x04)
-            }
-        }
     }
 
     function _refundETH(address receiver, uint256 amount) internal virtual {

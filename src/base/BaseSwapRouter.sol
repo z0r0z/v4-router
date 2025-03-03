@@ -213,11 +213,14 @@ abstract contract BaseSwapRouter is SafeCallback {
             }
 
             // create the final delta based on original input and final output
-            uint256 outputAmount = uint256(-amountSpecified);
             if (originalInputCurrency < inputCurrency) {
-                delta = toBalanceDelta(-int128(uint128(amount)), int128(uint128(outputAmount)));
+                delta = toBalanceDelta(
+                    -int128(uint128(amount)), int128(uint128(uint256(-amountSpecified)))
+                );
             } else {
-                delta = toBalanceDelta(int128(uint128(outputAmount)), -int128(uint128(amount)));
+                delta = toBalanceDelta(
+                    int128(uint128(uint256(-amountSpecified))), -int128(uint128(amount))
+                );
             }
         }
     }
@@ -225,55 +228,44 @@ abstract contract BaseSwapRouter is SafeCallback {
     function _exactOutputMultiSwap(Currency startCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
-        returns (BalanceDelta finalDelta, bool zeroForOne)
+        returns (BalanceDelta delta, bool zeroForOne)
     {
         unchecked {
             PoolKey memory poolKey;
+            zeroForOne;
             int256 amountSpecified = amount.toInt256();
             uint256 len = path.length;
 
-            // store original input currency and final output currency
-            Currency originalInputCurrency = startCurrency;
-            Currency finalOutputCurrency = path[len - 1].intermediateCurrency;
+            // cache last path key for first iteration
+            PathKey memory pathKey = path[len - 1];
 
-            // set zeroForOne based on overall path direction
-            zeroForOne = originalInputCurrency < finalOutputCurrency;
+            // handle all but the final swap
+            for (uint256 i = len - 1; i != 0;) {
+                (poolKey, zeroForOne) =
+                    pathKey.getPoolAndSwapDirection(path[--i].intermediateCurrency);
 
-            // track final input amount
-            int256 inputAmount;
-
-            // execute all swaps in reverse order (for exact output)
-            for (int256 i = int256(len) - 1; i >= 0; i--) {
-                PathKey memory pathKey = path[uint256(i)];
-                bool stepZeroForOne;
-
-                // determine currency in for this step
-                Currency currencyIn =
-                    i > 0 ? path[uint256(i - 1)].intermediateCurrency : startCurrency;
-
-                (poolKey, stepZeroForOne) = pathKey.getPoolAndSwapDirection(currencyIn);
-
-                BalanceDelta delta =
-                    _swap(poolKey, stepZeroForOne, amountSpecified, pathKey.hookData);
+                delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
                 // update amount for next iteration
-                amountSpecified = stepZeroForOne ? -delta.amount0() : -delta.amount1();
+                amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
 
-                // on the final iteration, capture the input amount
-                if (i == 0) {
-                    inputAmount = -amountSpecified;
-                }
+                // load next pathKey for next iteration
+                pathKey = path[i];
             }
 
-            // create the final delta based on input and output
-            uint256 inputAmountUint = uint256(inputAmount);
+            // final swap
+            (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
+            _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
 
-            if (zeroForOne) {
-                finalDelta =
-                    toBalanceDelta(-int128(uint128(inputAmountUint)), int128(uint128(amount)));
+            // create the final delta based on original input and final output
+            if (startCurrency < path[0].intermediateCurrency) {
+                delta = toBalanceDelta(
+                    -int128(uint128(uint256(-amountSpecified))), int128(uint128(amount))
+                );
             } else {
-                finalDelta =
-                    toBalanceDelta(int128(uint128(amount)), -int128(uint128(inputAmountUint)));
+                delta = toBalanceDelta(
+                    int128(uint128(amount)), -int128(uint128(uint256(-amountSpecified)))
+                );
             }
         }
     }

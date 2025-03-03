@@ -132,7 +132,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 }
             }
 
-            return abi.encode(delta); // reserve for richer output
+            return abi.encode(delta);
         }
     }
 
@@ -196,18 +196,34 @@ abstract contract BaseSwapRouter is SafeCallback {
             int256 amountSpecified = -(amount.toInt256());
             uint256 len = path.length;
 
-            // cache first path key
-            PathKey memory pathKey = path[0];
+            // store original input currency and final output currency
+            Currency originalInputCurrency = inputCurrency;
+            Currency finalOutputCurrency = path[len - 1].intermediateCurrency;
 
-            for (uint256 i; i < len;) {
-                (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
-                finalDelta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+            // set zeroForOne based on overall path direction
+            zeroForOne = originalInputCurrency < finalOutputCurrency;
+
+            // execute all swaps in the path
+            PathKey memory pathKey;
+            BalanceDelta delta;
+
+            for (uint256 i; i != len; ++i) {
+                pathKey = path[i];
+                bool stepZeroForOne;
+                (poolKey, stepZeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
+
+                delta = _swap(poolKey, stepZeroForOne, amountSpecified, pathKey.hookData);
 
                 inputCurrency = pathKey.intermediateCurrency;
-                amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
+                amountSpecified = stepZeroForOne ? -delta.amount1() : -delta.amount0();
+            }
 
-                // load next path key
-                if (++i < len) pathKey = path[i];
+            // create the final delta based on original input and final output
+            uint256 outputAmount = uint256(-amountSpecified);
+            if (zeroForOne) {
+                finalDelta = toBalanceDelta(-int128(uint128(amount)), int128(uint128(outputAmount)));
+            } else {
+                finalDelta = toBalanceDelta(int128(uint128(outputAmount)), -int128(uint128(amount)));
             }
         }
     }
@@ -219,30 +235,52 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         unchecked {
             PoolKey memory poolKey;
-            zeroForOne;
             int256 amountSpecified = amount.toInt256();
             uint256 len = path.length;
 
-            // cache last path key for first iteration
-            PathKey memory pathKey = path[len - 1];
+            // store original input currency and final output currency
+            Currency originalInputCurrency = startCurrency;
+            Currency finalOutputCurrency = path[len - 1].intermediateCurrency;
 
-            // handle all but the final swap
-            for (uint256 i = len - 1; i != 0;) {
-                (poolKey, zeroForOne) =
-                    pathKey.getPoolAndSwapDirection(path[--i].intermediateCurrency);
+            // set zeroForOne based on overall path direction
+            zeroForOne = originalInputCurrency < finalOutputCurrency;
 
-                BalanceDelta delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+            // track final input amount
+            int256 inputAmount;
+
+            // execute all swaps in reverse order (for exact output)
+            for (int256 i = int256(len) - 1; i >= 0; i--) {
+                PathKey memory pathKey = path[uint256(i)];
+                bool stepZeroForOne;
+
+                // determine currency in for this step
+                Currency currencyIn =
+                    i > 0 ? path[uint256(i - 1)].intermediateCurrency : startCurrency;
+
+                (poolKey, stepZeroForOne) = pathKey.getPoolAndSwapDirection(currencyIn);
+
+                BalanceDelta delta =
+                    _swap(poolKey, stepZeroForOne, amountSpecified, pathKey.hookData);
 
                 // update amount for next iteration
-                amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
+                amountSpecified = stepZeroForOne ? -delta.amount0() : -delta.amount1();
 
-                // load next pathKey for next iteration
-                pathKey = path[i];
+                // on the final iteration, capture the input amount
+                if (i == 0) {
+                    inputAmount = -amountSpecified;
+                }
             }
 
-            // final swap
-            (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
-            finalDelta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
+            // create the final delta based on input and output
+            uint256 inputAmountUint = uint256(inputAmount);
+
+            if (zeroForOne) {
+                finalDelta =
+                    toBalanceDelta(-int128(uint128(inputAmountUint)), int128(uint128(amount)));
+            } else {
+                finalDelta =
+                    toBalanceDelta(int128(uint128(amount)), -int128(uint128(inputAmountUint)));
+            }
         }
     }
 

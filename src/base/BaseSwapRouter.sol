@@ -153,16 +153,13 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         unchecked {
             if (singleSwap) {
-                // Decode the swap parameters consistently
-                BaseData memory baseData;
-                bool _zeroForOne;
+                zeroForOne;
                 PoolKey memory key;
                 bytes memory hookData;
 
-                (baseData, _zeroForOne, key, hookData) =
+                (, zeroForOne, key, hookData) =
                     abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
 
-                zeroForOne = _zeroForOne;
                 (inputCurrency, outputCurrency) =
                     zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
@@ -173,15 +170,10 @@ abstract contract BaseSwapRouter is SafeCallback {
                     hookData
                 );
             } else {
-                // Decode the path parameters consistently
-                BaseData memory baseData;
-                Currency _inputCurrency;
                 PathKey[] memory path;
 
-                (baseData, _inputCurrency, path) =
-                    abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+                (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
 
-                inputCurrency = _inputCurrency;
                 if (path.length == 0) revert EmptyPath();
 
                 outputCurrency = path[path.length - 1].intermediateCurrency;

@@ -4,8 +4,8 @@ pragma solidity ^0.8.26;
 import {SwapFlags} from "../libraries/SwapFlags.sol";
 import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 import {TickMath} from "@v4/src/libraries/TickMath.sol";
-import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
+import {BalanceDelta, toBalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {IPoolManager, SafeCallback} from "@v4-periphery/src/base/SafeCallback.sol";
@@ -28,6 +28,7 @@ struct PermitPayload {
 
 /// @title Base Swap Router
 /// @notice Template for data parsing and callback swap handling in Uniswap V4
+/// @dev Fee-on-transfer tokens are not supported. These swap types can revert.
 abstract contract BaseSwapRouter is SafeCallback {
     using TransientStateLibrary for IPoolManager;
     using CurrencySettler for Currency;
@@ -74,7 +75,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         internal
         virtual
         override(SafeCallback)
-        returns (bytes memory)
+        returns (bytes memory balanceDelta)
     {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
@@ -82,26 +83,30 @@ abstract contract BaseSwapRouter is SafeCallback {
             (bool singleSwap, bool exactOutput, bool input6909, bool output6909, bool _permit2) =
                 SwapFlags.unpackFlags(data.flags);
 
-            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta) =
-                _parseAndSwap(singleSwap, exactOutput, data.amount, _permit2, callbackData);
+            (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta, bool zeroForOne) =
+                _parseAndSwap(singleSwap, exactOutput, data.amount, callbackData);
 
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
             uint256 outputAmount = exactOutput
                 ? data.amount
-                : (
-                    inputCurrency < outputCurrency
-                        ? uint256(uint128(delta.amount1()))
-                        : uint256(uint128(delta.amount0()))
-                );
+                : (zeroForOne ? uint256(uint128(delta.amount1())) : uint256(uint128(delta.amount0())));
 
-            if (exactOutput ? inputAmount >= data.amountLimit : outputAmount <= data.amountLimit) {
+            if (exactOutput ? inputAmount > data.amountLimit : outputAmount < data.amountLimit) {
                 revert SlippageExceeded();
             }
 
             // handle ERC20 with permit2...
             if (_permit2) {
-                (, PermitPayload memory permitPayload) =
-                    abi.decode(callbackData, (BaseData, PermitPayload));
+                PermitPayload memory permitPayload;
+
+                if (singleSwap) {
+                    (,,,, permitPayload) =
+                        abi.decode(callbackData, (BaseData, bool, PoolKey, bytes, PermitPayload));
+                } else {
+                    (,,, permitPayload) =
+                        abi.decode(callbackData, (BaseData, Currency, PathKey[], PermitPayload));
+                }
+
                 poolManager.sync(inputCurrency);
                 permit2.permitTransferFrom(
                     permitPayload.permit,
@@ -114,6 +119,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 );
                 poolManager.settle();
             } else {
+                if (inputCurrency.isAddressZero()) poolManager.sync(inputCurrency);
                 inputCurrency.settle(poolManager, data.payer, inputAmount, input6909);
             }
 
@@ -121,10 +127,8 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             // trigger refund of ETH if any left over after swap
             if (inputCurrency == CurrencyLibrary.ADDRESS_ZERO) {
-                if (exactOutput) {
-                    if ((outputAmount = address(this).balance) != 0) {
-                        _refundETH(data.payer, outputAmount);
-                    }
+                if ((outputAmount = address(this).balance) != 0) {
+                    _refundETH(data.payer, outputAmount);
                 }
             }
 
@@ -133,29 +137,28 @@ abstract contract BaseSwapRouter is SafeCallback {
     }
 
     function _parseAndSwap(
-        bool isSingleSwap,
-        bool isExactOutput,
+        bool singleSwap,
+        bool exactOutput,
         uint256 amount,
-        bool settleWithPermit2,
         bytes calldata callbackData
     )
         internal
         virtual
-        returns (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta)
+        returns (
+            Currency inputCurrency,
+            Currency outputCurrency,
+            BalanceDelta delta,
+            bool zeroForOne
+        )
     {
         unchecked {
-            if (isSingleSwap) {
-                bool zeroForOne;
+            if (singleSwap) {
+                zeroForOne;
                 PoolKey memory key;
                 bytes memory hookData;
 
-                if (settleWithPermit2) {
-                    (,, zeroForOne, key, hookData) =
-                        abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
-                } else {
-                    (, zeroForOne, key, hookData) =
-                        abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
-                }
+                (, zeroForOne, key, hookData) =
+                    abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
 
                 (inputCurrency, outputCurrency) =
                     zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
@@ -163,24 +166,19 @@ abstract contract BaseSwapRouter is SafeCallback {
                 delta = _swap(
                     key,
                     zeroForOne,
-                    isExactOutput ? amount.toInt256() : -(amount.toInt256()),
+                    exactOutput ? amount.toInt256() : -(amount.toInt256()),
                     hookData
                 );
             } else {
                 PathKey[] memory path;
-                if (settleWithPermit2) {
-                    (,, inputCurrency, path) =
-                        abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
-                } else {
-                    (, inputCurrency, path) =
-                        abi.decode(callbackData, (BaseData, Currency, PathKey[]));
-                }
+
+                (, inputCurrency, path) = abi.decode(callbackData, (BaseData, Currency, PathKey[]));
 
                 if (path.length == 0) revert EmptyPath();
 
                 outputCurrency = path[path.length - 1].intermediateCurrency;
 
-                delta = isExactOutput
+                (delta, zeroForOne) = exactOutput
                     ? _exactOutputMultiSwap(inputCurrency, path, amount)
                     : _exactInputMultiSwap(inputCurrency, path, amount);
             }
@@ -190,26 +188,39 @@ abstract contract BaseSwapRouter is SafeCallback {
     function _exactInputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
-        returns (BalanceDelta finalDelta)
+        returns (BalanceDelta delta, bool zeroForOne)
     {
         unchecked {
             PoolKey memory poolKey;
-            bool zeroForOne;
+            zeroForOne;
             int256 amountSpecified = -(amount.toInt256());
             uint256 len = path.length;
+
+            Currency originalInputCurrency = inputCurrency;
 
             // cache first path key
             PathKey memory pathKey = path[0];
 
             for (uint256 i; i < len;) {
                 (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
-                finalDelta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+                delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
                 inputCurrency = pathKey.intermediateCurrency;
-                amountSpecified = zeroForOne ? -finalDelta.amount1() : -finalDelta.amount0();
+                amountSpecified = zeroForOne ? -delta.amount1() : -delta.amount0();
 
                 // load next path key
                 if (++i < len) pathKey = path[i];
+            }
+
+            // create the final delta based on original input and final output
+            if (originalInputCurrency < inputCurrency) {
+                delta = toBalanceDelta(
+                    -int128(uint128(amount)), int128(uint128(uint256(-amountSpecified)))
+                );
+            } else {
+                delta = toBalanceDelta(
+                    int128(uint128(uint256(-amountSpecified))), -int128(uint128(amount))
+                );
             }
         }
     }
@@ -217,11 +228,11 @@ abstract contract BaseSwapRouter is SafeCallback {
     function _exactOutputMultiSwap(Currency startCurrency, PathKey[] memory path, uint256 amount)
         internal
         virtual
-        returns (BalanceDelta finalDelta)
+        returns (BalanceDelta delta, bool zeroForOne)
     {
         unchecked {
             PoolKey memory poolKey;
-            bool zeroForOne;
+            zeroForOne;
             int256 amountSpecified = amount.toInt256();
             uint256 len = path.length;
 
@@ -233,7 +244,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 (poolKey, zeroForOne) =
                     pathKey.getPoolAndSwapDirection(path[--i].intermediateCurrency);
 
-                BalanceDelta delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
+                delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
                 // update amount for next iteration
                 amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
@@ -244,7 +255,18 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             // final swap
             (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
-            finalDelta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
+            _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
+
+            // create the final delta based on original input and final output
+            if (startCurrency < path[0].intermediateCurrency) {
+                delta = toBalanceDelta(
+                    -int128(uint128(uint256(-amountSpecified))), int128(uint128(amount))
+                );
+            } else {
+                delta = toBalanceDelta(
+                    int128(uint128(amount)), -int128(uint128(uint256(-amountSpecified)))
+                );
+            }
         }
     }
 
@@ -272,16 +294,6 @@ abstract contract BaseSwapRouter is SafeCallback {
     modifier checkDeadline(uint256 deadline) virtual {
         if (block.timestamp > deadline) revert DeadlinePassed(deadline);
         _;
-    }
-
-    receive() external payable virtual {
-        IPoolManager _poolManager = poolManager;
-        assembly ("memory-safe") {
-            if iszero(eq(caller(), _poolManager)) {
-                mstore(0x00, 0x82b42900) // `Unauthorized()`
-                revert(0x1c, 0x04)
-            }
-        }
     }
 
     function _refundETH(address receiver, uint256 amount) internal virtual {

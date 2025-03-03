@@ -701,10 +701,10 @@ contract GasTest is SwapRouterFixtures {
                 receiver: alice,
                 flags: SwapFlags.SINGLE_SWAP | SwapFlags.PERMIT2 // Both singleSwap and permit2 are true
             }),
-            PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
             poolKey,
-            ZERO_BYTES
+            ZERO_BYTES,
+            PermitPayload({permit: permit, signature: signature})
         );
         uint256 deadline = block.timestamp;
         vm.prank(alice);

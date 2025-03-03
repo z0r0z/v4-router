@@ -168,4 +168,7 @@ interface IUniswapV4Router04 {
 
     /// @notice Provides calldata compression fallback
     fallback() external payable;
+
+    /// @notice Provides ETH receipts locked to Pool Manager
+    receive() external payable;
 }

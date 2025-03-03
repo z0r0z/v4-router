@@ -107,7 +107,9 @@ contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
     function test_encoded_single_permit2_exactInput(address receiver, bool zeroForOne, uint256 seed)
         public
     {
-        vm.assume(receiver != address(manager) && receiver != address(this) && receiver != address(alice));
+        vm.assume(
+            receiver != address(manager) && receiver != address(this) && receiver != address(alice)
+        );
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
 
@@ -140,10 +142,10 @@ contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
                 receiver: receiver,
                 flags: SwapFlags.SINGLE_SWAP | SwapFlags.PERMIT2
             }),
-            PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
             poolKey,
-            ZERO_BYTES
+            ZERO_BYTES,
+            PermitPayload({permit: permit, signature: signature})
         );
         vm.prank(alice);
         router.swap(swapCalldata, uint256(block.timestamp));
@@ -175,7 +177,9 @@ contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
         bool zeroForOne,
         uint256 seed
     ) public {
-        vm.assume(receiver != address(manager) && receiver != address(this) && receiver != address(alice));
+        vm.assume(
+            receiver != address(manager) && receiver != address(this) && receiver != address(alice)
+        );
         // randomly select a pool
         PoolKey memory poolKey = vanillaPoolKeys[seed % vanillaPoolKeys.length];
 
@@ -207,10 +211,10 @@ contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
                 receiver: receiver,
                 flags: SwapFlags.SINGLE_SWAP | SwapFlags.EXACT_OUTPUT | SwapFlags.PERMIT2
             }),
-            PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
             poolKey,
-            ZERO_BYTES
+            ZERO_BYTES,
+            PermitPayload({permit: permit, signature: signature})
         );
         vm.prank(alice);
         router.swap(swapCalldata, uint256(block.timestamp));

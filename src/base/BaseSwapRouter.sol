@@ -296,6 +296,9 @@ abstract contract BaseSwapRouter is SafeCallback {
         _;
     }
 
+    /// @dev Note: This function forwards all remaining gas to the receiver.
+    /// If the receiver is contract, it could maliciously consume excess gas
+    /// in its fallback function, significantly increasing transaction costs.
     function _refundETH(address receiver, uint256 amount) internal virtual {
         assembly ("memory-safe") {
             if iszero(call(gas(), receiver, amount, codesize(), 0x00, codesize(), 0x00)) {

@@ -84,7 +84,7 @@ abstract contract BaseSwapRouter is SafeCallback {
                 SwapFlags.unpackFlags(data.flags);
 
             (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta, bool zeroForOne) =
-                _parseAndSwap(singleSwap, exactOutput, data.amount, _permit2, callbackData);
+                _parseAndSwap(singleSwap, exactOutput, data.amount, callbackData);
 
             uint256 inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
             uint256 outputAmount = exactOutput
@@ -97,8 +97,16 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             // handle ERC20 with permit2...
             if (_permit2) {
-                (, PermitPayload memory permitPayload) =
-                    abi.decode(callbackData, (BaseData, PermitPayload));
+                PermitPayload memory permitPayload;
+
+                if (singleSwap) {
+                    (,,,, permitPayload) =
+                        abi.decode(callbackData, (BaseData, bool, PoolKey, bytes, PermitPayload));
+                } else {
+                    (,,, permitPayload) =
+                        abi.decode(callbackData, (BaseData, Currency, PathKey[], PermitPayload));
+                }
+
                 poolManager.sync(inputCurrency);
                 permit2.permitTransferFrom(
                     permitPayload.permit,
@@ -132,7 +140,6 @@ abstract contract BaseSwapRouter is SafeCallback {
         bool singleSwap,
         bool exactOutput,
         uint256 amount,
-        bool _permit2,
         bytes calldata callbackData
     )
         internal
@@ -146,18 +153,16 @@ abstract contract BaseSwapRouter is SafeCallback {
     {
         unchecked {
             if (singleSwap) {
-                zeroForOne;
+                // Decode the swap parameters consistently
+                BaseData memory baseData;
+                bool _zeroForOne;
                 PoolKey memory key;
                 bytes memory hookData;
 
-                if (_permit2) {
-                    (,, zeroForOne, key, hookData) =
-                        abi.decode(callbackData, (BaseData, PermitPayload, bool, PoolKey, bytes));
-                } else {
-                    (, zeroForOne, key, hookData) =
-                        abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
-                }
+                (baseData, _zeroForOne, key, hookData) =
+                    abi.decode(callbackData, (BaseData, bool, PoolKey, bytes));
 
+                zeroForOne = _zeroForOne;
                 (inputCurrency, outputCurrency) =
                     zeroForOne ? (key.currency0, key.currency1) : (key.currency1, key.currency0);
 
@@ -168,15 +173,15 @@ abstract contract BaseSwapRouter is SafeCallback {
                     hookData
                 );
             } else {
+                // Decode the path parameters consistently
+                BaseData memory baseData;
+                Currency _inputCurrency;
                 PathKey[] memory path;
-                if (_permit2) {
-                    (,, inputCurrency, path) =
-                        abi.decode(callbackData, (BaseData, PermitPayload, Currency, PathKey[]));
-                } else {
-                    (, inputCurrency, path) =
-                        abi.decode(callbackData, (BaseData, Currency, PathKey[]));
-                }
 
+                (baseData, _inputCurrency, path) =
+                    abi.decode(callbackData, (BaseData, Currency, PathKey[]));
+
+                inputCurrency = _inputCurrency;
                 if (path.length == 0) revert EmptyPath();
 
                 outputCurrency = path[path.length - 1].intermediateCurrency;

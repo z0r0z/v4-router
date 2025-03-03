@@ -142,10 +142,10 @@ contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
                 receiver: receiver,
                 flags: SwapFlags.SINGLE_SWAP | SwapFlags.PERMIT2
             }),
-            PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
             poolKey,
-            ZERO_BYTES
+            ZERO_BYTES,
+            PermitPayload({permit: permit, signature: signature})
         );
         vm.prank(alice);
         router.swap(swapCalldata, uint256(block.timestamp));
@@ -211,10 +211,10 @@ contract UniswapV4Router04Permit2Test is SwapRouterFixtures {
                 receiver: receiver,
                 flags: SwapFlags.SINGLE_SWAP | SwapFlags.EXACT_OUTPUT | SwapFlags.PERMIT2
             }),
-            PermitPayload({permit: permit, signature: signature}),
             zeroForOne,
             poolKey,
-            ZERO_BYTES
+            ZERO_BYTES,
+            PermitPayload({permit: permit, signature: signature})
         );
         vm.prank(alice);
         router.swap(swapCalldata, uint256(block.timestamp));

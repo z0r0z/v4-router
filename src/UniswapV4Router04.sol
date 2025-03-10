@@ -9,11 +9,12 @@ import {
     IUniswapV4Router04
 } from "./interfaces/IUniswapV4Router04.sol";
 import {LibZip} from "@solady/src/utils/LibZip.sol";
+import {Multicallable} from "@solady/src/utils/Multicallable.sol";
 import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 import {IPoolManager, SwapFlags, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
 
 /// @title Uniswap V4 Swap Router
-contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter {
+contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable {
     constructor(IPoolManager manager, ISignatureTransfer _permit2)
         payable
         BaseSwapRouter(manager, _permit2)

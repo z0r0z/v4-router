@@ -79,7 +79,7 @@ interface IUniswapV4Router04 {
         uint256 amountIn,
         uint256 amountOutMin,
         bool zeroForOne,
-        PoolKey memory poolKey,
+        PoolKey calldata poolKey,
         bytes calldata hookData,
         address receiver,
         uint256 deadline
@@ -98,8 +98,8 @@ interface IUniswapV4Router04 {
         uint256 amountOut,
         uint256 amountInMax,
         bool zeroForOne,
-        PoolKey memory poolKey,
-        bytes memory hookData,
+        PoolKey calldata poolKey,
+        bytes calldata hookData,
         address receiver,
         uint256 deadline
     ) external payable returns (BalanceDelta);
@@ -117,8 +117,8 @@ interface IUniswapV4Router04 {
         int256 amountSpecified,
         uint256 amountLimit,
         bool zeroForOne,
-        PoolKey memory poolKey,
-        bytes memory hookData,
+        PoolKey calldata poolKey,
+        bytes calldata hookData,
         address receiver,
         uint256 deadline
     ) external payable returns (BalanceDelta);

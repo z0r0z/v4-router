@@ -9,12 +9,15 @@ import {PathKey} from "../src/libraries/PathKey.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
 
-import {ISignatureTransfer, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
-
+import {ISignatureTransfer, BalanceDelta, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 import {SwapRouterFixtures, Deployers, TestCurrencyBalances} from "./utils/SwapRouterFixtures.sol";
+
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
+
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
+
+import {console} from "forge-std/console.sol";
 
 contract MultihopTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
@@ -700,5 +703,207 @@ contract MultihopTest is SwapRouterFixtures {
 
         // verify slippage: amountIn < amountInMax
         assertLt((thisBefore.currencyA - thisAfter.currencyA), amountInMax);
+    }
+
+    function test_multi_exact_input_correct_final_delta() public {
+        // Setup a multi-hop path: A --> B --> C
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyC,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        // Record balances before swap
+        TestCurrencyBalances memory balancesBefore = currencyBalances(address(this));
+
+        // Define swap parameters
+        uint256 exactInputAmount = 1e18; // Exact amount of currencyA we want to input
+        uint256 amountOutMin = 0.99e18; // Minimum amount of currencyC we want to get out
+
+        // Execute the swap and capture the returned delta
+        BalanceDelta returnedDelta = router.swapExactTokensForTokens(
+            exactInputAmount,
+            amountOutMin,
+            startCurrency,
+            path,
+            address(this),
+            uint256(block.timestamp)
+        );
+
+        // Record balances after swap
+        TestCurrencyBalances memory balancesAfter = currencyBalances(address(this));
+
+        // Calculate actual amounts used and received
+        uint256 actualInputUsed = balancesBefore.currencyA - balancesAfter.currencyA;
+        uint256 actualOutputReceived = balancesAfter.currencyC - balancesBefore.currencyC;
+
+        // Verify we input exactly what we specified
+        assertEq(actualInputUsed, exactInputAmount, "Did not use exact input amount");
+
+        // Get the final output currency
+        Currency finalOutputCurrency = path[path.length - 1].intermediateCurrency;
+
+        // Log values for debugging
+        console.log("Actual input used:", actualInputUsed);
+        console.log("Actual output received:", actualOutputReceived);
+        console.log("Delta amount0:", int256(returnedDelta.amount0()));
+        console.log("Delta amount1:", int256(returnedDelta.amount1()));
+        console.log(
+            "startCurrency < finalOutputCurrency:",
+            startCurrency < finalOutputCurrency ? "true" : "false"
+        );
+
+        // Verify the delta matches actual token transfers
+        // Following V4 convention: input is negative, output is positive
+        if (startCurrency < finalOutputCurrency) {
+            // For startCurrency < finalCurrency, amount0 is input (negative) and amount1 is output (positive)
+            assertEq(
+                int256(returnedDelta.amount0()),
+                -int256(actualInputUsed),
+                "Delta amount0 doesn't match actual input used (should be negative)"
+            );
+            assertEq(
+                int256(returnedDelta.amount1()),
+                int256(actualOutputReceived),
+                "Delta amount1 doesn't match actual output received"
+            );
+        } else {
+            // For startCurrency > finalCurrency, amount0 is output (positive) and amount1 is input (negative)
+            assertEq(
+                int256(returnedDelta.amount0()),
+                int256(actualOutputReceived),
+                "Delta amount0 doesn't match actual output received"
+            );
+            assertEq(
+                int256(returnedDelta.amount1()),
+                -int256(actualInputUsed),
+                "Delta amount1 doesn't match actual input used (should be negative)"
+            );
+        }
+
+        // Verify slippage protection works
+        uint256 tooHighMinOutput = actualOutputReceived + 1; // Just above what's actually received
+
+        vm.expectRevert(abi.encodeWithSignature("SlippageExceeded()"));
+        router.swapExactTokensForTokens(
+            exactInputAmount,
+            tooHighMinOutput,
+            startCurrency,
+            path,
+            address(this),
+            uint256(block.timestamp)
+        );
+    }
+
+    function test_multi_exact_output_correct_final_delta() public {
+        // Setup a multi-hop path: A --> B --> C
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyC,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        // Record balances before swap
+        TestCurrencyBalances memory balancesBefore = currencyBalances(address(this));
+
+        // Define swap parameters
+        uint256 exactOutputAmount = 1e18; // Exact amount of currencyC we want
+        uint256 amountInMax = 1.01e18; // Maximum amount of currencyA we're willing to pay
+
+        // Execute the swap and capture the returned delta
+        BalanceDelta returnedDelta = router.swapTokensForExactTokens(
+            exactOutputAmount,
+            amountInMax,
+            startCurrency,
+            path,
+            address(this),
+            uint256(block.timestamp)
+        );
+
+        // Record balances after swap
+        TestCurrencyBalances memory balancesAfter = currencyBalances(address(this));
+
+        // Calculate actual amounts used and received
+        uint256 actualInputUsed = balancesBefore.currencyA - balancesAfter.currencyA;
+        uint256 actualOutputReceived = balancesAfter.currencyC - balancesBefore.currencyC;
+
+        // Verify we got exactly what we asked for
+        assertEq(actualOutputReceived, exactOutputAmount, "Did not receive exact output amount");
+
+        // Get the final output currency
+        Currency finalOutputCurrency = path[path.length - 1].intermediateCurrency;
+
+        // Log values for debugging
+        console.log("Actual input used:", actualInputUsed);
+        console.log("Actual output received:", actualOutputReceived);
+        console.log("Delta amount0:", int256(returnedDelta.amount0()));
+        console.log("Delta amount1:", int256(returnedDelta.amount1()));
+        console.log(
+            "startCurrency < finalOutputCurrency:",
+            startCurrency < finalOutputCurrency ? "true" : "false"
+        );
+
+        // Verify the delta matches actual token transfers
+        // Following V4 convention: input is negative, output is positive
+        if (startCurrency < finalOutputCurrency) {
+            // For startCurrency < finalCurrency, amount0 is input (negative) and amount1 is output (positive)
+            assertEq(
+                int256(returnedDelta.amount0()),
+                -int256(actualInputUsed),
+                "Delta amount0 doesn't match actual input used (should be negative)"
+            );
+            assertEq(
+                int256(returnedDelta.amount1()),
+                int256(actualOutputReceived),
+                "Delta amount1 doesn't match actual output received"
+            );
+        } else {
+            // For startCurrency > finalCurrency, amount0 is output (positive) and amount1 is input (negative)
+            assertEq(
+                int256(returnedDelta.amount0()),
+                int256(actualOutputReceived),
+                "Delta amount0 doesn't match actual output received"
+            );
+            assertEq(
+                int256(returnedDelta.amount1()),
+                -int256(actualInputUsed),
+                "Delta amount1 doesn't match actual input used (should be negative)"
+            );
+        }
+
+        // Verify slippage protection works - this indirectly validates the delta calculation
+        uint256 slightlyLessThanActual = actualInputUsed - 1; // Just below what's needed
+
+        vm.expectRevert(abi.encodeWithSignature("SlippageExceeded()"));
+        router.swapTokensForExactTokens(
+            exactOutputAmount,
+            slightlyLessThanActual,
+            startCurrency,
+            path,
+            address(this),
+            uint256(block.timestamp)
+        );
     }
 }

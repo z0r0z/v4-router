@@ -13,7 +13,7 @@ import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
 import {SwapFlags} from "../src/libraries/SwapFlags.sol";
-import {BaseSwapRouter} from "../src/base/BaseSwapRouter.sol";
+import {BalanceDelta, BaseSwapRouter} from "../src/base/BaseSwapRouter.sol";
 
 import {
     IPoolManager,
@@ -353,5 +353,86 @@ contract RouterTest is SwapRouterFixtures {
         // Attempt malicious swap should revert
         vm.expectRevert(abi.encodeWithSelector(BaseSwapRouter.Unauthorized.selector));
         router.swap(swapData, block.timestamp + 1);
+    }
+
+    function test_exact_output_multihop_slippage() public {
+        // Setup a multi-hop path with 3 currencies
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+
+        // First hop: currencyA -> currencyB
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        // Second hop: currencyB -> currencyC
+        path[1] = PathKey({
+            intermediateCurrency: currencyC,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+
+        // Prepare test: mint tokens and approve router
+        uint256 exactOutputAmount = 0.5 ether;
+        uint256 maxInputAmount = 1 ether;
+
+        // Mint enough tokens to cover the swap
+        startCurrency.mint(address(this), maxInputAmount * 2);
+        startCurrency.maxApprove(address(router));
+
+        // Record balances before swap
+        uint256 startBalanceBefore =
+            IERC20Minimal(Currency.unwrap(startCurrency)).balanceOf(address(this));
+        uint256 endBalanceBefore =
+            IERC20Minimal(Currency.unwrap(path[1].intermediateCurrency)).balanceOf(address(this));
+
+        // Perform the exact output multi-hop swap
+        router.swapTokensForExactTokens(
+            exactOutputAmount,
+            maxInputAmount,
+            startCurrency,
+            path,
+            address(this),
+            block.timestamp + 1
+        );
+
+        // Check balances after swap
+        uint256 startBalanceAfter =
+            IERC20Minimal(Currency.unwrap(startCurrency)).balanceOf(address(this));
+        uint256 endBalanceAfter =
+            IERC20Minimal(Currency.unwrap(path[1].intermediateCurrency)).balanceOf(address(this));
+
+        // Calculate actual amounts used and received
+        uint256 actualInputUsed = startBalanceBefore - startBalanceAfter;
+        uint256 actualOutputReceived = endBalanceAfter - endBalanceBefore;
+
+        // Verify we got exactly what we asked for
+        assertEq(actualOutputReceived, exactOutputAmount, "Did not receive exact output amount");
+
+        // Verify we didn't exceed our max input
+        assertLe(actualInputUsed, maxInputAmount, "Exceeded maximum input amount");
+
+        // The key test: make sure actual amounts were properly used in the final delta
+        // We can verify this indirectly by checking that the swap was successfully completed
+        // and that tokens were transferred correctly
+
+        // Additionally, let's try a failing case to ensure slippage protection works
+        uint256 tooLowMaxInput = actualInputUsed / 2; // Set max input to half of what's actually needed
+
+        vm.expectRevert(abi.encodeWithSignature("SlippageExceeded()"));
+        router.swapTokensForExactTokens(
+            exactOutputAmount,
+            tooLowMaxInput,
+            startCurrency,
+            path,
+            address(this),
+            block.timestamp + 1
+        );
     }
 }

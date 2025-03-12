@@ -270,16 +270,16 @@ abstract contract BaseSwapRouter is SafeCallback {
 
             // final swap
             (poolKey, zeroForOne) = path[0].getPoolAndSwapDirection(startCurrency);
-            _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
+            delta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
 
             // create the final delta based on original input and final output
-            if (startCurrency < path[0].intermediateCurrency) {
+            if (startCurrency < path[len - 1].intermediateCurrency) {
                 delta = toBalanceDelta(
-                    -int128(uint128(uint256(-amountSpecified))), int128(uint128(amount))
+                    zeroForOne ? delta.amount0() : delta.amount1(), int128(uint128(amount))
                 );
             } else {
                 delta = toBalanceDelta(
-                    int128(uint128(amount)), -int128(uint128(uint256(-amountSpecified)))
+                    int128(uint128(amount)), zeroForOne ? delta.amount0() : delta.amount1()
                 );
             }
         }

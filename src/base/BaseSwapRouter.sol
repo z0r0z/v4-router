@@ -86,25 +86,8 @@ abstract contract BaseSwapRouter is SafeCallback {
             (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta, bool zeroForOne) =
                 _parseAndSwap(singleSwap, exactOutput, data.amount, callbackData);
 
-            uint256 inputAmount;
-            if (exactOutput) {
-                if (singleSwap) {
-                    // for single-swap exact output, we can use delta
-                    inputAmount = zeroForOne
-                        ? uint256(uint128(-delta.amount0()))
-                        : uint256(uint128(-delta.amount1()));
-                } else {
-                    // for multi-hop exact output, use poolManager.currencyDelta
-                    inputAmount = uint256(-poolManager.currencyDelta(address(this), inputCurrency));
-                }
-            } else {
-                // for exact input (either single or multi), just use data.amount
-                inputAmount = data.amount;
-            }
-
-            uint256 outputAmount = exactOutput
-                ? data.amount
-                : (zeroForOne ? uint256(uint128(delta.amount1())) : uint256(uint128(delta.amount0())));
+            uint256 inputAmount = inputCurrency < outputCurrency ? uint256(int256(-delta.amount0())) : uint256(int256(-delta.amount1()));
+            uint256 outputAmount = inputCurrency < outputCurrency ? uint256(int256(delta.amount1())) : uint256(int256(delta.amount0()));
 
             if (exactOutput ? inputAmount > data.amountLimit : outputAmount < data.amountLimit) {
                 revert SlippageExceeded();

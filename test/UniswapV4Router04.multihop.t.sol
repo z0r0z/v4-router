@@ -906,4 +906,72 @@ contract MultihopTest is SwapRouterFixtures {
             uint256(block.timestamp)
         );
     }
+
+    /// @dev test atomic arbitrage
+    function test_multi_exactInput_arbitrage(address recipient) public {
+        vm.assume(recipient != address(manager) && recipient != address(this));
+
+        // arbitrage path: A -(vanilla)-> B -(hookData)-> A
+        // drive the price of B -(hookData)-> A to create arbitrage opportunity
+        // (buy up B on hookData, so it can be sold for more A)
+        router.swapExactTokensForTokens(
+            10e18,
+            9e18,
+            true, // zeroForOne-true, A for B
+            PoolKey({
+                currency0: currencyA,
+                currency1: currencyB,
+                fee: FEE,
+                tickSpacing: TICK_SPACING,
+                hooks: IHooks(address(hookWithData))
+            }),
+            abi.encode(uint256(1)),
+            address(this),
+            uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
+
+        // Swap Path: A -(vanilla)-> B -(hookData)-> A
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyA,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(hookWithData)),
+            hookData: abi.encode(uint256(2))
+        });
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        router.swapExactTokensForTokens(
+            amountIn, amountOutMin, startCurrency, path, recipient, uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract did not spend currencyA
+        assertEq(thisBefore.currencyA, thisBefore.currencyA);
+
+        // currencyB unspent
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+
+        // recipient received currencyA (atomic arbitrage)
+        assertGt(recipientAfter.currencyA, recipientBefore.currencyA);
+
+        // verify slippage: recieved > amountOutMin
+        assertGt((recipientAfter.currencyA - recipientBefore.currencyA), amountOutMin);
+    }
 }

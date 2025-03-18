@@ -1046,4 +1046,134 @@ contract MultihopTest is SwapRouterFixtures {
         // verify slippage: recieved > amountOutMin
         assertGt((recipientAfter.native - recipientBefore.native), amountOutMin);
     }
+
+    /// @dev test atomic arbitrage
+    function test_multi_exactOutput_arbitrage(address recipient) public {
+        vm.assume(recipient != address(manager) && recipient != address(this));
+
+        // arbitrage path: A -(vanilla)-> B -(hookData)-> A
+        // drive the price of B -(hookData)-> A to create arbitrage opportunity
+        // (buy up B on hookData, so it can be sold for more A)
+        router.swapExactTokensForTokens(
+            10e18,
+            9e18,
+            true, // zeroForOne=true, A for B
+            PoolKey({
+                currency0: currencyA,
+                currency1: currencyB,
+                fee: FEE,
+                tickSpacing: TICK_SPACING,
+                hooks: IHooks(address(hookWithData))
+            }),
+            abi.encode(uint256(1)),
+            address(this),
+            uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
+
+        // Swap Path: A -(vanilla)-> B -(hookData)-> A
+        Currency startCurrency = currencyA;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: currencyA,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(hookWithData)),
+            hookData: abi.encode(uint256(2))
+        });
+
+        uint256 amountOut = 0.0001e18;
+        uint256 amountInMax = type(uint256).max;
+        router.swapTokensForExactTokens(
+            amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract did not spend currencyA
+        assertEq(thisBefore.currencyA, thisBefore.currencyA);
+
+        // currencyB unspent
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+
+        // recipient received currencyA (atomic arbitrage)
+        assertGt(recipientAfter.currencyA, recipientBefore.currencyA);
+    }
+
+    /// @dev test atomic arbitrage with native tokens
+    function test_multi_exactOutput_arbitrage_nativeInput() public {
+        address recipient = address(0xbeefbeef); // do not fuzz because not all addresses have a receive function
+
+        // arbitrage path: ETH -(vanilla)-> B -(hookData)-> ETH
+        // drive the price of B -(hookData)-> ETH to create arbitrage opportunity
+        // (buy up B on hookData, so it can be sold for more ETH)
+        router.swapExactTokensForTokens{value: 10e18}(
+            10e18,
+            9e18,
+            true, // zeroForOne=true, native for B
+            PoolKey({
+                currency0: native,
+                currency1: currencyB,
+                fee: FEE,
+                tickSpacing: TICK_SPACING,
+                hooks: IHooks(address(hookWithData))
+            }),
+            abi.encode(uint256(1)),
+            address(this),
+            uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisBefore = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientBefore = currencyBalances(recipient);
+
+        // Swap Path: ETH -(vanilla)-> B -(hookData)-> ETH
+        Currency startCurrency = native;
+        PathKey[] memory path = new PathKey[](2);
+        path[0] = PathKey({
+            intermediateCurrency: currencyB,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: HOOKLESS,
+            hookData: ZERO_BYTES
+        });
+        path[1] = PathKey({
+            intermediateCurrency: native,
+            fee: FEE,
+            tickSpacing: TICK_SPACING,
+            hooks: IHooks(address(hookWithData)),
+            hookData: abi.encode(uint256(2))
+        });
+
+        uint256 amountOut = 0.0001e18;
+        uint256 amountInMax = 10e18;
+        router.swapTokensForExactTokens{value: amountInMax}(
+            amountOut, amountInMax, startCurrency, path, recipient, uint256(block.timestamp)
+        );
+
+        TestCurrencyBalances memory thisAfter = currencyBalances(address(this));
+        TestCurrencyBalances memory recipientAfter = currencyBalances(recipient);
+
+        // Check balances
+        // test contract did not spend native
+        assertEq(thisBefore.native, thisBefore.native);
+
+        // currencyB unspent
+        assertEq(thisBefore.currencyB, thisAfter.currencyB);
+        assertEq(recipientBefore.currencyB, recipientAfter.currencyB);
+
+        // recipient received native (atomic arbitrage)
+        assertGt(recipientAfter.native, recipientBefore.native);
+    }
 }

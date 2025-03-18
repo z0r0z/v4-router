@@ -7,7 +7,6 @@ import {TickMath} from "@v4/src/libraries/TickMath.sol";
 import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
 import {BalanceDelta, toBalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
-import {TransientStateLibrary} from "@v4/src/libraries/TransientStateLibrary.sol";
 import {IPoolManager, SafeCallback} from "@v4-periphery/src/base/SafeCallback.sol";
 import {
     Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
@@ -30,7 +29,6 @@ struct PermitPayload {
 /// @notice Template for data parsing and callback swap handling in Uniswap V4
 /// @dev Fee-on-transfer tokens are not supported. These swap types can revert.
 abstract contract BaseSwapRouter is SafeCallback {
-    using TransientStateLibrary for IPoolManager;
     using CurrencySettler for Currency;
     using PathKeyLibrary for PathKey;
     using SafeCast for uint256;
@@ -78,7 +76,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         returns (bytes memory balanceDelta)
     {
         unchecked {
-            BaseData memory data = abi.decode(callbackData, (BaseData));
+            BaseData memory data = abi.decode(callbackData[:160], (BaseData));
 
             (bool singleSwap, bool exactOutput, bool input6909, bool output6909, bool _permit2) =
                 SwapFlags.unpackFlags(data.flags);

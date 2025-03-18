@@ -139,29 +139,25 @@ interface IUniswapV4Router04 {
     ///         Currency startCurrency,        // initial currency in the swap
     ///         PathKey[] path                 // array of path keys defining the route
     ///     )
-    ///
-    ///     ERC6909 EXTENSION:
-    ///     For both single and multi-pool swaps, BaseData flags can specify:
-    ///         - input6909: true if input token follows ERC6909 standard
-    ///         - output6909: true if output token follows ERC6909 standard
-    ///
+    ///     
     ///     PERMIT2 EXTENSION:
     ///     1. For single pool swaps: abi.encode(
-    ///            BaseData,
-    ///            PermitPayload,
-    ///            bool zeroForOne,
-    ///            PoolKey poolKey,
-    ///            bytes hookData
-    ///        )
+    ///         BaseData baseData,             // struct containing swap parameters
+    ///         bool zeroForOne,               // direction of swap
+    ///         PoolKey poolKey,               // key of the pool to swap through
+    ///         bytes hookData,                // data to pass to hooks
+    ///         PermitPayload permitPayload    // permit2 signature payload
+    ///     )
     ///     2. For multi-pool swaps: abi.encode(
-    ///            BaseData,
-    ///            PermitPayload,
-    ///            Currency startCurrency,
-    ///            PathKey[] path
-    ///        )
-    ///     Where BaseData.permit2 must be true, and PermitPayload contains:
+    ///         BaseData baseData,             // struct containing swap parameters
+    ///         Currency startCurrency,        // initial currency in the swap
+    ///         PathKey[] path,                // array of path keys defining the route
+    ///         PermitPayload permitPayload    // permit2 signature payload
+    ///     )
+    ///     Where BaseData.flags contains permit2 flag, and PermitPayload contains:
     ///         - permit: ISignatureTransfer.PermitTransferFrom
     ///         - signature: bytes
+    ///
     /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
     /// @return Delta the balance changes from the swap
     function swap(bytes calldata data, uint256 deadline) external payable returns (BalanceDelta);

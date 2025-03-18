@@ -6,12 +6,12 @@ import {
     PoolKey,
     Currency,
     BalanceDelta,
+    ISignatureTransfer,
     IUniswapV4Router04
 } from "./interfaces/IUniswapV4Router04.sol";
 import {LibZip} from "@solady/src/utils/LibZip.sol";
 import {Lock} from "@universal-router/base/Lock.sol";
 import {Multicallable} from "@solady/src/utils/Multicallable.sol";
-import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 import {IPoolManager, SwapFlags, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
 
 /// @title Uniswap V4 Swap Router
@@ -235,7 +235,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Lock, Multical
         checkDeadline(deadline)
         returns (BalanceDelta)
     {
-        // equivalent to `require(abi.decode(data, (BaseData)).payer == msg.sender, "Unauthorized")`
+        // equivalent to `require(abi.decode(data, (BaseData)).payer == msg.sender, Unauthorized())`
         assembly ("memory-safe") {
             if iszero(eq(calldataload(164), caller())) {
                 mstore(0x00, 0x82b42900) // `Unauthorized()`.

@@ -12,7 +12,6 @@ import {IPoolManager, SafeCallback} from "@v4-periphery/src/base/SafeCallback.so
 import {
     Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
 } from "../libraries/PathKey.sol";
-import {Locker} from "@v4-periphery/src/libraries/Locker.sol";
 
 struct BaseData {
     uint256 amount;
@@ -71,10 +70,6 @@ abstract contract BaseSwapRouter is SafeCallback {
     }
 
     /// ===================== SWAP EXECUTION ===================== ///
-
-    function msgSender() public view virtual returns (address) {
-        return Locker.get();
-    }
 
     function _unlockCallback(bytes calldata callbackData)
         internal

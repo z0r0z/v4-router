@@ -171,4 +171,10 @@ interface IUniswapV4Router04 {
 
     /// @notice Provides ETH receipts locked to Pool Manager
     receive() external payable;
+
+    /// ================ GETTERS ================ ///
+
+    /// @notice Public view function to be used instead of msg.sender, as the contract performs self-reentrancy and at
+    /// times msg.sender == address(this). Instead msgSender() returns the initiator of the lock
+    function msgSender() external view returns (address);
 }

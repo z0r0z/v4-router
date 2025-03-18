@@ -27,7 +27,7 @@ struct PermitPayload {
 
 /// @title Base Swap Router
 /// @notice Template for data parsing and callback swap handling in Uniswap V4
-/// @dev Fee-on-transfer tokens are not supported. These swap types can revert.
+/// @dev Fee-on-transfer tokens are not supported - these swaps might not pass
 abstract contract BaseSwapRouter is SafeCallback {
     using CurrencySettler for Currency;
     using PathKeyLibrary for PathKey;
@@ -76,7 +76,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         returns (bytes memory balanceDelta)
     {
         unchecked {
-            BaseData memory data = abi.decode(callbackData[:160], (BaseData));
+            BaseData memory data = abi.decode(callbackData, (BaseData));
 
             (bool singleSwap, bool exactOutput, bool input6909, bool output6909, bool _permit2) =
                 SwapFlags.unpackFlags(data.flags);

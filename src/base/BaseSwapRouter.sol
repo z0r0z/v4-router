@@ -73,7 +73,7 @@ abstract contract BaseSwapRouter is SafeCallback {
         internal
         virtual
         override(SafeCallback)
-        returns (bytes memory balanceDelta)
+        returns (bytes memory)
     {
         unchecked {
             BaseData memory data = abi.decode(callbackData, (BaseData));
@@ -238,10 +238,8 @@ abstract contract BaseSwapRouter is SafeCallback {
             for (uint256 i = pos; i != 0;) {
                 (poolKey, zeroForOne) =
                     pathKey.getPoolAndSwapDirection(path[--i].intermediateCurrency);
-
                 delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
-                // update amount for next iteration
                 amountSpecified = zeroForOne ? -delta.amount0() : -delta.amount1();
 
                 // load next pathKey for next iteration

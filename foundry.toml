@@ -25,7 +25,8 @@ remappings = [
   "@uniswap/v4-core/=lib/v4-core/",
   "@v4-periphery/=lib/v4-periphery/",
   "@v4-template/=lib/v4-template/",
-  "forge-std/=lib/v4-core/lib/forge-std/src/"
+  "forge-std/=lib/v4-core/lib/forge-std/src/",
+  "@universal-router/=lib/universal-router/contracts/"
 ]
 
 [fmt]

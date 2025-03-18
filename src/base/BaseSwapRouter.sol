@@ -196,7 +196,7 @@ abstract contract BaseSwapRouter is SafeCallback {
             // cache first path key
             PathKey memory pathKey = path[0];
 
-            for (uint256 i; i < len;) {
+            for (uint256 i; i != len;) {
                 (poolKey, zeroForOne) = pathKey.getPoolAndSwapDirection(inputCurrency);
                 delta = _swap(poolKey, zeroForOne, amountSpecified, pathKey.hookData);
 
@@ -229,13 +229,13 @@ abstract contract BaseSwapRouter is SafeCallback {
             PoolKey memory poolKey;
             bool zeroForOne;
             int256 amountSpecified = amount.toInt256();
-            uint256 len = path.length;
+            uint256 pos = path.length - 1;
 
             // cache last path key for first iteration
-            PathKey memory pathKey = path[len - 1];
+            PathKey memory pathKey = path[pos];
 
             // handle all but the final swap
-            for (uint256 i = len - 1; i != 0;) {
+            for (uint256 i = pos; i != 0;) {
                 (poolKey, zeroForOne) =
                     pathKey.getPoolAndSwapDirection(path[--i].intermediateCurrency);
 
@@ -253,7 +253,7 @@ abstract contract BaseSwapRouter is SafeCallback {
             delta = _swap(poolKey, zeroForOne, amountSpecified, path[0].hookData);
 
             // create the final delta based on original input and final output
-            if (startCurrency < path[len - 1].intermediateCurrency) {
+            if (startCurrency < path[pos].intermediateCurrency) {
                 delta = toBalanceDelta(
                     zeroForOne ? delta.amount0() : delta.amount1(), int128(uint128(amount))
                 );

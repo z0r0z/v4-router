@@ -139,7 +139,7 @@ interface IUniswapV4Router04 {
     ///         Currency startCurrency,        // initial currency in the swap
     ///         PathKey[] path                 // array of path keys defining the route
     ///     )
-    ///     
+    ///
     ///     PERMIT2 EXTENSION:
     ///     1. For single pool swaps: abi.encode(
     ///         BaseData baseData,             // struct containing swap parameters

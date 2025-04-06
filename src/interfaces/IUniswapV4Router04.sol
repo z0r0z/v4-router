@@ -139,7 +139,7 @@ interface IUniswapV4Router04 {
     ///         Currency startCurrency,        // initial currency in the swap
     ///         PathKey[] path                 // array of path keys defining the route
     ///     )
-    ///     
+    ///
     ///     PERMIT2 EXTENSION:
     ///     1. For single pool swaps: abi.encode(
     ///         BaseData baseData,             // struct containing swap parameters
@@ -167,4 +167,10 @@ interface IUniswapV4Router04 {
 
     /// @notice Provides ETH receipts locked to Pool Manager
     receive() external payable;
+
+    /// ================ GETTERS ================ ///
+
+    /// @notice Public view function to be used instead of msg.sender, as the contract performs self-reentrancy and at
+    /// times msg.sender == address(this). Instead msgSender() returns the initiator of the lock
+    function msgSender() external view returns (address);
 }

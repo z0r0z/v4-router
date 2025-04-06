@@ -15,6 +15,7 @@ import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 import {MockCurrencyLibrary} from "./mocks/MockCurrencyLibrary.sol";
 import {CSMM} from "./hooks/CSMM.sol";
 import {HookData} from "./hooks/HookData.sol";
+import {HookMsgSender} from "./hooks/HookMsgSender.sol";
 
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 import {PermitSignature} from "permit2/test/utils/PermitSignature.sol";
@@ -43,6 +44,7 @@ contract SwapRouterFixtures is Deployers, DeployPermit2, PermitSignature {
 
     CSMM csmm;
     HookData hookWithData;
+    HookMsgSender hookMsgSender;
     ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     uint24 constant FEE = 3000;
@@ -93,6 +95,15 @@ contract SwapRouterFixtures is Deployers, DeployPermit2, PermitSignature {
         bytes memory constructorArgs = abi.encode(manager);
         deployCodeTo("test/utils/hooks/HookData.sol:HookData", constructorArgs, flags);
         hookWithData = HookData(flags);
+    }
+
+    function _deployHookMsgSender() internal {
+        address flags = address(
+            uint160(Hooks.BEFORE_SWAP_FLAG | Hooks.AFTER_SWAP_FLAG) ^ (0x444A << 144) // Namespace the hook to avoid collisions
+        );
+        bytes memory constructorArgs = abi.encode(manager);
+        deployCodeTo("test/utils/hooks/HookMsgSender.sol:HookMsgSender", constructorArgs, flags);
+        hookMsgSender = HookMsgSender(flags);
     }
 
     function _addLiquidityCSMM(PoolKey[] memory poolKeys, uint256 liquidity) internal {

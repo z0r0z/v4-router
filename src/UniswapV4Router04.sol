@@ -10,11 +10,18 @@ import {
     IUniswapV4Router04
 } from "./interfaces/IUniswapV4Router04.sol";
 import {LibZip} from "@solady/src/utils/LibZip.sol";
+import {Locker} from "@v4-periphery/src/libraries/Locker.sol";
 import {Multicallable} from "@solady/src/utils/Multicallable.sol";
 import {IPoolManager, SwapFlags, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
 
 /// @title Uniswap V4 Swap Router
 contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable {
+    modifier setMsgSender() {
+        Locker.set(msg.sender);
+        _;
+        Locker.set(address(0));
+    }
+
     constructor(IPoolManager manager, ISignatureTransfer _permit2)
         payable
         BaseSwapRouter(manager, _permit2)
@@ -36,6 +43,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         virtual
         override(IUniswapV4Router04)
         checkDeadline(deadline)
+        setMsgSender
         returns (BalanceDelta)
     {
         return _unlockAndDecode(
@@ -67,6 +75,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         virtual
         override(IUniswapV4Router04)
         checkDeadline(deadline)
+        setMsgSender
         returns (BalanceDelta)
     {
         return _unlockAndDecode(
@@ -98,6 +107,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         virtual
         override(IUniswapV4Router04)
         checkDeadline(deadline)
+        setMsgSender
         returns (BalanceDelta)
     {
         return _unlockAndDecode(
@@ -132,6 +142,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         virtual
         override(IUniswapV4Router04)
         checkDeadline(deadline)
+        setMsgSender
         returns (BalanceDelta)
     {
         return _unlockAndDecode(
@@ -165,6 +176,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         virtual
         override(IUniswapV4Router04)
         checkDeadline(deadline)
+        setMsgSender
         returns (BalanceDelta)
     {
         return _unlockAndDecode(
@@ -198,6 +210,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         virtual
         override(IUniswapV4Router04)
         checkDeadline(deadline)
+        setMsgSender
         returns (BalanceDelta)
     {
         return _unlockAndDecode(
@@ -225,6 +238,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         virtual
         override(IUniswapV4Router04)
         checkDeadline(deadline)
+        setMsgSender
         returns (BalanceDelta)
     {
         // equivalent to `require(abi.decode(data, (BaseData)).payer == msg.sender, Unauthorized())`
@@ -240,7 +254,13 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
     /// -----------------------
 
     /// @inheritdoc IUniswapV4Router04
+    function msgSender() public view virtual returns (address) {
+        return Locker.get();
+    }
+
+    /// @inheritdoc IUniswapV4Router04
     fallback() external payable virtual {
+        Locker.set(msg.sender);
         LibZip.cdFallback();
     }
 

@@ -23,6 +23,7 @@ import {
 } from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
+import {HookMsgSender} from "./utils/hooks/HookMsgSender.sol";
 
 contract SinglehopTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
@@ -35,6 +36,7 @@ contract SinglehopTest is SwapRouterFixtures {
     PoolKey[] nativePoolKeys;
     PoolKey[] hookedPoolKeys;
     PoolKey[] csmmPoolKeys;
+    PoolKey[] hookMsgSenderPoolKeys;
 
     // Test contract inherits `receive` function through SwapRouterFixtures' Deployers contract
 
@@ -65,6 +67,7 @@ contract SinglehopTest is SwapRouterFixtures {
         // Deploy the hook to an address with the correct flags
         _deployCSMM();
         _deployHookWithData();
+        _deployHookMsgSender();
 
         // Define and create all pools with their respective hooks
         PoolKey[] memory _vanillaPoolKeys = _createPoolKeys(address(0));
@@ -77,14 +80,18 @@ contract SinglehopTest is SwapRouterFixtures {
         _copyArrayToStorage(_hookedPoolKeys, hookedPoolKeys);
         PoolKey[] memory _csmmPoolKeys = _createPoolKeys(address(csmm));
         _copyArrayToStorage(_csmmPoolKeys, csmmPoolKeys);
+        PoolKey[] memory _hookMsgSenderPoolKeys = _createPoolKeys(address(hookMsgSender));
+        _copyArrayToStorage(_hookMsgSenderPoolKeys, hookMsgSenderPoolKeys);
 
         PoolKey[] memory allPoolKeys =
             _concatPools(vanillaPoolKeys, nativePoolKeys, hookedPoolKeys, csmmPoolKeys);
         _initializePools(allPoolKeys);
+        _initializePools(hookMsgSenderPoolKeys);
 
         _addLiquidity(vanillaPoolKeys, 10_000e18);
         _addLiquidity(nativePoolKeys, 10_000e18);
         _addLiquidity(hookedPoolKeys, 10_000e18);
+        _addLiquidity(hookMsgSenderPoolKeys, 10_000e18);
         _addLiquidityCSMM(csmmPoolKeys, 1_000e18);
     }
 
@@ -573,5 +580,36 @@ contract SinglehopTest is SwapRouterFixtures {
 
         // verify slippage: amountIn < amountInMax
         assertLt((thisBefore.inputCurrency - thisAfter.inputCurrency), amountInMax);
+    }
+
+    // Utility Tests
+
+    function test_single_exactInput_hookMsgSender(address pranker, address recipient, bool zeroForOne, uint256 seed) public {
+        vm.assume(recipient != address(manager) && recipient != address(this));
+        // randomly select a pool
+        PoolKey memory poolKey = hookMsgSenderPoolKeys[seed % hookMsgSenderPoolKeys.length];
+        Currency inputCurrency = zeroForOne ? poolKey.currency0 : poolKey.currency1;
+        inputCurrency.mint(pranker, 1e18);
+
+        vm.prank(pranker);
+        inputCurrency.maxApprove(address(router));
+
+        vm.expectEmit(true, true, true, true, address(hookMsgSender));
+        emit HookMsgSender.BeforeSwapWallet(pranker);
+        vm.expectEmit(true, true, true, true, address(hookMsgSender));
+        emit HookMsgSender.AfterSwapWallet(pranker);
+
+        uint256 amountIn = 1e18;
+        uint256 amountOutMin = 0.99e18;
+        vm.prank(pranker);
+        router.swapExactTokensForTokens(
+            amountIn,
+            amountOutMin,
+            zeroForOne,
+            poolKey,
+            ZERO_BYTES,
+            recipient,
+            uint256(block.timestamp)
+        );
     }
 }

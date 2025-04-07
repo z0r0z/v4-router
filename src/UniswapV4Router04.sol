@@ -260,7 +260,6 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
 
     /// @inheritdoc IUniswapV4Router04
     fallback() external payable virtual {
-        Locker.set(msg.sender);
         LibZip.cdFallback();
     }
 

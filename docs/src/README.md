@@ -2,6 +2,10 @@
 
 A simple and optimized router for swapping on Uniswap V4. ABI inspired by [`UniswapV2Router02`](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol).
 
+Deployment: [`0x00000000000044a361Ae3cAc094c9D1b14Eece97`](https://contractscan.xyz/contract/0x00000000000044a361Ae3cAc094c9D1b14Eece97)
+
+3 audits were performed: [*Audits*](./audits)
+
 ## Design
 
 The Uniswap V4 Swap Router supports the following features:
@@ -12,10 +16,6 @@ The Uniswap V4 Swap Router supports the following features:
 - Native token (ETH) swaps
 - Hook interactions
 - Custom swap curves
-
-## Deployment
-
-Every chain at [0x00000000000044AcF0C243EECB34c8C0069B2E4B](https://contractscan.xyz/contract/0x00000000000044AcF0C243EECB34c8C0069B2E4B)
 
 # Usage
 

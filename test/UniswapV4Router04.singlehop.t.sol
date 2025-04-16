@@ -584,7 +584,12 @@ contract SinglehopTest is SwapRouterFixtures {
 
     // Utility Tests
 
-    function test_single_exactInput_hookMsgSender(address pranker, address recipient, bool zeroForOne, uint256 seed) public {
+    function test_single_exactInput_hookMsgSender(
+        address pranker,
+        address recipient,
+        bool zeroForOne,
+        uint256 seed
+    ) public {
         vm.assume(recipient != address(manager) && recipient != address(this));
         // randomly select a pool
         PoolKey memory poolKey = hookMsgSenderPoolKeys[seed % hookMsgSenderPoolKeys.length];

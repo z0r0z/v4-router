@@ -1,11 +1,18 @@
 # UniswapV4Router04
-[Git Source](https://github.com/z0r0z/v4-router/blob/f6f4cdd1451f5c32efafd920cd6b078aa2408be7/src/UniswapV4Router04.sol)
+[Git Source](https://github.com/z0r0z/v4-router/blob/2136c4940d470a172e9d496b4ec339d98f9187ae/src/UniswapV4Router04.sol)
 
 **Inherits:**
-[IUniswapV4Router04](/src/interfaces/IUniswapV4Router04.sol/interface.IUniswapV4Router04.md), [BaseSwapRouter](/src/base/BaseSwapRouter.sol/abstract.BaseSwapRouter.md)
+[IUniswapV4Router04](/src/interfaces/IUniswapV4Router04.sol/interface.IUniswapV4Router04.md), [BaseSwapRouter](/src/base/BaseSwapRouter.sol/abstract.BaseSwapRouter.md), Multicallable
 
 
 ## Functions
+### setMsgSender
+
+
+```solidity
+modifier setMsgSender();
+```
+
 ### constructor
 
 
@@ -34,6 +41,7 @@ function swapExactTokensForTokens(
     virtual
     override(IUniswapV4Router04)
     checkDeadline(deadline)
+    setMsgSender
     returns (BalanceDelta);
 ```
 **Parameters**
@@ -73,6 +81,7 @@ function swapTokensForExactTokens(
     virtual
     override(IUniswapV4Router04)
     checkDeadline(deadline)
+    setMsgSender
     returns (BalanceDelta);
 ```
 **Parameters**
@@ -112,6 +121,7 @@ function swap(
     virtual
     override(IUniswapV4Router04)
     checkDeadline(deadline)
+    setMsgSender
     returns (BalanceDelta);
 ```
 **Parameters**
@@ -152,6 +162,7 @@ function swapExactTokensForTokens(
     virtual
     override(IUniswapV4Router04)
     checkDeadline(deadline)
+    setMsgSender
     returns (BalanceDelta);
 ```
 **Parameters**
@@ -193,6 +204,7 @@ function swapTokensForExactTokens(
     virtual
     override(IUniswapV4Router04)
     checkDeadline(deadline)
+    setMsgSender
     returns (BalanceDelta);
 ```
 **Parameters**
@@ -234,6 +246,7 @@ function swap(
     virtual
     override(IUniswapV4Router04)
     checkDeadline(deadline)
+    setMsgSender
     returns (BalanceDelta);
 ```
 **Parameters**
@@ -267,6 +280,7 @@ function swap(bytes calldata data, uint256 deadline)
     virtual
     override(IUniswapV4Router04)
     checkDeadline(deadline)
+    setMsgSender
     returns (BalanceDelta);
 ```
 **Parameters**
@@ -283,12 +297,30 @@ function swap(bytes calldata data, uint256 deadline)
 |`<none>`|`BalanceDelta`|Delta the balance changes from the swap|
 
 
-### fallback
+### msgSender
 
 -----------------------
 
 
 ```solidity
+function msgSender() public view virtual returns (address);
+```
+
+### fallback
+
+Provides calldata compression fallback
+
+
+```solidity
 fallback() external payable virtual;
+```
+
+### receive
+
+Provides ETH receipts locked to Pool Manager
+
+
+```solidity
+receive() external payable virtual;
 ```
 

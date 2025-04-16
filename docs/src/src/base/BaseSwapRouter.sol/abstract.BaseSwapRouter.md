@@ -1,10 +1,12 @@
 # BaseSwapRouter
-[Git Source](https://github.com/z0r0z/v4-router/blob/f6f4cdd1451f5c32efafd920cd6b078aa2408be7/src/base/BaseSwapRouter.sol)
+[Git Source](https://github.com/z0r0z/v4-router/blob/2136c4940d470a172e9d496b4ec339d98f9187ae/src/base/BaseSwapRouter.sol)
 
 **Inherits:**
 SafeCallback
 
 Template for data parsing and callback swap handling in Uniswap V4
+
+*Fee-on-transfer tokens are not supported - these swaps might not pass*
 
 
 ## State Variables
@@ -63,10 +65,9 @@ function _unlockCallback(bytes calldata callbackData)
 
 ```solidity
 function _parseAndSwap(
-    bool isSingleSwap,
-    bool isExactOutput,
+    bool singleSwap,
+    bool exactOutput,
     uint256 amount,
-    bool settleWithPermit2,
     bytes calldata callbackData
 ) internal virtual returns (Currency inputCurrency, Currency outputCurrency, BalanceDelta delta);
 ```
@@ -78,7 +79,7 @@ function _parseAndSwap(
 function _exactInputMultiSwap(Currency inputCurrency, PathKey[] memory path, uint256 amount)
     internal
     virtual
-    returns (BalanceDelta finalDelta);
+    returns (BalanceDelta delta);
 ```
 
 ### _exactOutputMultiSwap
@@ -88,7 +89,7 @@ function _exactInputMultiSwap(Currency inputCurrency, PathKey[] memory path, uin
 function _exactOutputMultiSwap(Currency startCurrency, PathKey[] memory path, uint256 amount)
     internal
     virtual
-    returns (BalanceDelta finalDelta);
+    returns (BalanceDelta delta);
 ```
 
 ### _swap
@@ -117,14 +118,11 @@ function _unlockAndDecode(bytes memory data) internal virtual returns (BalanceDe
 modifier checkDeadline(uint256 deadline) virtual;
 ```
 
-### receive
-
-
-```solidity
-receive() external payable virtual;
-```
-
 ### _refundETH
+
+*Note: This function forwards all remaining gas to the receiver.
+If the receiver is contract, it could maliciously consume excess gas
+in its fallback function, significantly increasing transaction costs.*
 
 
 ```solidity

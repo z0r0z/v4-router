@@ -1,5 +1,5 @@
 # IUniswapV4Router04
-[Git Source](https://github.com/z0r0z/v4-router/blob/f6f4cdd1451f5c32efafd920cd6b078aa2408be7/src/interfaces/IUniswapV4Router04.sol)
+[Git Source](https://github.com/z0r0z/v4-router/blob/2136c4940d470a172e9d496b4ec339d98f9187ae/src/interfaces/IUniswapV4Router04.sol)
 
 A simple, stateless router for execution of swaps against Uniswap v4 Pools
 
@@ -120,7 +120,7 @@ function swapExactTokensForTokens(
     uint256 amountIn,
     uint256 amountOutMin,
     bool zeroForOne,
-    PoolKey memory poolKey,
+    PoolKey calldata poolKey,
     bytes calldata hookData,
     address receiver,
     uint256 deadline
@@ -155,8 +155,8 @@ function swapTokensForExactTokens(
     uint256 amountOut,
     uint256 amountInMax,
     bool zeroForOne,
-    PoolKey memory poolKey,
-    bytes memory hookData,
+    PoolKey calldata poolKey,
+    bytes calldata hookData,
     address receiver,
     uint256 deadline
 ) external payable returns (BalanceDelta);
@@ -190,8 +190,8 @@ function swap(
     int256 amountSpecified,
     uint256 amountLimit,
     bool zeroForOne,
-    PoolKey memory poolKey,
-    bytes memory hookData,
+    PoolKey calldata poolKey,
+    bytes calldata hookData,
     address receiver,
     uint256 deadline
 ) external payable returns (BalanceDelta);
@@ -231,7 +231,7 @@ function swap(bytes calldata data, uint256 deadline) external payable returns (B
 
 |Name|Type|Description|
 |----|----|-----------|
-|`data`|`bytes`|Pre-encoded swap data in one of the following formats: 1. For single-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters bool zeroForOne,               // direction of swap PoolKey poolKey,               // key of the pool to swap through bytes hookData                 // data to pass to hooks ) 2. For multi-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters Currency startCurrency,        // initial currency in the swap PathKey[] path                 // array of path keys defining the route ) ERC6909 EXTENSION: For both single and multi-pool swaps, BaseData flags can specify: - input6909: true if input token follows ERC6909 standard - output6909: true if output token follows ERC6909 standard PERMIT2 EXTENSION: 1. For single pool swaps: abi.encode( BaseData, PermitPayload, bool zeroForOne, PoolKey poolKey, bytes hookData ) 2. For multi-pool swaps: abi.encode( BaseData, PermitPayload, Currency startCurrency, PathKey[] path ) Where BaseData.permit2 must be true, and PermitPayload contains: - permit: ISignatureTransfer.PermitTransferFrom - signature: bytes|
+|`data`|`bytes`|Pre-encoded swap data in one of the following formats: 1. For single-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters bool zeroForOne,               // direction of swap PoolKey poolKey,               // key of the pool to swap through bytes hookData                 // data to pass to hooks ) 2. For multi-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters Currency startCurrency,        // initial currency in the swap PathKey[] path                 // array of path keys defining the route ) PERMIT2 EXTENSION: 1. For single pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters bool zeroForOne,               // direction of swap PoolKey poolKey,               // key of the pool to swap through bytes hookData,                // data to pass to hooks PermitPayload permitPayload    // permit2 signature payload ) 2. For multi-pool swaps: abi.encode( BaseData baseData,             // struct containing swap parameters Currency startCurrency,        // initial currency in the swap PathKey[] path,                // array of path keys defining the route PermitPayload permitPayload    // permit2 signature payload ) Where BaseData.flags contains permit2 flag, and PermitPayload contains: - permit: ISignatureTransfer.PermitTransferFrom - signature: bytes|
 |`deadline`|`uint256`|block.timestamp must be before this value, otherwise the transaction will revert|
 
 **Returns**
@@ -248,5 +248,26 @@ Provides calldata compression fallback
 
 ```solidity
 fallback() external payable;
+```
+
+### receive
+
+Provides ETH receipts locked to Pool Manager
+
+
+```solidity
+receive() external payable;
+```
+
+### msgSender
+
+================ GETTERS ================ ///
+
+Public view function to be used instead of msg.sender, as the contract performs self-reentrancy and at
+times msg.sender == address(this). Instead msgSender() returns the initiator of the lock
+
+
+```solidity
+function msgSender() external view returns (address);
 ```
 

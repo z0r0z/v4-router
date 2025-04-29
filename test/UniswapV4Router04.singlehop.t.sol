@@ -8,13 +8,8 @@ import {Currency} from "v4-core/src/types/Currency.sol";
 import {PathKey} from "../src/libraries/PathKey.sol";
 import {IERC20Minimal} from "v4-core/src/interfaces/external/IERC20Minimal.sol";
 
-<<<<<<< HEAD
-import {Counter} from "@v4-template/src/Counter.sol";
-import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
-=======
-import {Counter} from "./utils/Counter.sol";
+import {Counter} from "v4-template/src/Counter.sol";
 import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
->>>>>>> 51e61ef... chore: update imports to use consolidated remappings
 
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 

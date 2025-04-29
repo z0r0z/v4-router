@@ -8,8 +8,8 @@ import {PathKey} from "../src/libraries/PathKey.sol";
 import {IERC20Minimal} from "v4-core/src/interfaces/external/IERC20Minimal.sol";
 import {IERC6909Claims} from "v4-core/src/interfaces/external/IERC6909Claims.sol";
 
-import {Counter} from "@v4-template/src/Counter.sol";
-import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
+import {Counter} from "v4-template/src/Counter.sol";
+import {HookMiner} from "v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
 import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
 import {SwapFlags} from "../src/libraries/SwapFlags.sol";

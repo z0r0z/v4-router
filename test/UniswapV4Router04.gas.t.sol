@@ -7,7 +7,7 @@ import {PoolKey} from "v4-core/src/types/PoolKey.sol";
 import {Currency} from "v4-core/src/types/Currency.sol";
 import {PathKey} from "../src/libraries/PathKey.sol";
 
-import {Counter} from "@v4-template/src/Counter.sol";
+import {Counter} from "v4-template/src/Counter.sol";
 
 import {ISignatureTransfer, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 

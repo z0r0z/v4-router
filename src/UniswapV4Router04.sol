@@ -9,9 +9,9 @@ import {
     ISignatureTransfer,
     IUniswapV4Router04
 } from "./interfaces/IUniswapV4Router04.sol";
-import {LibZip} from "@solady/src/utils/LibZip.sol";
-import {Locker} from "@v4-periphery/src/libraries/Locker.sol";
-import {Multicallable} from "@solady/src/utils/Multicallable.sol";
+import {LibZip} from "solady/src/utils/LibZip.sol";
+import {Locker} from "v4-periphery/src/libraries/Locker.sol";
+import {Multicallable} from "solady/src/utils/Multicallable.sol";
 import {IPoolManager, SwapFlags, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
 
 /// @title Uniswap V4 Swap Router

@@ -1,24 +1,21 @@
-@v4/=lib/v4-core/
-@solady/=lib/solady/
-v4-core/=lib/v4-core/
-@permit2/=lib/permit2/src/
-@forge/=lib/forge-std/src/
 @uniswap/v4-core/=lib/v4-core/
+<<<<<<< HEAD
 @v4-periphery/=lib/v4-periphery/
 @v4-template/=lib/v4-template/
+=======
+v4-core/=lib/v4-core/
+>>>>>>> 51e61ef... chore: update imports to use consolidated remappings
 forge-std/=lib/v4-core/lib/forge-std/src/
-@ensdomains/=lib/v4-core/node_modules/@ensdomains/
-@openzeppelin/=lib/v4-core/lib/openzeppelin-contracts/
-@openzeppelin/contracts/=lib/v4-core/lib/openzeppelin-contracts/contracts/
-@openzeppelin/uniswap-hooks/=lib/v4-template/lib/uniswap-hooks/
-ds-test/=lib/v4-core/lib/forge-std/lib/ds-test/src/
-erc4626-tests/=lib/v4-core/lib/openzeppelin-contracts/lib/erc4626-tests/
 forge-gas-snapshot/=lib/forge-gas-snapshot/src/
 hardhat/=lib/v4-core/node_modules/hardhat/
 permit2/=lib/permit2/
-solady/=lib/solady/src/
+solady/=lib/solady/
 solmate/=lib/v4-core/lib/solmate/
 uniswap-hooks/=lib/v4-template/lib/uniswap-hooks/src/
+<<<<<<< HEAD
 v4-periphery/=lib/v4-periphery/
 v4-template/=lib/v4-template/
 lib/permit2/test:openzeppelin-contracts/contracts/=lib/permit2/lib/openzeppelin-contracts/contracts/
+=======
+v4-periphery/=lib/v4-periphery/
+>>>>>>> 51e61ef... chore: update imports to use consolidated remappings

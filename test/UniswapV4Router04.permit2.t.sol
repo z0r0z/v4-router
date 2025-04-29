@@ -1,15 +1,20 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {Hooks} from "@v4/src/libraries/Hooks.sol";
-import {IHooks} from "@v4/src/interfaces/IHooks.sol";
-import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {Currency} from "@v4/src/types/Currency.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
 import {PathKey} from "../src/libraries/PathKey.sol";
-import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
+import {IERC20Minimal} from "v4-core/src/interfaces/external/IERC20Minimal.sol";
 
+<<<<<<< HEAD
 import {Counter} from "@v4-template/src/Counter.sol";
 import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
+=======
+import {Counter} from "./utils/Counter.sol";
+import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
+>>>>>>> 51e61ef... chore: update imports to use consolidated remappings
 
 import {UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 

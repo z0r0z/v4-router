@@ -3,14 +3,14 @@ pragma solidity ^0.8.26;
 
 import {IERC20} from "@forge/interfaces/IERC20.sol";
 
-import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {IHooks} from "@v4/src/interfaces/IHooks.sol";
-import {Hooks} from "@v4/src/libraries/Hooks.sol";
-import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
-import {Deployers} from "@v4/test/utils/Deployers.sol";
-import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {IHooks} from "v4-core/src/interfaces/IHooks.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {Currency, CurrencyLibrary} from "v4-core/src/types/Currency.sol";
+import {Deployers} from "v4-core/test/utils/Deployers.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
 
-import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
+import {MockERC20} from "solady/test/utils/mocks/MockERC20.sol";
 
 import {MockCurrencyLibrary} from "./mocks/MockCurrencyLibrary.sol";
 import {CSMM} from "./hooks/CSMM.sol";

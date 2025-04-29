@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {Hooks} from "@v4/src/libraries/Hooks.sol";
-import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {Currency} from "@v4/src/types/Currency.sol";
+import {Hooks} from "v4-core/src/libraries/Hooks.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
 import {PathKey} from "../src/libraries/PathKey.sol";
-import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
-import {IERC6909Claims} from "@v4/src/interfaces/external/IERC6909Claims.sol";
+import {IERC20Minimal} from "v4-core/src/interfaces/external/IERC20Minimal.sol";
+import {IERC6909Claims} from "v4-core/src/interfaces/external/IERC6909Claims.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
 import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
-import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
+import {BaseHook} from "v4-periphery/src/base/hooks/BaseHook.sol";
 import {SwapFlags} from "../src/libraries/SwapFlags.sol";
 import {BalanceDelta, BaseSwapRouter} from "../src/base/BaseSwapRouter.sol";
 

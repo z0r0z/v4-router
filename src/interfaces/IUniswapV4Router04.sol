@@ -2,10 +2,10 @@
 pragma solidity ^0.8.26;
 
 import {PathKey} from "../libraries/PathKey.sol";
-import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {Currency} from "@v4/src/types/Currency.sol";
-import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
-import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
+import {PoolKey} from "v4-core/src/types/PoolKey.sol";
+import {Currency} from "v4-core/src/types/Currency.sol";
+import {BalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
 
 /// @title Uniswap V4 Swap Router
 /// @notice A simple, stateless router for execution of swaps against Uniswap v4 Pools

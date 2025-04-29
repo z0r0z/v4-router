@@ -23,8 +23,12 @@ remappings = [
   "@permit2=lib/permit2/src/",
   "@forge=lib/forge-std/src/",
   "@uniswap/v4-core/=lib/v4-core/",
+<<<<<<< HEAD
   "@v4-periphery/=lib/v4-periphery/",
   "@v4-template/=lib/v4-template/",
+=======
+  "v4-periphery/=lib/v4-periphery/",
+>>>>>>> 51e61ef... chore: update imports to use consolidated remappings
   "forge-std/=lib/v4-core/lib/forge-std/src/",
   "@universal-router/=lib/universal-router/contracts/"
 ]

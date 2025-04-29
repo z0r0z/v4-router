@@ -2,12 +2,12 @@
 pragma solidity ^0.8.26;
 
 import {SwapFlags} from "../libraries/SwapFlags.sol";
-import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
-import {TickMath} from "@v4/src/libraries/TickMath.sol";
-import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
-import {BalanceDelta, toBalanceDelta} from "@v4/src/types/BalanceDelta.sol";
-import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
-import {IPoolManager, SafeCallback} from "@v4-periphery/src/base/SafeCallback.sol";
+import {SafeCast} from "v4-core/src/libraries/SafeCast.sol";
+import {TickMath} from "v4-core/src/libraries/TickMath.sol";
+import {CurrencySettler} from "v4-core/test/utils/CurrencySettler.sol";
+import {BalanceDelta, toBalanceDelta} from "v4-core/src/types/BalanceDelta.sol";
+import {ISignatureTransfer} from "permit2/src/interfaces/ISignatureTransfer.sol";
+import {IPoolManager, SafeCallback} from "v4-periphery/src/base/SafeCallback.sol";
 import {
     Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
 } from "../libraries/PathKey.sol";

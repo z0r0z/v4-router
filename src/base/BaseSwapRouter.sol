@@ -119,7 +119,6 @@ abstract contract BaseSwapRouter is SafeCallback {
                 );
                 poolManager.settle();
             } else {
-                if (inputCurrency.isAddressZero()) poolManager.sync(inputCurrency);
                 inputCurrency.settle(poolManager, data.payer, inputAmount, input6909);
             }
 

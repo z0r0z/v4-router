@@ -4,6 +4,7 @@ pragma solidity ^0.8.26;
 import {IERC20} from "@forge/interfaces/IERC20.sol";
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
+import {PoolId} from "@v4/src/types/PoolId.sol";
 import {IHooks} from "@v4/src/interfaces/IHooks.sol";
 import {Hooks} from "@v4/src/libraries/Hooks.sol";
 import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
@@ -107,6 +108,7 @@ contract SwapRouterFixtures is Deployers, DeployPermit2, PermitSignature {
     }
 
     function _addLiquidityCSMM(PoolKey[] memory poolKeys, uint256 liquidity) internal {
+        LIQUIDITY_PARAMS.liquidityDelta = liquidity.toInt256();
         PoolKey memory poolKey;
         for (uint256 i = 0; i < poolKeys.length; i++) {
             poolKey = poolKeys[i];

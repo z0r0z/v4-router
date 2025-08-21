@@ -8,6 +8,8 @@ import {CurrencySettler} from "@v4/test/utils/CurrencySettler.sol";
 import {BalanceDelta, toBalanceDelta} from "@v4/src/types/BalanceDelta.sol";
 import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 import {IPoolManager, SafeCallback} from "@v4-periphery/src/base/SafeCallback.sol";
+import {ModifyLiquidityParams, SwapParams} from "@v4/src/types/PoolOperation.sol";
+
 import {
     Currency, CurrencyLibrary, PoolKey, PathKey, PathKeyLibrary
 } from "../libraries/PathKey.sol";
@@ -271,7 +273,7 @@ abstract contract BaseSwapRouter is SafeCallback {
     ) internal virtual returns (BalanceDelta) {
         return poolManager.swap(
             poolKey,
-            IPoolManager.SwapParams({
+            SwapParams({
                 zeroForOne: zeroForOne,
                 amountSpecified: amountSpecified,
                 sqrtPriceLimitX96: zeroForOne ? MIN : MAX

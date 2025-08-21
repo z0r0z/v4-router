@@ -8,7 +8,6 @@ v4-core/=lib/v4-core/
 @v4-template/=lib/v4-template/
 forge-std/=lib/v4-core/lib/forge-std/src/
 @ensdomains/=lib/v4-core/node_modules/@ensdomains/
-@openzeppelin/=lib/v4-core/lib/openzeppelin-contracts/
 @openzeppelin/contracts/=lib/v4-core/lib/openzeppelin-contracts/contracts/
 @openzeppelin/uniswap-hooks/=lib/v4-template/lib/uniswap-hooks/
 ds-test/=lib/v4-core/lib/forge-std/lib/ds-test/src/

@@ -9,7 +9,7 @@ import {PathKey} from "../src/libraries/PathKey.sol";
 import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
-import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
+import {BaseHook} from "@v4-periphery/src/utils/BaseHook.sol";
 
 import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
 

@@ -8,9 +8,9 @@ import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
 import {IERC6909Claims} from "@v4/src/interfaces/external/IERC6909Claims.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
-import {HookMiner} from "@v4-template/test/utils/HookMiner.sol";
+import {HookMiner} from "@v4-periphery/src/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
-import {BaseHook} from "@v4-periphery/src/base/hooks/BaseHook.sol";
+import {BaseHook} from "@v4-periphery/src/utils/BaseHook.sol";
 
 import {
     IPoolManager,

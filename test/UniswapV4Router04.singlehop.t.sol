@@ -1,26 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.26;
 
-import {Hooks} from "@v4/src/libraries/Hooks.sol";
-import {IHooks} from "@v4/src/interfaces/IHooks.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
-import {PathKey} from "../src/libraries/PathKey.sol";
-import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
 
-import {Counter} from "@v4-template/src/Counter.sol";
-import {BaseHook} from "@v4-periphery/src/utils/BaseHook.sol";
+import {UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 
-import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
-
-import {ISignatureTransfer, UniswapV4Router04} from "../src/UniswapV4Router04.sol";
-
-import {
-    SwapRouterFixtures,
-    Deployers,
-    TestCurrencyBalances,
-    InputOutputBalances
-} from "./utils/SwapRouterFixtures.sol";
+import {SwapRouterFixtures, Deployers, InputOutputBalances} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
 import {HookData} from "./utils/hooks/HookData.sol";
 import {HookMsgSender} from "./utils/hooks/HookMsgSender.sol";
@@ -29,8 +15,6 @@ contract SinglehopTest is SwapRouterFixtures {
     using MockCurrencyLibrary for Currency;
 
     UniswapV4Router04 router;
-
-    Counter hook;
 
     PoolKey[] vanillaPoolKeys;
     PoolKey[] nativePoolKeys;
@@ -43,8 +27,7 @@ contract SinglehopTest is SwapRouterFixtures {
     function setUp() public payable {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
-        DeployPermit2.deployPermit2();
-        router = new UniswapV4Router04(manager, permit2);
+        router = new UniswapV4Router04(manager);
 
         // Create currencies
         (currencyA, currencyB, currencyC, currencyD) = _createSortedCurrencies();

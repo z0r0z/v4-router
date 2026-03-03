@@ -3,7 +3,7 @@ pragma solidity ^0.8.26;
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {IHooks} from "@v4/src/interfaces/IHooks.sol";
-import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
+import {Currency} from "@v4/src/types/Currency.sol";
 
 struct PathKey {
     Currency intermediateCurrency;

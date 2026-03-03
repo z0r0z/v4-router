@@ -125,15 +125,13 @@ contract CSMM is BaseHook {
         CallbackData memory callBackData = abi.decode(rawData, (CallbackData));
         // transfer ERC20 to PoolManager
         poolManager.sync(callBackData.currency0);
-        IERC20(Currency.unwrap(callBackData.currency0)).transferFrom(
-            callBackData.payer, address(poolManager), callBackData.amountPerToken
-        );
+        IERC20(Currency.unwrap(callBackData.currency0))
+            .transferFrom(callBackData.payer, address(poolManager), callBackData.amountPerToken);
         poolManager.settle();
 
         poolManager.sync(callBackData.currency1);
-        IERC20(Currency.unwrap(callBackData.currency1)).transferFrom(
-            callBackData.payer, address(poolManager), callBackData.amountPerToken
-        );
+        IERC20(Currency.unwrap(callBackData.currency1))
+            .transferFrom(callBackData.payer, address(poolManager), callBackData.amountPerToken);
         poolManager.settle();
 
         // mint ERC6909 to the hook

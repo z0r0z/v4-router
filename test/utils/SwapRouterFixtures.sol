@@ -4,7 +4,6 @@ pragma solidity ^0.8.26;
 import {IERC20} from "@forge/interfaces/IERC20.sol";
 
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
-import {PoolId} from "@v4/src/types/PoolId.sol";
 import {IHooks} from "@v4/src/interfaces/IHooks.sol";
 import {Hooks} from "@v4/src/libraries/Hooks.sol";
 import {Currency, CurrencyLibrary} from "@v4/src/types/Currency.sol";
@@ -13,14 +12,9 @@ import {SafeCast} from "@v4/src/libraries/SafeCast.sol";
 
 import {MockERC20} from "@solady/test/utils/mocks/MockERC20.sol";
 
-import {MockCurrencyLibrary} from "./mocks/MockCurrencyLibrary.sol";
 import {CSMM} from "./hooks/CSMM.sol";
 import {HookData} from "./hooks/HookData.sol";
 import {HookMsgSender} from "./hooks/HookMsgSender.sol";
-
-import {DeployPermit2} from "permit2/test/utils/DeployPermit2.sol";
-import {PermitSignature} from "permit2/test/utils/PermitSignature.sol";
-import "permit2/src/interfaces/IPermit2.sol";
 
 struct TestCurrencyBalances {
     uint256 currencyA;
@@ -35,7 +29,7 @@ struct InputOutputBalances {
     uint256 outputCurrency;
 }
 
-contract SwapRouterFixtures is Deployers, DeployPermit2, PermitSignature {
+contract SwapRouterFixtures is Deployers {
     using SafeCast for uint256;
 
     Currency currencyA;
@@ -46,7 +40,6 @@ contract SwapRouterFixtures is Deployers, DeployPermit2, PermitSignature {
     CSMM csmm;
     HookData hookWithData;
     HookMsgSender hookMsgSender;
-    ISignatureTransfer permit2 = ISignatureTransfer(address(PERMIT2_ADDRESS));
 
     uint24 constant FEE = 3000;
     int24 constant TICK_SPACING = 60;
@@ -219,33 +212,6 @@ contract SwapRouterFixtures is Deployers, DeployPermit2, PermitSignature {
 
     /// Utility Functions ///
 
-    function getPermitTransferToSignature(
-        ISignatureTransfer.PermitTransferFrom memory permit,
-        uint256 privateKey,
-        address to
-    ) internal view returns (bytes memory sig) {
-        bytes32 tokenPermissions =
-            keccak256(abi.encode(_TOKEN_PERMISSIONS_TYPEHASH, permit.permitted));
-        bytes32 msgHash = keccak256(
-            abi.encodePacked(
-                "\x19\x01",
-                permit2.DOMAIN_SEPARATOR(),
-                keccak256(
-                    abi.encode(
-                        _PERMIT_TRANSFER_FROM_TYPEHASH,
-                        tokenPermissions,
-                        to,
-                        permit.nonce,
-                        permit.deadline
-                    )
-                )
-            )
-        );
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, msgHash);
-        return bytes.concat(r, s, bytes1(v));
-    }
-
     function _concatPools(
         PoolKey[] memory a,
         PoolKey[] memory b,
@@ -295,8 +261,7 @@ contract SwapRouterFixtures is Deployers, DeployPermit2, PermitSignature {
         returns (InputOutputBalances memory)
     {
         return InputOutputBalances({
-            inputCurrency: input.balanceOf(addr),
-            outputCurrency: output.balanceOf(addr)
+            inputCurrency: input.balanceOf(addr), outputCurrency: output.balanceOf(addr)
         });
     }
 }

@@ -6,21 +6,11 @@ import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {PathKey} from "../src/libraries/PathKey.sol";
 import {IERC20Minimal} from "@v4/src/interfaces/external/IERC20Minimal.sol";
-import {IERC6909Claims} from "@v4/src/interfaces/external/IERC6909Claims.sol";
 
 import {Counter} from "@v4-template/src/Counter.sol";
-import {HookMiner} from "@v4-periphery/src/utils/HookMiner.sol";
 import {CustomCurveHook} from "./utils/hooks/CustomCurveHook.sol";
-import {BaseHook} from "@v4-periphery/src/utils/BaseHook.sol";
-import {SwapFlags} from "../src/libraries/SwapFlags.sol";
-import {BalanceDelta, BaseSwapRouter} from "../src/base/BaseSwapRouter.sol";
 
-import {
-    IPoolManager,
-    ISignatureTransfer,
-    BaseData,
-    UniswapV4Router04
-} from "../src/UniswapV4Router04.sol";
+import {UniswapV4Router04} from "../src/UniswapV4Router04.sol";
 
 import {SwapRouterFixtures, Deployers} from "./utils/SwapRouterFixtures.sol";
 import {MockCurrencyLibrary} from "./utils/mocks/MockCurrencyLibrary.sol";
@@ -41,7 +31,7 @@ contract RouterTest is SwapRouterFixtures {
     function setUp() public payable {
         // Deploy v4 contracts
         Deployers.deployFreshManagerAndRouters();
-        router = new UniswapV4Router04(manager, permit2);
+        router = new UniswapV4Router04(manager);
 
         // Create currencies
         (currencyA, currencyB, currencyC, currencyD) = _createSortedCurrencies();
@@ -126,7 +116,7 @@ contract RouterTest is SwapRouterFixtures {
     }
 
     function test_router_deploy_gas() public {
-        router = new UniswapV4Router04(manager, permit2);
+        router = new UniswapV4Router04(manager);
     }
 
     function test_zero_for_one() public {
@@ -319,42 +309,6 @@ contract RouterTest is SwapRouterFixtures {
         );
     }
 
-    function test_fuzz_revert_unauthorized_payer_in_swap_bytes(
-        address payer,
-        address receiver,
-        bool zeroForOne,
-        bool exactInput
-    ) public {
-        vm.assume(payer != address(this));
-        PoolKey memory poolKey = vanillaPoolKeys[0];
-        Currency input = zeroForOne ? poolKey.currency0 : poolKey.currency1;
-
-        // ensure payer has balance with approvals
-        input.mint(payer, 1 ether);
-        vm.prank(payer);
-        input.maxApprove(address(router));
-
-        uint256 amount = 0.1e18;
-        uint256 amountLimit = exactInput ? 0.09e18 : 0.11e18;
-        uint8 flags = SwapFlags.SINGLE_SWAP;
-        if (!exactInput) flags = flags | SwapFlags.EXACT_OUTPUT;
-
-        // Create malicious swap data with different payer
-        BaseData memory maliciousData = BaseData({
-            amount: amount,
-            amountLimit: amountLimit,
-            payer: payer, // Try to spend from victim's address
-            receiver: receiver,
-            flags: flags
-        });
-
-        bytes memory swapData = abi.encode(maliciousData, zeroForOne, poolKey, ZERO_BYTES);
-
-        // Attempt malicious swap should revert
-        vm.expectRevert(abi.encodeWithSelector(BaseSwapRouter.Unauthorized.selector));
-        router.swap(swapData, block.timestamp + 1);
-    }
-
     function test_exact_output_multihop_slippage() public {
         // Setup a multi-hop path with 3 currencies
         Currency startCurrency = currencyA;
@@ -417,10 +371,6 @@ contract RouterTest is SwapRouterFixtures {
 
         // Verify we didn't exceed our max input
         assertLe(actualInputUsed, maxInputAmount, "Exceeded maximum input amount");
-
-        // The key test: make sure actual amounts were properly used in the final delta
-        // We can verify this indirectly by checking that the swap was successfully completed
-        // and that tokens were transferred correctly
 
         // Additionally, let's try a failing case to ensure slippage protection works
         uint256 tooLowMaxInput = actualInputUsed / 2; // Set max input to half of what's actually needed

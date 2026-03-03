@@ -1,0 +1,26 @@
+{
+  "lib/forge-gas-snapshot": {
+    "rev": "cf34ad1ed0a1f323e77557b9bce420f3385f7400"
+  },
+  "lib/forge-std": {
+    "rev": "6abf66980050ab03a35b52bdab814f55001d6929"
+  },
+  "lib/permit2": {
+    "rev": "cc56ad0f3439c502c246fc5cfcc3db92bb8b7219"
+  },
+  "lib/solady": {
+    "rev": "dcdfab80f4e6cb9ac35c91610b2a2ec42689ec79"
+  },
+  "lib/universal-router": {
+    "rev": "8bd498a3fc9f8bc8577e626c024c4fcf0691f885"
+  },
+  "lib/v4-core": {
+    "rev": "59d3ecf53afa9264a16bba0e38f4c5d2231f80bc"
+  },
+  "lib/v4-periphery": {
+    "rev": "ad04c9f24a170accf5ea1b2836bbafd514537ca6"
+  },
+  "lib/v4-template": {
+    "rev": "9f7af64a79f5c19597ca01f88d92026443b30900"
+  }
+}

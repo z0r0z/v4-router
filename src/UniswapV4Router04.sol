@@ -6,10 +6,8 @@ import {
     PoolKey,
     Currency,
     BalanceDelta,
-    ISignatureTransfer,
     IUniswapV4Router04
 } from "./interfaces/IUniswapV4Router04.sol";
-import {LibZip} from "@solady/src/utils/LibZip.sol";
 import {Locker} from "@v4-periphery/src/libraries/Locker.sol";
 import {Multicallable} from "@solady/src/utils/Multicallable.sol";
 import {IPoolManager, SwapFlags, BaseData, BaseSwapRouter} from "./base/BaseSwapRouter.sol";
@@ -22,10 +20,7 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         Locker.set(address(0));
     }
 
-    constructor(IPoolManager manager, ISignatureTransfer _permit2)
-        payable
-        BaseSwapRouter(manager, _permit2)
-    {}
+    constructor(IPoolManager manager) payable BaseSwapRouter(manager) {}
 
     /// -----------------------
 
@@ -113,7 +108,9 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
+                    amount: amountSpecified > 0
+                        ? uint256(amountSpecified)
+                        : uint256(-amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
                     receiver: receiver,
@@ -216,11 +213,14 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
         return _unlockAndDecode(
             abi.encode(
                 BaseData({
-                    amount: amountSpecified > 0 ? uint256(amountSpecified) : uint256(-amountSpecified),
+                    amount: amountSpecified > 0
+                        ? uint256(amountSpecified)
+                        : uint256(-amountSpecified),
                     amountLimit: amountLimit,
                     payer: msg.sender,
                     receiver: receiver,
-                    flags: SwapFlags.SINGLE_SWAP | (amountSpecified > 0 ? SwapFlags.EXACT_OUTPUT : 0)
+                    flags: SwapFlags.SINGLE_SWAP
+                        | (amountSpecified > 0 ? SwapFlags.EXACT_OUTPUT : 0)
                 }),
                 zeroForOne,
                 poolKey,
@@ -232,45 +232,12 @@ contract UniswapV4Router04 is IUniswapV4Router04, BaseSwapRouter, Multicallable 
     /// -----------------------
 
     /// @inheritdoc IUniswapV4Router04
-    function swap(bytes calldata data, uint256 deadline)
-        public
-        payable
-        virtual
-        override(IUniswapV4Router04)
-        checkDeadline(deadline)
-        setMsgSender
-        returns (BalanceDelta)
-    {
-        // equivalent to `require(abi.decode(data, (BaseData)).payer == msg.sender, Unauthorized())`
-        assembly ("memory-safe") {
-            if iszero(eq(calldataload(164), caller())) {
-                mstore(0x00, 0x82b42900) // `Unauthorized()`.
-                revert(0x1c, 0x04)
-            }
-        }
-        return _unlockAndDecode(data);
-    }
-
-    /// -----------------------
-
-    /// @inheritdoc IUniswapV4Router04
     function msgSender() public view virtual returns (address) {
         return Locker.get();
     }
 
     /// @inheritdoc IUniswapV4Router04
-    fallback() external payable virtual {
-        LibZip.cdFallback();
-    }
-
-    /// @inheritdoc IUniswapV4Router04
     receive() external payable virtual {
-        IPoolManager _poolManager = poolManager;
-        assembly ("memory-safe") {
-            if iszero(eq(caller(), _poolManager)) {
-                mstore(0x00, 0x82b42900) // `Unauthorized()`
-                revert(0x1c, 0x04)
-            }
-        }
+        if (msg.sender != address(poolManager)) revert Unauthorized();
     }
 }

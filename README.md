@@ -2,9 +2,20 @@
 
 A simple and optimized router for swapping on Uniswap V4. ABI inspired by [`UniswapV2Router02`](https://github.com/Uniswap/v2-periphery/blob/master/contracts/UniswapV2Router02.sol).
 
-Deployment: [`0x00000000000044a361Ae3cAc094c9D1b14Eece97`](https://contractscan.xyz/contract/0x00000000000044a361Ae3cAc094c9D1b14Eece97)
+Previous deployment: [`0x00000000000044a361Ae3cAc094c9D1b14Eece97`](https://contractscan.xyz/contract/0x00000000000044a361Ae3cAc094c9D1b14Eece97)
 
-3 audits were performed: [*Audits*](./audits)
+> **Security Notice -- Previous Deployment Deprecated**
+>
+> The previous router deployment at `0x00000000000044a361Ae3cAc094c9D1b14Eece97` included
+> Permit2 integration and low-level encoded swap methods (`swap(bytes,uint256)`, `fallback()`)
+> that exposed potential allowance-penetration vectors. These entry points have been removed in the current
+> version. **If you have interacted with the previous deployment, you should:**
+>
+> 1. **Revoke ERC-20 approvals** granted to the old router address.
+> 2. **Revoke Permit2 authorizations** (allowances and nonces) associated with the old router.
+> 3. **Migrate** to a fresh deployment of this updated router.
+
+3 audits were performed on the previous version: [*Audits*](./audits)
 
 ## Design
 
@@ -187,9 +198,6 @@ The router provides three categories of swap functions:
 - `swapExactTokensForTokens`: Swap exact input in a single pool
 - `swapTokensForExactTokens`: Receive exact output from a single pool
 - `swap`: Generic single-pool swap interface
-
-### Optimized Swaps
-- `swap(bytes, uint256)`: Pre-encoded swap data for reduced gas costs
 
 ## Path Construction
 

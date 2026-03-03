@@ -5,14 +5,12 @@ import {PathKey} from "../libraries/PathKey.sol";
 import {PoolKey} from "@v4/src/types/PoolKey.sol";
 import {Currency} from "@v4/src/types/Currency.sol";
 import {BalanceDelta} from "@v4/src/types/BalanceDelta.sol";
-import {ISignatureTransfer} from "@permit2/interfaces/ISignatureTransfer.sol";
 
 /// @title Uniswap V4 Swap Router
 /// @notice A simple, stateless router for execution of swaps against Uniswap v4 Pools
 /// @dev ABI inspired by UniswapV2Router02
 interface IUniswapV4Router04 {
     /// ================ MULTI POOL SWAPS ================= ///
-
     /// @notice Exact Input Swap; swap the specified amount of input tokens for as many output tokens as possible, along the path
     /// @param amountIn the amount of input tokens to swap
     /// @param amountOutMin the minimum amount of output tokens that must be received for the transaction not to revert. reverts on equals to
@@ -122,48 +120,6 @@ interface IUniswapV4Router04 {
         address receiver,
         uint256 deadline
     ) external payable returns (BalanceDelta);
-
-    /// ================ OPTIMIZED ================ ///
-
-    /// @notice Generic multi-pool swap function that accepts pre-encoded calldata
-    /// @dev Minor optimization to reduce the number of onchain abi.encode calls
-    /// @param data Pre-encoded swap data in one of the following formats:
-    ///     1. For single-pool swaps: abi.encode(
-    ///         BaseData baseData,             // struct containing swap parameters
-    ///         bool zeroForOne,               // direction of swap
-    ///         PoolKey poolKey,               // key of the pool to swap through
-    ///         bytes hookData                 // data to pass to hooks
-    ///     )
-    ///     2. For multi-pool swaps: abi.encode(
-    ///         BaseData baseData,             // struct containing swap parameters
-    ///         Currency startCurrency,        // initial currency in the swap
-    ///         PathKey[] path                 // array of path keys defining the route
-    ///     )
-    ///
-    ///     PERMIT2 EXTENSION:
-    ///     1. For single pool swaps: abi.encode(
-    ///         BaseData baseData,             // struct containing swap parameters
-    ///         bool zeroForOne,               // direction of swap
-    ///         PoolKey poolKey,               // key of the pool to swap through
-    ///         bytes hookData,                // data to pass to hooks
-    ///         PermitPayload permitPayload    // permit2 signature payload
-    ///     )
-    ///     2. For multi-pool swaps: abi.encode(
-    ///         BaseData baseData,             // struct containing swap parameters
-    ///         Currency startCurrency,        // initial currency in the swap
-    ///         PathKey[] path,                // array of path keys defining the route
-    ///         PermitPayload permitPayload    // permit2 signature payload
-    ///     )
-    ///     Where BaseData.flags contains permit2 flag, and PermitPayload contains:
-    ///         - permit: ISignatureTransfer.PermitTransferFrom
-    ///         - signature: bytes
-    ///
-    /// @param deadline block.timestamp must be before this value, otherwise the transaction will revert
-    /// @return Delta the balance changes from the swap
-    function swap(bytes calldata data, uint256 deadline) external payable returns (BalanceDelta);
-
-    /// @notice Provides calldata compression fallback
-    fallback() external payable;
 
     /// @notice Provides ETH receipts locked to Pool Manager
     receive() external payable;
